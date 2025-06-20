@@ -35,13 +35,27 @@ export function activate(context: vscode.ExtensionContext) {
 				return;
 			}
 
-			// make an options list with the available SDKs using the title and value properties
-			// the title is the name of the sdk and the value is the same but lower case
+			// make an options list with the available SDKs using the label and value properties
+			// the label is the display name of the sdk and the value is the same but lower case
+			const options = [
+				{ label: 'Go', value: 'go' },
+				{ label: 'TypeScript', value: 'typescript' },
+				{ label: 'PHP', value: 'php' },
+				{ label: 'Python', value: 'python' },
+				{ label: 'Java', value: 'java' },
+			];
+
+			const sdkChoice = await vscode.window.showQuickPick(options, { placeHolder: 'Select the SDK to use' });
+
+			if (!sdkChoice) {
+				// User cancelled the selection
+				return;
+			}
 
 			// run the init command with the selected sdk
 			try {
-				await cli.run(['init', '--sdk', ""]);
-				vscode.window.showInformationMessage(`Dagger project initialized`);
+				await cli.run(['init', '--sdk', sdkChoice.value]);
+				vscode.window.showInformationMessage(`Dagger project initialized with ${sdkChoice.label} SDK`);
 			} catch (error) {
 				vscode.window.showErrorMessage(`Failed to initialize Dagger project: ${error}`);
 			}
