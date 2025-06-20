@@ -10,6 +10,51 @@ const curlInstallCommand = 'curl -fsSL https://dl.dagger.io/dagger/install.sh | 
 // make a custom type for install method
 type InstallMethod = 'brew' | 'curl';
 
+/**
+ * Check if Dagger CLI is installed and show a notification if it's not
+ */
+async function checkDaggerInstallation(): Promise<void> {
+	const isDaggerInstalled = await exists('dagger');
+	
+	if (!isDaggerInstalled) {
+		const response = await vscode.window.showWarningMessage(
+			'Dagger CLI is not installed. Install it to use Dagger commands.',
+			'Install Now',
+			'Later'
+		);
+		
+		if (response === 'Install Now') {
+			await vscode.commands.executeCommand('dagger.install');
+		}
+	}
+}
+
+/**
+ * Ensure Dagger CLI is installed before running a command
+ * @returns true if Dagger is installed, false otherwise
+ */
+async function ensureDaggerInstalled(): Promise<boolean> {
+	const isDaggerInstalled = await exists('dagger');
+	
+	if (!isDaggerInstalled) {
+		const response = await vscode.window.showErrorMessage(
+			'Dagger CLI is required for this command but is not installed.',
+			'Install Now',
+			'Cancel'
+		);
+		
+		if (response === 'Install Now') {
+			await vscode.commands.executeCommand('dagger.install');
+			// After installation attempt, check again
+			return await exists('dagger');
+		}
+		
+		return false;
+	}
+	
+	return true;
+}
+
 export function activate(context: vscode.ExtensionContext) {
 	const workspaceFolders = vscode.workspace.workspaceFolders;
 	if (!workspaceFolders || workspaceFolders.length === 0) {
@@ -22,6 +67,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand('dagger.version', async () => {
+			if (!await ensureDaggerInstalled()) {
+				return;
+			}
+			
 			try {
 				const result = await cli.run(['version']);
 				vscode.window.showInformationMessage(`Dagger version: ${result.stdout}`);
@@ -90,7 +139,7 @@ export function activate(context: vscode.ExtensionContext) {
 					);
 
 					if (verifyResponse === 'Verify') {
-						if (await exists('cu', [], 'stdio')) {
+						if (await exists('dagger')) {
 							vscode.window.showInformationMessage('✅ Dagger has been successfully installed!');
 						} else {
 							vscode.window.showWarningMessage('⚠️ Dagger was not found. Please check the terminal output for any errors and ensure your PATH is updated.');
@@ -102,6 +151,10 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		}),
 		vscode.commands.registerCommand('dagger.init', async () => {
+			if (!await ensureDaggerInstalled()) {
+				return;
+			}
+			
 			// check if this workspace is already a dagger project
 			if (await cli.isDaggerProject()) {
 				// show an error message if it is and prompt the user to run the develop command or ignore
@@ -160,6 +213,10 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		}),
 		vscode.commands.registerCommand('dagger.develop', async () => {
+			if (!await ensureDaggerInstalled()) {
+				return;
+			}
+			
 			// check if this workspace is already a dagger project
 			if (!await cli.isDaggerProject()) {
 				// show an error message if it is and ask the user to run the init command
@@ -187,6 +244,10 @@ export function activate(context: vscode.ExtensionContext) {
 			terminal.show();
 		}),
 		vscode.commands.registerCommand('dagger.functions', async () => {
+			if (!await ensureDaggerInstalled()) {
+				return;
+			}
+			
 			// check if this workspace is already a dagger project
 			if (!await cli.isDaggerProject()) {
 				const choice = await vscode.window.showErrorMessage(
@@ -212,6 +273,9 @@ export function activate(context: vscode.ExtensionContext) {
 			terminal.show();
 		})
 	);
+
+	// Check Dagger installation when extension activates
+	checkDaggerInstallation();
 }
 
 export function deactivate() { }
