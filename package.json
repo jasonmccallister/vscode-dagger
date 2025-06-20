@@ -15,27 +15,32 @@
     "commands": [
       {
         "command": "dagger.init",
-        "title": "Init",
+        "title": "Initialize a Dagger Project",
         "category": "Dagger",
-        "shortTitle": "Init a Dagger project"
+        "shortTitle": "Init"
       },
       {
         "command": "dagger.develop",
-        "title": "Develop",
+        "title": "Run Develop",
         "category": "Dagger",
-        "shortTitle": "Develop a Dagger project"
+        "shortTitle": "Develop"
       },
       {
         "command": "dagger.functions",
-        "title": "Functions",
+        "title": "View Functions",
         "category": "Dagger",
-        "shortTitle": "Show Dagger functions"
+        "shortTitle": "Functions"
       },
       {
         "command": "dagger.install",
-        "title": "Install",
+        "title": "Install the CLI",
         "category": "Dagger",
-        "shortTitle": "Install Dagger"
+        "shortTitle": "Install"
+      },{
+        "command": "dagger.version",
+        "title": "Show Version",
+        "category": "Dagger",
+        "shortTitle": "Version"
       }
     ]
   },
