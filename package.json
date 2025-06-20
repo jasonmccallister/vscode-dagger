@@ -36,11 +36,18 @@
         "title": "Install the CLI",
         "category": "Dagger",
         "shortTitle": "Install"
-      },{
+      },
+      {
         "command": "dagger.version",
         "title": "Show Version",
         "category": "Dagger",
         "shortTitle": "Version"
+      },
+      {
+        "command": "dagger.setupCloud",
+        "title": "Setup Dagger Cloud",
+        "category": "Dagger",
+        "shortTitle": "Setup Cloud"
       }
     ],
     "configuration": {
@@ -59,6 +66,12 @@
           "default": "brew",
           "description": "Method to use when installing Dagger CLI",
           "scope": "window"
+        },
+        "dagger.cloudNotificationDismissed": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the Dagger Cloud setup notification has been permanently dismissed",
+          "scope": "application"
         }
       }
     }

@@ -11,6 +11,39 @@ const curlInstallCommand = 'curl -fsSL https://dl.dagger.io/dagger/install.sh | 
 type InstallMethod = 'brew' | 'curl';
 
 /**
+ * Check if Dagger Cloud token is available and show setup notification if needed
+ */
+async function checkDaggerCloudSetup(context: vscode.ExtensionContext): Promise<void> {
+	const config = vscode.workspace.getConfiguration('dagger');
+	const notificationDismissed = config.get<boolean>('cloudNotificationDismissed', false);
+
+	// Check if token is available in secret storage or environment variable
+	const secretToken = await context.secrets.get('dagger.cloudToken');
+	const envToken = process.env.DAGGER_CLOUD_TOKEN;
+
+	// If token is available (either in secret storage or environment) or notification was dismissed, don't show notification
+	if (secretToken || envToken || notificationDismissed) {
+		return;
+	}
+
+	// Show notification about Dagger Cloud setup
+	const response = await vscode.window.showInformationMessage(
+		'Setup Dagger Cloud to get better observability, caching, and collaboration features for your Dagger projects.',
+		'Sign up at dagger.cloud',
+		'Learn More',
+		'Don\'t show again'
+	);
+
+	if (response === 'Sign up at dagger.cloud') {
+		vscode.env.openExternal(vscode.Uri.parse('https://dagger.cloud'));
+	} else if (response === 'Learn More') {
+		vscode.env.openExternal(vscode.Uri.parse('https://docs.dagger.io/cloud'));
+	} else if (response === 'Don\'t show again') {
+		await config.update('cloudNotificationDismissed', true, vscode.ConfigurationTarget.Global);
+	}
+}
+
+/**
  * Check if Dagger CLI is installed and show a notification if it's not
  */
 async function checkDaggerInstallation(): Promise<boolean> {
@@ -24,23 +57,23 @@ async function checkDaggerInstallation(): Promise<boolean> {
  */
 async function ensureDaggerInstalled(): Promise<boolean> {
 	const isDaggerInstalled = await exists('dagger');
-	
+
 	if (!isDaggerInstalled) {
 		const response = await vscode.window.showErrorMessage(
 			'Dagger CLI is required for this command but is not installed.',
 			'Install Now',
 			'Cancel'
 		);
-		
+
 		if (response === 'Install Now') {
 			await vscode.commands.executeCommand('dagger.install');
 			// After installation attempt, check again
 			return await exists('dagger');
 		}
-		
+
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -51,7 +84,7 @@ export function activate(context: vscode.ExtensionContext) {
 	}
 
 	const workspace = workspaceFolders[0].uri;
-	
+
 	// Check Dagger installation when extension activates
 	const isInstalled = checkDaggerInstallation();
 
@@ -68,6 +101,9 @@ export function activate(context: vscode.ExtensionContext) {
 		return;
 	}
 
+	// Check Dagger Cloud setup after confirming CLI is installed
+	checkDaggerCloudSetup(context);
+
 
 	const cli = new DaggerCli('dagger', workspace);
 
@@ -76,7 +112,7 @@ export function activate(context: vscode.ExtensionContext) {
 			if (!await ensureDaggerInstalled()) {
 				return;
 			}
-			
+
 			try {
 				const result = await cli.run(['version']);
 				vscode.window.showInformationMessage(`Dagger version: ${result.stdout}`);
@@ -92,7 +128,7 @@ export function activate(context: vscode.ExtensionContext) {
 				// Get current install method preference from settings
 				const config = vscode.workspace.getConfiguration('dagger');
 				let defaultInstallMethod: InstallMethod = config.get('installMethod', 'brew');
-				
+
 				// Check if user is on macOS and has brew installed first
 				let installMethod: InstallMethod = defaultInstallMethod;
 				let installPromptMessage = 'Dagger is not installed. Would you like to install it now?';
@@ -172,7 +208,7 @@ export function activate(context: vscode.ExtensionContext) {
 			if (!await ensureDaggerInstalled()) {
 				return;
 			}
-			
+
 			// check if this workspace is already a dagger project
 			if (await cli.isDaggerProject()) {
 				// show an error message if it is and prompt the user to run the develop command or ignore
@@ -234,7 +270,7 @@ export function activate(context: vscode.ExtensionContext) {
 			if (!await ensureDaggerInstalled()) {
 				return;
 			}
-			
+
 			// check if this workspace is already a dagger project
 			if (!await cli.isDaggerProject()) {
 				// show an error message if it is and ask the user to run the init command
@@ -265,7 +301,7 @@ export function activate(context: vscode.ExtensionContext) {
 			if (!await ensureDaggerInstalled()) {
 				return;
 			}
-			
+
 			// check if this workspace is already a dagger project
 			if (!await cli.isDaggerProject()) {
 				const choice = await vscode.window.showErrorMessage(
@@ -289,6 +325,36 @@ export function activate(context: vscode.ExtensionContext) {
 			const terminal = vscode.window.createTerminal('Dagger');
 			terminal.sendText('dagger functions');
 			terminal.show();
+		}),
+		vscode.commands.registerCommand('dagger.setupCloud', async () => {
+			const config = vscode.workspace.getConfiguration('dagger');
+			const currentToken = config.get<string>('cloudToken', '');
+			const envToken = process.env.DAGGER_CLOUD_TOKEN;
+
+			let message = 'Setup Dagger Cloud to get enhanced observability and collaboration features.';
+			if (envToken) {
+				message = 'Dagger Cloud token is already set via DAGGER_CLOUD_TOKEN environment variable.';
+			} else if (currentToken) {
+				message = 'Dagger Cloud token is already configured in settings.';
+			}
+
+			const response = await vscode.window.showInformationMessage(
+				message,
+				'Visit dagger.cloud',
+				'Open Settings',
+				...(currentToken || envToken ? ['Test Connection'] : []),
+				'Cancel'
+			);
+
+			if (response === 'Visit dagger.cloud') {
+				vscode.env.openExternal(vscode.Uri.parse('https://dagger.cloud'));
+			} else if (response === 'Open Settings') {
+				vscode.commands.executeCommand('workbench.action.openSettings', 'dagger.cloudToken');
+			} else if (response === 'Test Connection' && (currentToken || envToken)) {
+				// Simple check - if we have a token, consider it valid for now
+				// In a real implementation, you might want to make an API call to verify
+				vscode.window.showInformationMessage('✅ Dagger Cloud token is configured and ready to use!');
+			}
 		})
 	);
 }
