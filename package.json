@@ -42,7 +42,26 @@
         "category": "Dagger",
         "shortTitle": "Version"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Dagger",
+      "properties": {
+        "dagger.installMethod": {
+          "type": "string",
+          "enum": [
+            "brew",
+            "curl"
+          ],
+          "enumDescriptions": [
+            "Use Homebrew package manager (recommended for macOS/Linux)",
+            "Use curl installation script"
+          ],
+          "default": "brew",
+          "description": "Method to use when installing Dagger CLI",
+          "scope": "window"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "yarn run package",

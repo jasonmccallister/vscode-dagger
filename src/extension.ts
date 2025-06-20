@@ -89,15 +89,22 @@ export function activate(context: vscode.ExtensionContext) {
 			const binaryExists = await exists('dagger', []);
 
 			if (!binaryExists) {
+				// Get current install method preference from settings
+				const config = vscode.workspace.getConfiguration('dagger');
+				let defaultInstallMethod: InstallMethod = config.get('installMethod', 'brew');
+				
 				// Check if user is on macOS and has brew installed first
-				let installMethod: InstallMethod = 'curl';
+				let installMethod: InstallMethod = defaultInstallMethod;
 				let installPromptMessage = 'Dagger is not installed. Would you like to install it now?';
 				let installOptions = ['Install', 'Cancel'];
 
 				// brew is available on macOS and Linux
 				if (process.platform === 'darwin' || process.platform === 'linux') {
 					if (await exists('brew')) {
-						installOptions = [homebrewOption, curlOption];
+						// Use the preferred method from settings as default, but still show options
+						const preferredOption = defaultInstallMethod === 'brew' ? homebrewOption : curlOption;
+						const alternateOption = defaultInstallMethod === 'brew' ? curlOption : homebrewOption;
+						installOptions = [preferredOption, alternateOption];
 					}
 				}
 
@@ -118,7 +125,12 @@ export function activate(context: vscode.ExtensionContext) {
 				} else if (installResponse === curlOption) {
 					installMethod = 'curl';
 				} else if (installResponse === 'Install') {
-					installMethod = 'curl'; // Default for non-macOS or no brew
+					installMethod = defaultInstallMethod; // Use the configured default
+				}
+
+				// Update the setting with the user's choice (only if they made a specific choice)
+				if (installResponse === homebrewOption || installResponse === curlOption) {
+					await config.update('installMethod', installMethod, vscode.ConfigurationTarget.Global);
 				}
 
 				// Execute the installation command
