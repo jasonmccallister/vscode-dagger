@@ -57,11 +57,13 @@
           "type": "string",
           "enum": [
             "brew",
-            "curl"
+            "curl",
+            ""
           ],
           "enumDescriptions": [
             "Use Homebrew package manager (recommended for macOS/Linux)",
-            "Use curl installation script"
+            "Use curl installation script",
+            "No preferred method, will prompt for installation method if Dagger CLI is not found"
           ],
           "default": "brew",
           "description": "Method to use when installing Dagger CLI",

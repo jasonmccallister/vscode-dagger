@@ -8,7 +8,7 @@ const brewInstallCommand = 'brew install dagger/tap/dagger';
 const curlInstallCommand = 'curl -fsSL https://dl.dagger.io/dagger/install.sh | BIN_DIR=$HOME/.local/bin sh';
 
 // make a custom type for install method
-type InstallMethod = 'brew' | 'curl';
+type InstallMethod = 'brew' | 'curl' | '';
 
 /**
  * Check if Dagger Cloud token is available and show setup notification if needed
@@ -127,7 +127,7 @@ export function activate(context: vscode.ExtensionContext) {
 			if (!binaryExists) {
 				// Get current install method preference from settings
 				const config = vscode.workspace.getConfiguration('dagger');
-				let defaultInstallMethod: InstallMethod = config.get('installMethod', 'brew');
+				let defaultInstallMethod: InstallMethod = config.get('installMethod', '');
 
 				// Check if user is on macOS and has brew installed first
 				let installMethod: InstallMethod = defaultInstallMethod;
@@ -137,11 +137,24 @@ export function activate(context: vscode.ExtensionContext) {
 				// brew is available on macOS and Linux
 				if (process.platform === 'darwin' || process.platform === 'linux') {
 					if (await exists('brew')) {
-						// Use the preferred method from settings as default, but still show options
-						const preferredOption = defaultInstallMethod === 'brew' ? homebrewOption : curlOption;
-						const alternateOption = defaultInstallMethod === 'brew' ? curlOption : homebrewOption;
-						installOptions = [preferredOption, alternateOption];
+						// If no preference is set (empty string), show both options
+						if (defaultInstallMethod === '') {
+							installOptions = [homebrewOption, curlOption];
+						} else {
+							// Use the preferred method from settings as default, but still show options
+							const preferredOption = defaultInstallMethod === 'brew' ? homebrewOption : curlOption;
+							const alternateOption = defaultInstallMethod === 'brew' ? curlOption : homebrewOption;
+							installOptions = [preferredOption, alternateOption];
+						}
+					} else {
+						// Brew not available, only show curl option if no preference or preference is curl
+						if (defaultInstallMethod === '' || defaultInstallMethod === 'curl') {
+							installOptions = ['Install (curl)', 'Cancel'];
+						}
 					}
+				} else {
+					// Not macOS/Linux, only curl is available
+					installOptions = ['Install (curl)', 'Cancel'];
 				}
 
 				const installResponse = await vscode.window.showInformationMessage(
@@ -160,12 +173,15 @@ export function activate(context: vscode.ExtensionContext) {
 					installMethod = 'brew';
 				} else if (installResponse === curlOption) {
 					installMethod = 'curl';
+				} else if (installResponse === 'Install (curl)') {
+					installMethod = 'curl';
 				} else if (installResponse === 'Install') {
-					installMethod = defaultInstallMethod; // Use the configured default
+					// If defaultInstallMethod is empty, default to curl as fallback
+					installMethod = defaultInstallMethod === '' ? 'curl' : defaultInstallMethod;
 				}
 
-				// Update the setting with the user's choice (only if they made a specific choice)
-				if (installResponse === homebrewOption || installResponse === curlOption) {
+				// Update the setting with the user's choice (only if they made a specific choice and no preference was set)
+				if (defaultInstallMethod === '' && (installResponse === homebrewOption || installResponse === curlOption)) {
 					await config.update('installMethod', installMethod, vscode.ConfigurationTarget.Global);
 				}
 
