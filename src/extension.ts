@@ -29,8 +29,6 @@ export function activate(context: vscode.ExtensionContext) {
 					// User chose to ignore, do nothing
 					vscode.window.showInformationMessage('You can run the "Dagger: Develop" command to start developing your Dagger project.');
 				}
-				// return early to avoid running the init command againform
-
 
 				return;
 			}
@@ -55,7 +53,19 @@ export function activate(context: vscode.ExtensionContext) {
 			// run the init command with the selected sdk
 			try {
 				await cli.run(['init', '--sdk', sdkChoice.value]);
-				vscode.window.showInformationMessage(`Dagger project initialized with ${sdkChoice.label} SDK`);
+				
+				// Ask the user if they want to run the functions command
+				const choice = await vscode.window.showInformationMessage(
+					`Dagger project initialized with ${sdkChoice.label} SDK! Would you like to see the available functions?`,
+					{ modal: true },
+					'Yes',
+					'No'
+				);
+
+				if (choice === 'Yes') {
+					// call the vscode dagger.functions command
+					await vscode.commands.executeCommand('dagger.functions');
+				}
 			} catch (error) {
 				vscode.window.showErrorMessage(`Failed to initialize Dagger project: ${error}`);
 			}
@@ -63,22 +73,54 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand('dagger.develop', async () => {
 			// check if this workspace is already a dagger project
 			if (!await cli.isDaggerProject()) {
-				// show an error message if it is and prompt the user to run the init command
-				vscode.window.showErrorMessage('This workspace is not a Dagger project. Please run the "Dagger: Init" command to initialize it.');
+				// show an error message if it is and ask the user to run the init command
+				// Ask the user if they want to run the functions command
+				const choice = await vscode.window.showErrorMessage(
+					`This workspace is not a Dagger project. Please run the "Dagger: Init" command to initialize it.`,
+					{ modal: true },
+					'Run Init',
+					'No'
+				);
+
+				if (choice === 'Run Init') {
+					// Open a terminal and run the dagger init command
+					const terminal = vscode.window.createTerminal('Dagger');
+					terminal.sendText('dagger init');
+					terminal.show();
+				}
+
 				return;
 			}
 
-			await cli.run(['develop']);
+			// run the develop command in a terminal
+			const terminal = vscode.window.createTerminal('Dagger');
+			terminal.sendText('dagger develop');
+			terminal.show();
 		}),
 		vscode.commands.registerCommand('dagger.functions', async () => {
 			// check if this workspace is already a dagger project
 			if (!await cli.isDaggerProject()) {
-				// show an error message if it is and prompt the user to run the init command
-				vscode.window.showErrorMessage('This workspace is not a Dagger project. Please run the "Dagger: Init" command to initialize it.');
+				const choice = await vscode.window.showErrorMessage(
+					`This workspace is not a Dagger project. Please run the "Dagger: Init" command to initialize it.`,
+					{ modal: true },
+					'Run Init',
+					'No'
+				);
+
+				if (choice === 'Run Init') {
+					// Open a terminal and run the dagger init command
+					const terminal = vscode.window.createTerminal('Dagger');
+					terminal.sendText('dagger init');
+					terminal.show();
+				}
+
 				return;
 			}
 
-			await cli.run(['functions']);
+			// Open a terminal and run the dagger functions command
+			const terminal = vscode.window.createTerminal('Dagger');
+			terminal.sendText('dagger functions');
+			terminal.show();
 		})
 	);
 }
