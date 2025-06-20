@@ -1,5 +1,14 @@
 import * as vscode from 'vscode';
 import DaggerCli from './cli/cli';
+import { exists } from './executable';
+
+const homebrewOption = 'Use Homebrew (recommended)';
+const curlOption = 'Use curl script';
+const brewInstallCommand = 'brew install dagger/tap/dagger';
+const curlInstallCommand = 'curl -fsSL https://dl.dagger.io/dagger/install.sh | BIN_DIR=$HOME/.local/bin sh';
+
+// make a custom type for install method
+type InstallMethod = 'brew' | 'curl';
 
 export function activate(context: vscode.ExtensionContext) {
 	const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -12,6 +21,86 @@ export function activate(context: vscode.ExtensionContext) {
 	const cli = new DaggerCli('dagger', workspace);
 
 	context.subscriptions.push(
+		vscode.commands.registerCommand('dagger.version', async () => {
+			try {
+				const result = await cli.run(['version']);
+				vscode.window.showInformationMessage(`Dagger version: ${result.stdout}`);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to get Dagger version: ${error}`);
+			}
+		}),
+		// install command
+		vscode.commands.registerCommand('dagger.install', async () => {
+			const binaryExists = await exists('dagger', []);
+
+			if (!binaryExists) {
+				// Check if user is on macOS and has brew installed first
+				let installMethod: InstallMethod = 'curl';
+				let installPromptMessage = 'Dagger is not installed. Would you like to install it now?';
+				let installOptions = ['Install', 'Cancel'];
+
+				// brew is available on macOS and Linux
+				if (process.platform === 'darwin' || process.platform === 'linux') {
+					if (await exists('brew')) {
+						installOptions = [homebrewOption, curlOption];
+					}
+				}
+
+				const installResponse = await vscode.window.showInformationMessage(
+					installPromptMessage,
+					{ modal: true },
+					...installOptions
+				);
+
+				if (installResponse === 'Cancel' || !installResponse) {
+					vscode.window.showInformationMessage('Installation cancelled. You can install Dagger later by running the "Dagger: Install" command.');
+					return;
+				}
+
+				// Determine install method based on response
+				if (installResponse === homebrewOption) {
+					installMethod = 'brew';
+				} else if (installResponse === curlOption) {
+					installMethod = 'curl';
+				} else if (installResponse === 'Install') {
+					installMethod = 'curl'; // Default for non-macOS or no brew
+				}
+
+				// Execute the installation command
+				const terminal = vscode.window.createTerminal('Dagger');
+				terminal.show();
+
+				let installCommand: string;
+				if (installMethod === 'brew') {
+					installCommand = brewInstallCommand;
+
+				} else {
+					installCommand = curlInstallCommand;
+
+				}
+
+				terminal.sendText(installCommand);
+
+				// Show option to verify installation after a delay
+				setTimeout(async () => {
+					const verifyResponse = await vscode.window.showInformationMessage(
+						'Installation command has been executed. Would you like to verify the installation?',
+						'Verify',
+						'Later'
+					);
+
+					if (verifyResponse === 'Verify') {
+						if (await exists('cu', [], 'stdio')) {
+							vscode.window.showInformationMessage('✅ Dagger has been successfully installed!');
+						} else {
+							vscode.window.showWarningMessage('⚠️ Dagger was not found. Please check the terminal output for any errors and ensure your PATH is updated.');
+						}
+					}
+				}, 8000); // Wait 8 seconds for brew (slower than curl)
+			} else {
+				vscode.window.showInformationMessage('Dagger is already installed.');
+			}
+		}),
 		vscode.commands.registerCommand('dagger.init', async () => {
 			// check if this workspace is already a dagger project
 			if (await cli.isDaggerProject()) {
@@ -53,7 +142,7 @@ export function activate(context: vscode.ExtensionContext) {
 			// run the init command with the selected sdk
 			try {
 				await cli.run(['init', '--sdk', sdkChoice.value]);
-				
+
 				// Ask the user if they want to run the functions command
 				const choice = await vscode.window.showInformationMessage(
 					`Dagger project initialized with ${sdkChoice.label} SDK! Would you like to see the available functions?`,

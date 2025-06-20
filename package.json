@@ -30,6 +30,12 @@
         "title": "Functions",
         "category": "Dagger",
         "shortTitle": "Show Dagger functions"
+      },
+      {
+        "command": "dagger.install",
+        "title": "Install",
+        "category": "Dagger",
+        "shortTitle": "Install Dagger"
       }
     ]
   },
