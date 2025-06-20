@@ -14,8 +14,22 @@
   "contributes": {
     "commands": [
       {
-        "command": "vscode-dagger.helloWorld",
-        "title": "Hello World"
+        "command": "dagger.init",
+        "title": "Init",
+        "category": "Dagger",
+        "shortTitle": "Init a Dagger project"
+      },
+      {
+        "command": "dagger.develop",
+        "title": "Develop",
+        "category": "Dagger",
+        "shortTitle": "Develop a Dagger project"
+      },
+      {
+        "command": "dagger.functions",
+        "title": "Functions",
+        "category": "Dagger",
+        "shortTitle": "Show Dagger functions"
       }
     ]
   },
