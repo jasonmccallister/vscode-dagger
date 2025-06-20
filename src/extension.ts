@@ -28,13 +28,13 @@ async function checkDaggerCloudSetup(context: vscode.ExtensionContext): Promise<
 
 	// Show notification about Dagger Cloud setup
 	const response = await vscode.window.showInformationMessage(
-		'Setup Dagger Cloud to get better observability, caching, and collaboration features for your Dagger projects.',
-		'Sign up at dagger.cloud',
+		'Setup Dagger Cloud to get better observability and collaboration features for your Dagger projects.',
+		'Sign up',
 		'Learn More',
 		'Don\'t show again'
 	);
 
-	if (response === 'Sign up at dagger.cloud') {
+	if (response === 'Sign up') {
 		vscode.env.openExternal(vscode.Uri.parse('https://dagger.cloud'));
 	} else if (response === 'Learn More') {
 		vscode.env.openExternal(vscode.Uri.parse('https://docs.dagger.io/cloud'));
