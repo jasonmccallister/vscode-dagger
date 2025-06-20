@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import DaggerCli from './cli/cli';
+import DaggerCli from './cli';
 import { exists } from './executable';
 
 const homebrewOption = 'Use Homebrew (recommended)';
@@ -55,7 +55,7 @@ async function checkDaggerInstallation(): Promise<boolean> {
  * Ensure Dagger CLI is installed before running a command
  * @returns true if Dagger is installed, false otherwise
  */
-async function ensureDaggerInstalled(): Promise<boolean> {
+async function ensureInstalled(): Promise<boolean> {
 	const isDaggerInstalled = await exists('dagger');
 
 	if (!isDaggerInstalled) {
@@ -109,7 +109,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand('dagger.version', async () => {
-			if (!await ensureDaggerInstalled()) {
+			if (!await ensureInstalled()) {
 				return;
 			}
 
@@ -221,7 +221,7 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		}),
 		vscode.commands.registerCommand('dagger.init', async () => {
-			if (!await ensureDaggerInstalled()) {
+			if (!await ensureInstalled()) {
 				return;
 			}
 
@@ -283,7 +283,7 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		}),
 		vscode.commands.registerCommand('dagger.develop', async () => {
-			if (!await ensureDaggerInstalled()) {
+			if (!await ensureInstalled()) {
 				return;
 			}
 
@@ -314,7 +314,7 @@ export function activate(context: vscode.ExtensionContext) {
 			terminal.show();
 		}),
 		vscode.commands.registerCommand('dagger.functions', async () => {
-			if (!await ensureDaggerInstalled()) {
+			if (!await ensureInstalled()) {
 				return;
 			}
 
