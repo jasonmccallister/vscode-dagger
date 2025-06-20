@@ -13,20 +13,9 @@ type InstallMethod = 'brew' | 'curl';
 /**
  * Check if Dagger CLI is installed and show a notification if it's not
  */
-async function checkDaggerInstallation(): Promise<void> {
+async function checkDaggerInstallation(): Promise<boolean> {
 	const isDaggerInstalled = await exists('dagger');
-	
-	if (!isDaggerInstalled) {
-		const response = await vscode.window.showWarningMessage(
-			'Dagger CLI is not installed. Install it to use Dagger commands.',
-			'Install Now',
-			'Later'
-		);
-		
-		if (response === 'Install Now') {
-			await vscode.commands.executeCommand('dagger.install');
-		}
-	}
+	return isDaggerInstalled;
 }
 
 /**
@@ -62,6 +51,23 @@ export function activate(context: vscode.ExtensionContext) {
 	}
 
 	const workspace = workspaceFolders[0].uri;
+	
+	// Check Dagger installation when extension activates
+	const isInstalled = checkDaggerInstallation();
+
+	if (!isInstalled) {
+		vscode.window.showWarningMessage(
+			'Dagger CLI is not installed. Commands will not work until it is installed.',
+			'Install Now'
+		).then((response) => {
+			if (response === 'Install Now') {
+				vscode.commands.executeCommand('dagger.install');
+			}
+		});
+
+		return;
+	}
+
 
 	const cli = new DaggerCli('dagger', workspace);
 
@@ -273,9 +279,6 @@ export function activate(context: vscode.ExtensionContext) {
 			terminal.show();
 		})
 	);
-
-	// Check Dagger installation when extension activates
-	checkDaggerInstallation();
 }
 
 export function deactivate() { }
