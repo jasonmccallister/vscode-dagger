@@ -4,58 +4,37 @@ import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const execAsync = promisify(exec);
-
 export interface CommandResult {
     stdout: string;
     stderr: string;
     exitCode: number;
+    success?: boolean;
 }
 
-/**
- * A CLI wrapper for executing Dagger commands within a VS Code workspace
- */
+const execAsync = promisify(exec);
+
 export default class DaggerCli {
-    private readonly workspace: vscode.Uri;
-    private readonly command: string;
+    private command: string = 'dagger';
+    private workspacePath?: string;
 
     /**
-     * Creates a new DaggerCli instance
-     * @param command Path to the dagger executable (e.g., 'dagger' or '/usr/local/bin/dagger')
-     * @param workspace VS Code workspace folder to execute commands in
+     * Runs the Dagger command with the specified arguments and options
+     * @param args Arguments to pass to the command
+     * @param options Options for running the command, such as timeout and working directory
+     * @returns A Promise that resolves to a CommandResult containing stdout, stderr, and exit code
+     * @throws Error if the command fails to execute or the working directory does not exist
      */
-    constructor(
-        command: string,
-        workspace: vscode.Uri,
-    ) {
-        if (!command || command.trim().length === 0) {
-            throw new Error('Command path cannot be empty');
-        }
-
-        if (!workspace) {
-            throw new Error('Workspace cannot be null or undefined');
-        }
-
-        this.command = command.trim();
-        this.workspace = workspace;
-    }
-
     public async run(
         args: string[] = [],
         options: { timeout?: number; cwd?: string } = {}
     ): Promise<CommandResult> {
-        const workingDirectory = options.cwd || this.workspace.fsPath;
         const timeout = options.timeout || 30000;
-
-        if (!fs.existsSync(workingDirectory)) {
-            throw new Error(`Working directory does not exist: ${workingDirectory}`);
-        }
 
         const command = `${this.command} ${args.join(' ')}`;
 
         try {
             const { stdout, stderr } = await execAsync(command, {
-                cwd: workingDirectory,
+                cwd: options.cwd || this.workspacePath || process.cwd(),
                 timeout,
                 env: process.env
             });
@@ -63,24 +42,52 @@ export default class DaggerCli {
             return {
                 stdout: stdout.trim(),
                 stderr: stderr.trim(),
-                exitCode: 0
+                exitCode: 0,
+                success: true
             };
         } catch (error: any) {
             return {
                 stdout: error.stdout?.trim() || '',
                 stderr: error.stderr?.trim() || error.message || 'Unknown error',
-                exitCode: error.code || 1
+                exitCode: error.code || 1,
+                success: false
             };
         }
     }
 
     /**
-     * Checks if a dagger.json file exists in the workspace
+     * Validates if the Dagger command is available in the system
+     * @returns A Promise that resolves to true if the command is available, false otherwise
      */
+    public async isInstalled(): Promise<boolean> {
+        const result = await this.run(['version']);
+        if (result.stdout !== '' && result.stdout.includes('dagger')) {
+            return true;
+        }
+
+        return false;
+    }
+
     public async isDaggerProject(): Promise<boolean> {
-        const workspacePath = this.workspace.fsPath;
-        const daggerJsonPath = path.join(workspacePath, 'dagger.json');
-        return fs.existsSync(daggerJsonPath);
+        try {
+            const stats = await fs.promises.stat(path.join(process.cwd(), 'dagger.json'));
+            return stats.isFile();
+        } catch (error) {
+            return false; // If dagger.json file does not exist, return false
+        }
+    }
+
+    /*
+    * Sets the workspace path for the CLI commands
+    * @param workspacePath The path to the workspace directory
+    * @throws Error if the workspace path is invalid or does not exist
+    */
+    public setWorkspacePath(workspacePath: string) {
+        if (!workspacePath || !fs.existsSync(workspacePath)) {
+            throw new Error(`Invalid workspace path: ${workspacePath}`);
+        }
+
+        this.workspacePath = workspacePath;
     }
 }
 

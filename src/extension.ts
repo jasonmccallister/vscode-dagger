@@ -1,14 +1,7 @@
 import * as vscode from 'vscode';
 import DaggerCli from './cli';
 import { exists } from './executable';
-
-const homebrewOption = 'Use Homebrew (recommended)';
-const curlOption = 'Use curl script';
-const brewInstallCommand = 'brew install dagger/tap/dagger';
-const curlInstallCommand = 'curl -fsSL https://dl.dagger.io/dagger/install.sh | BIN_DIR=$HOME/.local/bin sh';
-
-// make a custom type for install method
-type InstallMethod = 'brew' | 'curl' | '';
+import Commands from './commands';
 
 /**
  * Check if Dagger Cloud token is available and show setup notification if needed
@@ -44,14 +37,6 @@ async function checkDaggerCloudSetup(context: vscode.ExtensionContext): Promise<
 }
 
 /**
- * Check if Dagger CLI is installed and show a notification if it's not
- */
-async function checkDaggerInstallation(): Promise<boolean> {
-	const isDaggerInstalled = await exists('dagger');
-	return isDaggerInstalled;
-}
-
-/**
  * Ensure Dagger CLI is installed before running a command
  * @returns true if Dagger is installed, false otherwise
  */
@@ -77,35 +62,11 @@ async function ensureInstalled(): Promise<boolean> {
 	return true;
 }
 
-export function activate(context: vscode.ExtensionContext) {
-	const workspaceFolders = vscode.workspace.workspaceFolders;
-	if (!workspaceFolders || workspaceFolders.length === 0) {
-		throw new Error('No workspace folder is open. Please open a folder or workspace first.');
-	}
-
-	const workspace = workspaceFolders[0].uri;
-
-	// Check Dagger installation when extension activates
-	const isInstalled = checkDaggerInstallation();
-
-	if (!isInstalled) {
-		vscode.window.showWarningMessage(
-			'Dagger CLI is not installed. Commands will not work until it is installed.',
-			'Install Now'
-		).then((response) => {
-			if (response === 'Install Now') {
-				vscode.commands.executeCommand('dagger.install');
-			}
-		});
-
-		return;
-	}
-
-	// Check Dagger Cloud setup after confirming CLI is installed
-	checkDaggerCloudSetup(context);
+export async function activate(context: vscode.ExtensionContext) {
+	Commands.register(context, "");
 
 
-	const cli = new DaggerCli('dagger', workspace);
+	const cli = new DaggerCli();
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand('dagger.version', async () => {
@@ -121,105 +82,6 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		}),
 		// install command
-		vscode.commands.registerCommand('dagger.install', async () => {
-			const binaryExists = await exists('dagger', []);
-
-			if (!binaryExists) {
-				// Get current install method preference from settings
-				const config = vscode.workspace.getConfiguration('dagger');
-				let defaultInstallMethod: InstallMethod = config.get('installMethod', '');
-
-				// Check if user is on macOS and has brew installed first
-				let installMethod: InstallMethod = defaultInstallMethod;
-				let installPromptMessage = 'Dagger is not installed. Would you like to install it now?';
-				let installOptions = ['Install', 'Cancel'];
-
-				// brew is available on macOS and Linux
-				if (process.platform === 'darwin' || process.platform === 'linux') {
-					if (await exists('brew')) {
-						// If no preference is set (empty string), show both options
-						if (defaultInstallMethod === '') {
-							installOptions = [homebrewOption, curlOption];
-						} else {
-							// Use the preferred method from settings as default, but still show options
-							const preferredOption = defaultInstallMethod === 'brew' ? homebrewOption : curlOption;
-							const alternateOption = defaultInstallMethod === 'brew' ? curlOption : homebrewOption;
-							installOptions = [preferredOption, alternateOption];
-						}
-					} else {
-						// Brew not available, only show curl option if no preference or preference is curl
-						if (defaultInstallMethod === '' || defaultInstallMethod === 'curl') {
-							installOptions = ['Install (curl)', 'Cancel'];
-						}
-					}
-				} else {
-					// Not macOS/Linux, only curl is available
-					installOptions = ['Install (curl)', 'Cancel'];
-				}
-
-				const installResponse = await vscode.window.showInformationMessage(
-					installPromptMessage,
-					{ modal: true },
-					...installOptions
-				);
-
-				if (installResponse === 'Cancel' || !installResponse) {
-					vscode.window.showInformationMessage('Installation cancelled. You can install Dagger later by running the "Dagger: Install" command.');
-					return;
-				}
-
-				// Determine install method based on response
-				if (installResponse === homebrewOption) {
-					installMethod = 'brew';
-				} else if (installResponse === curlOption) {
-					installMethod = 'curl';
-				} else if (installResponse === 'Install (curl)') {
-					installMethod = 'curl';
-				} else if (installResponse === 'Install') {
-					// If defaultInstallMethod is empty, default to curl as fallback
-					installMethod = defaultInstallMethod === '' ? 'curl' : defaultInstallMethod;
-				}
-
-				// Update the setting with the user's choice (only if they made a specific choice and no preference was set)
-				if (defaultInstallMethod === '' && (installResponse === homebrewOption || installResponse === curlOption)) {
-					await config.update('installMethod', installMethod, vscode.ConfigurationTarget.Global);
-				}
-
-				// Execute the installation command
-				const terminal = vscode.window.createTerminal('Dagger');
-				terminal.show();
-
-				let installCommand: string;
-				if (installMethod === 'brew') {
-					installCommand = brewInstallCommand;
-
-				} else {
-					installCommand = curlInstallCommand;
-
-				}
-
-				terminal.sendText(installCommand);
-
-				// Show option to verify installation after a delay
-				setTimeout(async () => {
-					const verifyResponse = await vscode.window.showInformationMessage(
-						'Installation command has been executed. Would you like to verify the installation?',
-						'Verify',
-						'Later'
-					);
-
-					if (verifyResponse === 'Verify') {
-						if (await exists('dagger')) {
-							vscode.window.showInformationMessage('✅ Dagger has been successfully installed!');
-						} else {
-							vscode.window.showWarningMessage('⚠️ Dagger was not found. Please check the terminal output for any errors and ensure your PATH is updated.');
-						}
-					}
-				}, 8000); // Wait 8 seconds for brew (slower than curl)
-			} else {
-				vscode.window.showInformationMessage('Dagger is already installed.');
-			}
-		}),
 		vscode.commands.registerCommand('dagger.init', async () => {
 			if (!await ensureInstalled()) {
 				return;
@@ -373,6 +235,9 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		})
 	);
+
+	// Check Dagger Cloud setup after confirming CLI is installed
+	checkDaggerCloudSetup(context);
 }
 
 export function deactivate() { }
