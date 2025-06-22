@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import DaggerCli from '../cli';
 import { exists } from '../executable';
+import { exec } from 'child_process';
 
 const homebrewOption = 'Use Homebrew (recommended)';
 const curlOption = 'Use curl script';
@@ -82,23 +83,25 @@ export default function installCommand(context: vscode.ExtensionContext) {
                 let installCommand: string;
                 if (installMethod === 'brew') {
                     installCommand = brewInstallCommand;
-
                 } else {
                     installCommand = curlInstallCommand;
-
                 }
 
-                vscode.window.withProgress({ title: 'Installing Dagger...', location: vscode.ProgressLocation.Notification }, async (progress) => {
-                    // Execute the installation command
-                    const terminal = vscode.window.createTerminal('Dagger');
+                await vscode.window.withProgress({ title: 'Dagger', location: vscode.ProgressLocation.Notification }, async (progress) => {
                     progress.report({ message: 'Running installation command...' });
-                    terminal.sendText(installCommand);
-                })
-                    .then(async () => {
-                        // Wait for the terminal to finish executing the command
-                        await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds for the command to complete
+                    
+                    return new Promise<void>((resolve) => {
+                        exec(installCommand, (error, stdout, stderr) => {
+                            if (error) {
+                                vscode.window.showErrorMessage(`Dagger installation failed: ${stderr || error.message}`);
+                                resolve();
+                                return;
+                            }
+                            vscode.window.showInformationMessage('Dagger installation completed.');
+                            resolve();
+                        });
                     });
-
+                });
 
                 // Show option to verify installation after a delay
                 setTimeout(async () => {
@@ -112,9 +115,12 @@ export default function installCommand(context: vscode.ExtensionContext) {
                         if (await exists('dagger')) {
                             // get the version of dagger
                             const version = await new DaggerCli().run(['version']);
-                            vscode.window.showInformationMessage(`✅ Dagger (${version.stdout}) installed!`);
+                            // parse the output (example dagger v0.18.10 (docker-image://registry.dagger.io/engine:v0.18.10) darwin/arm64)to only the version
+                            const versionMatch = version.stdout.match(/v(\d+\.\d+\.\d+)/);
+                            const versionNumber = versionMatch ? versionMatch[1] : 'unknown';
+                            vscode.window.showInformationMessage(`✅ Dagger v${versionNumber} installed!`);
                         } else {
-                            vscode.window.showWarningMessage('⚠️ Dagger was not found. Please check the terminal output for any errors and ensure your PATH is updated.');
+                            vscode.window.showWarningMessage('⚠️ Dagger was not found. Please check the output for any errors and ensure your PATH is updated.');
                         }
                     }
                 }, 8000); // Wait 8 seconds for brew (slower than curl)

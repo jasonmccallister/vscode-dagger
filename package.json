@@ -48,6 +48,18 @@
         "title": "Setup Dagger Cloud",
         "category": "Dagger",
         "shortTitle": "Setup Cloud"
+      },
+      {
+        "command": "dagger.uninstall",
+        "title": "Uninstall Dagger",
+        "category": "Dagger",
+        "shortTitle": "Uninstall"
+      },
+      {
+        "command": "dagger.version",
+        "title": "Show Version",
+        "category": "Dagger",
+        "shortTitle": "Version"
       }
     ],
     "configuration": {
