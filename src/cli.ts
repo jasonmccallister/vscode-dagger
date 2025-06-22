@@ -23,60 +23,32 @@ export default class DaggerCli {
      */
     public async run(
         args: string[] = [],
-        options: { timeout?: number; cwd?: string; progress?: typeof import('vscode').window } = {}
+        options: { timeout?: number; cwd?: string } = {}
     ): Promise<CommandResult> {
         const timeout = options.timeout || 30000;
         const command = `${this.command} ${args.join(' ')}`;
-        const progressApi = options.progress || (typeof vscode !== 'undefined' ? vscode.window : undefined);
-        if (progressApi) {
-            return await progressApi.withProgress({
-                title: `Dagger: ${command}`,
-                location: vscode.ProgressLocation.Notification
-            }, async () => {
-                try {
-                    const stdout = execSync(command, {
-                        cwd: options.cwd || this.workspacePath || process.cwd(),
-                        timeout,
-                        env: process.env,
-                        stdio: ['ignore', 'pipe', 'pipe']
-                    });
-                    return {
-                        stdout: stdout.toString().trim(),
-                        stderr: '',
-                        exitCode: 0,
-                        success: true
-                    };
-                } catch (error: any) {
-                    return {
-                        stdout: error.stdout?.toString().trim() || '',
-                        stderr: error.stderr?.toString().trim() || error.message || 'Unknown error',
-                        exitCode: error.status || 1,
-                        success: false
-                    };
-                }
+        
+        try {
+            const stdout = execSync(command, {
+                cwd: options.cwd || this.workspacePath || process.cwd(),
+                timeout,
+                env: process.env,
+                stdio: ['ignore', 'pipe', 'pipe']
             });
-        } else {
-            try {
-                const stdout = execSync(command, {
-                    cwd: options.cwd || this.workspacePath || process.cwd(),
-                    timeout,
-                    env: process.env,
-                    stdio: ['ignore', 'pipe', 'pipe']
-                });
-                return {
-                    stdout: stdout.toString().trim(),
-                    stderr: '',
-                    exitCode: 0,
-                    success: true
-                };
-            } catch (error: any) {
-                return {
-                    stdout: error.stdout?.toString().trim() || '',
-                    stderr: error.stderr?.toString().trim() || error.message || 'Unknown error',
-                    exitCode: error.status || 1,
-                    success: false
-                };
-            }
+
+            return {
+                stdout: stdout.toString().trim(),
+                stderr: '',
+                exitCode: 0,
+                success: true
+            };
+        } catch (error: any) {
+            return {
+                stdout: error.stdout?.toString().trim() || '',
+                stderr: error.stderr?.toString().trim() || error.message || 'Unknown error',
+                exitCode: error.status || 1,
+                success: false
+            };
         }
     }
 

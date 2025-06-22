@@ -33,7 +33,8 @@ export default function developCommand(context: vscode.ExtensionContext, cli: Da
 
             const result = await cli.run(['develop']);
             if (!result.success) {
-                vscode.window.showErrorMessage(`Failed to start Dagger development environment: ${result.stderr}`);
+                vscode.window.showErrorMessage(`Failed to run dagger develop`);
+                console.error(`Dagger development command failed: ${result.stderr}`);
                 return;
             }
         })
