@@ -1,37 +1,26 @@
 import * as vscode from 'vscode';
 import DaggerCli from '../cli';
+import { askToInstall } from '../actions/install-prompt';
 
-export class ShellCommand {
-    static register(
-        context: vscode.ExtensionContext,
-        workspacePath: string,
-        cli: DaggerCli,
-    ): void {
-        cli.setWorkspacePath(workspacePath);
+export default function shellCommand(context: vscode.ExtensionContext) {
+    context.subscriptions.push(
+        vscode.commands.registerCommand('dagger.shell', async () => {
+            const cli = new DaggerCli();
 
-        context.subscriptions.push(
-            vscode.commands.registerCommand('dagger.shell', async () => {
-                await this.run(cli);
-            })
-        );
-    }
+            // Ensure Dagger CLI is installed
+            if (!await cli.isInstalled()) {
+                await askToInstall();
+                return;
+            }
 
-    private static async run(cli: DaggerCli) {
-        if (!(await cli.isInstalled())) {
-            vscode.window.showErrorMessage('Dagger is not installed. Please install Dagger to use this command.');
-            return;
-        }
+            cli.setWorkspacePath(vscode.workspace.workspaceFolders?.[0].uri.fsPath || '');
 
-        if (!(await cli.isDaggerProject())) {
-            vscode.window.showErrorMessage('This workspace is not a Dagger project. Please run the "Dagger: Init" command to initialize it.');
-            return;
-        }
-
-        const terminal = vscode.window.createTerminal({
-            name: 'Dagger',
-        });
-
-        terminal.show();
-        terminal.sendText('dagger shell', true);
-    }
+            // Open a terminal with the Dagger CLI
+            const terminal = vscode.window.createTerminal({
+                name: 'Dagger',
+            });
+            terminal.show();
+            terminal.sendText('dagger shell');
+        })
+    );
 }

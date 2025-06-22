@@ -1,11 +1,12 @@
 import * as vscode from 'vscode';
 import DaggerCli from '../cli';
+import { askToInstall } from '../actions/install-prompt';
 
 export default function versionCommand(context: vscode.ExtensionContext, cli: DaggerCli) {
     context.subscriptions.push(
         vscode.commands.registerCommand('dagger.version', async () => {
             if (!await cli.isInstalled()) {
-                vscode.window.showInformationMessage('Dagger is not installed. No action taken.');
+                await askToInstall();
                 return;
             }
 

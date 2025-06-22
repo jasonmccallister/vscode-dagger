@@ -5,7 +5,7 @@ import Commands from './commands';
 /**
  * Check if Dagger Cloud token is available and show setup notification if needed
  */
-async function checkDaggerCloudSetup(context: vscode.ExtensionContext): Promise<void> {
+async function checkDaggerCloudSetup(context: vscode.ExtensionContext, cli: DaggerCli): Promise<void> {
 	const config = vscode.workspace.getConfiguration('dagger');
 	const notificationDismissed = config.get<boolean>('cloudNotificationDismissed', false);
 
@@ -15,6 +15,11 @@ async function checkDaggerCloudSetup(context: vscode.ExtensionContext): Promise<
 
 	// If token is available (either in secret storage or environment) or notification was dismissed, don't show notification
 	if (secretToken || envToken || notificationDismissed) {
+		return;
+	}
+
+	// is Dagger CLI installed?
+	if (!await cli.isInstalled()) {
 		return;
 	}
 
@@ -36,7 +41,9 @@ async function checkDaggerCloudSetup(context: vscode.ExtensionContext): Promise<
 }
 
 export async function activate(context: vscode.ExtensionContext) {
-	Commands.register(context, "", new DaggerCli());
+	const cli = new DaggerCli();
 
-	checkDaggerCloudSetup(context);
+	Commands.register(context, "", cli);
+
+	checkDaggerCloudSetup(context, cli);
 }

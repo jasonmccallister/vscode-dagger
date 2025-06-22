@@ -8,7 +8,7 @@ import cloudCommand from './cloud';
 import functionsCommand from './functions';
 import DaggerCli from '../cli';
 import resetCommand from './reset';
-import { ShellCommand } from './shell';
+import shellCommand from './shell';
 
 export default class Commands {
     public static register(
@@ -22,7 +22,7 @@ export default class Commands {
         initCommand(context, cli);
         installCommand(context, cli);
         resetCommand(context);
-        ShellCommand.register(context, workspacePath, cli);
+        shellCommand(context);
         uninstallCommand(context, cli);
         versionCommand(context, cli);
     }
