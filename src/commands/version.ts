@@ -6,7 +6,7 @@ export default function versionCommand(context: vscode.ExtensionContext, cli: Da
     context.subscriptions.push(
         vscode.commands.registerCommand('dagger.version', async () => {
             if (!await cli.isInstalled()) {
-                await askToInstall();
+                askToInstall();
                 return;
             }
 

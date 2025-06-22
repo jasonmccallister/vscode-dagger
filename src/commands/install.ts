@@ -93,7 +93,7 @@ export default function installCommand(context: vscode.ExtensionContext, cli: Da
                                 resolve();
                                 return;
                             }
-                            vscode.window.showInformationMessage('Dagger installation completed.');
+                            vscode.window.showInformationMessage(`Dagger installation completed using ${installMethod}.`);
                             resolve();
                         });
                     });

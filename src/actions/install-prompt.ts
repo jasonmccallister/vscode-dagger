@@ -7,10 +7,10 @@ export async function askToInstall() {
         'No'
     );
 
-    if (install === 'No') {
-        vscode.window.showInformationMessage('You can install Dagger later by running the "Dagger: Install" command.');
+    if (install === 'Yes') {
+        vscode.commands.executeCommand('dagger.install');
         return;
     }
 
-    vscode.commands.executeCommand('dagger.install');
+    vscode.window.showInformationMessage('You can install Dagger later by running the "Dagger: Install" command.');
 }
