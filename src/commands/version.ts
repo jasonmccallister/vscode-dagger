@@ -11,20 +11,15 @@ export default function versionCommand(context: vscode.ExtensionContext, cli: Da
 
             await vscode.window.withProgress({ title: 'Dagger', location: vscode.ProgressLocation.Notification }, async (progress) => {
                 progress.report({ message: 'Getting Dagger version...' });
+                const result = await cli.run(['version']);
+                if (!result.success) {
+                    vscode.window.showErrorMessage(`Failed to get Dagger version: ${result.stderr}`);
+                    return;
+                }
 
-                return new Promise<void>((resolve) => {
-                    const result = cli.run(['version']);
-                    if (!result.success) {
-                        vscode.window.showErrorMessage(`Failed to get Dagger version: ${result.stderr}`);
-                        resolve();
-                        return;
-                    }
-
-                    // Show the version in an information message
-                    vscode.window.showInformationMessage(`Dagger Version: ${result.stdout}`);
-                    resolve();
-                });
+                // Show the version in an information message
+                vscode.window.showInformationMessage(`Dagger Version: ${result.stdout}`);
             });
         })
     );
-}   
+}
