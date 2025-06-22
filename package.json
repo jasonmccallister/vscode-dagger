@@ -60,6 +60,12 @@
         "title": "Show Version",
         "category": "Dagger",
         "shortTitle": "Version"
+      },
+      {
+        "command": "dagger.resetPreferences",
+        "title": "Reset Preferences",
+        "category": "Dagger",
+        "shortTitle": "Reset"
       }
     ],
     "configuration": {
@@ -88,7 +94,19 @@
           "scope": "application"
         }
       }
-    }
+    },
+    "taskDefinitions": [
+      {
+        "type": "dagger",
+        "required": ["task"],
+        "properties": {
+          "task": {
+            "type": "string",
+            "description": "The Dagger function to run"
+          }
+        }
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "yarn run package",

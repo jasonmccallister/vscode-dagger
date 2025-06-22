@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import DaggerCli from './cli';
 import Commands from './commands';
+import { registerDaggerTaskProvider } from './tasks/load';
 
 /**
  * Check if Dagger Cloud token is available and show setup notification if needed
@@ -37,6 +38,7 @@ async function checkDaggerCloudSetup(context: vscode.ExtensionContext): Promise<
 
 export async function activate(context: vscode.ExtensionContext) {
 	Commands.register(context, "", new DaggerCli());
+	registerDaggerTaskProvider(context);
 
 	checkDaggerCloudSetup(context);
 }
