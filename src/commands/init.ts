@@ -49,7 +49,11 @@ export default function initCommand(context: vscode.ExtensionContext, cli: Dagge
 
             // run the init command with the selected sdk
             try {
-                await cli.run(['init', '--sdk', sdkChoice.value]);
+                const result = cli.run(['init', '--sdk', sdkChoice.value]);
+                if (!result.success) {
+                    vscode.window.showErrorMessage(`Failed to initialize Dagger project: ${result.stderr}`);
+                    return;
+                }
 
                 // Ask the user if they want to run the functions command
                 const choice = await vscode.window.showInformationMessage(
@@ -66,11 +70,6 @@ export default function initCommand(context: vscode.ExtensionContext, cli: Dagge
             } catch (error) {
                 vscode.window.showErrorMessage(`Failed to initialize Dagger project: ${error}`);
             }
-
-            // Open a terminal and run the dagger init command
-            const terminal = vscode.window.createTerminal('Dagger');
-            terminal.sendText('dagger init');
-            terminal.show();
         })
     );
 }

@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { exists } from '../executable';
 import DaggerCli from '../cli';
 
 export default function functionsCommand(context: vscode.ExtensionContext, cli: DaggerCli) {

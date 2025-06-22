@@ -1,5 +1,4 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -9,8 +8,6 @@ export interface CommandResult {
     exitCode: number;
     success?: boolean;
 }
-
-const execAsync = promisify(exec);
 
 export default class DaggerCli {
     private command: string = 'dagger';
@@ -23,32 +20,30 @@ export default class DaggerCli {
      * @returns A Promise that resolves to a CommandResult containing stdout, stderr, and exit code
      * @throws Error if the command fails to execute or the working directory does not exist
      */
-    public async run(
+    public run(
         args: string[] = [],
         options: { timeout?: number; cwd?: string } = {}
-    ): Promise<CommandResult> {
+    ): CommandResult {
         const timeout = options.timeout || 30000;
-
         const command = `${this.command} ${args.join(' ')}`;
-
         try {
-            const { stdout, stderr } = await execAsync(command, {
+            const stdout = execSync(command, {
                 cwd: options.cwd || this.workspacePath || process.cwd(),
                 timeout,
-                env: process.env
+                env: process.env,
+                stdio: ['ignore', 'pipe', 'pipe']
             });
-
             return {
-                stdout: stdout.trim(),
-                stderr: stderr.trim(),
+                stdout: stdout.toString().trim(),
+                stderr: '',
                 exitCode: 0,
                 success: true
             };
         } catch (error: any) {
             return {
-                stdout: error.stdout?.trim() || '',
-                stderr: error.stderr?.trim() || error.message || 'Unknown error',
-                exitCode: error.code || 1,
+                stdout: error.stdout?.toString().trim() || '',
+                stderr: error.stderr?.toString().trim() || error.message || 'Unknown error',
+                exitCode: error.status || 1,
                 success: false
             };
         }
