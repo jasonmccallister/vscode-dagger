@@ -6,7 +6,7 @@ export default function functionsCommand(context: vscode.ExtensionContext, cli: 
     context.subscriptions.push(
         vscode.commands.registerCommand('dagger.functions', async () => {
             if (!await cli.isInstalled()) {
-                await askToInstall();
+                askToInstall();
                 return;
             }
 

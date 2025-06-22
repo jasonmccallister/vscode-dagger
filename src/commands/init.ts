@@ -7,7 +7,7 @@ export default function initCommand(context: vscode.ExtensionContext, cli: Dagge
         vscode.commands.registerCommand('dagger.init', async () => {
             // Ensure Dagger CLI is installed
             if (!await cli.isInstalled()) {
-                await askToInstall();
+                askToInstall();
                 return;
             }
 

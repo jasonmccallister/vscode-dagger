@@ -6,7 +6,7 @@ export default function developCommand(context: vscode.ExtensionContext, cli: Da
     context.subscriptions.push(
         vscode.commands.registerCommand('dagger.develop', async () => {
             if (!await cli.isInstalled()) {
-                await askToInstall();
+                askToInstall();
                 return;
             }
 

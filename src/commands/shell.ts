@@ -9,7 +9,7 @@ export default function shellCommand(context: vscode.ExtensionContext) {
 
             // Ensure Dagger CLI is installed
             if (!await cli.isInstalled()) {
-                await askToInstall();
+                askToInstall();
                 return;
             }
 
