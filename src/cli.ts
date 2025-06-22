@@ -54,7 +54,7 @@ export default class DaggerCli {
      * @returns A Promise that resolves to true if the command is available, false otherwise
      */
     public async isInstalled(): Promise<boolean> {
-        const result = await this.run(['version']);
+        const result = this.run(['version']);
         if (result.stdout !== '' && result.stdout.includes('dagger')) {
             return true;
         }

@@ -13,15 +13,16 @@ export default function versionCommand(context: vscode.ExtensionContext, cli: Da
                 progress.report({ message: 'Getting Dagger version...' });
 
                 return new Promise<void>((resolve) => {
-                    cli.run(['version']).then((result) => {
-                        if (result.success) {
-                            const versionMatch = result.stdout.match(/v(\d+\.\d+\.\d+)/);
-                            const versionNumber = versionMatch ? versionMatch[1] : 'unknown';
-                            vscode.window.showInformationMessage(`Dagger version: ${versionNumber}`);
-                        } else {
-                            vscode.window.showErrorMessage(`Failed to get Dagger version: ${result.stderr}`);
-                        }
-                    });
+                    const result = cli.run(['version']);
+                    if (!result.success) {
+                        vscode.window.showErrorMessage(`Failed to get Dagger version: ${result.stderr}`);
+                        resolve();
+                        return;
+                    }
+
+                    // Show the version in an information message
+                    vscode.window.showInformationMessage(`Dagger Version: ${result.stdout}`);
+                    resolve();
                 });
             });
         })

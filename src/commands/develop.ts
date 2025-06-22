@@ -29,13 +29,11 @@ export default function developCommand(context: vscode.ExtensionContext, cli: Da
                 return;
             }
 
-            cli.run(['develop'])
-                .then(() => {
-                    vscode.window.showInformationMessage('Dagger is now in development mode.');
-                })
-                .catch((error) => {
-                    vscode.window.showErrorMessage(`Failed to start Dagger development mode: ${error.message}`);
-                });
+            const result = cli.run(['develop']);
+            if (!result.success) {
+                vscode.window.showErrorMessage(`Failed to start Dagger development environment: ${result.stderr}`);
+                return;
+            }
         })
     );
 }
