@@ -15,7 +15,7 @@
     "commands": [
       {
         "command": "dagger.init",
-        "title": "Initialize a Dagger Project",
+        "title": "Initialize Project",
         "category": "Dagger",
         "shortTitle": "Init"
       },
@@ -38,20 +38,14 @@
         "shortTitle": "Install"
       },
       {
-        "command": "dagger.version",
-        "title": "Show Version",
-        "category": "Dagger",
-        "shortTitle": "Version"
-      },
-      {
         "command": "dagger.setupCloud",
-        "title": "Setup Dagger Cloud",
+        "title": "Setup Cloud",
         "category": "Dagger",
         "shortTitle": "Setup Cloud"
       },
       {
         "command": "dagger.uninstall",
-        "title": "Uninstall Dagger",
+        "title": "Uninstall",
         "category": "Dagger",
         "shortTitle": "Uninstall"
       },
@@ -66,6 +60,12 @@
         "title": "Reset Preferences",
         "category": "Dagger",
         "shortTitle": "Reset"
+      },
+      {
+        "command": "dagger.shell",
+        "title": "Open a Shell",
+        "category": "Dagger",
+        "shortTitle": "Shell"
       }
     ],
     "configuration": {
