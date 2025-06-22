@@ -26,6 +26,12 @@
         "shortTitle": "Develop"
       },
       {
+        "command": "dagger.call",
+        "title": "Call Functions",
+        "category": "Dagger",
+        "shortTitle": "Call"
+      },
+      {
         "command": "dagger.functions",
         "title": "View Functions",
         "category": "Dagger",
@@ -98,7 +104,9 @@
     "taskDefinitions": [
       {
         "type": "dagger",
-        "required": ["task"],
+        "required": [
+          "task"
+        ],
         "properties": {
           "task": {
             "type": "string",
