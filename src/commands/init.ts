@@ -49,7 +49,9 @@ export default function initCommand(context: vscode.ExtensionContext, cli: Dagge
 
             // run the init command with the selected sdk
             try {
-                const result = cli.run(['init', '--sdk', sdkChoice.value]);
+                const workspaceFolders = vscode.workspace.workspaceFolders;
+                const cwd = workspaceFolders && workspaceFolders.length > 0 ? workspaceFolders[0].uri.fsPath : process.cwd();
+                const result = cli.run(['init', '--sdk', sdkChoice.value], { cwd });
                 if (!result.success) {
                     vscode.window.showErrorMessage(`Failed to initialize Dagger project: ${result.stderr}`);
                     return;
@@ -67,8 +69,8 @@ export default function initCommand(context: vscode.ExtensionContext, cli: Dagge
                     // call the vscode dagger.functions command
                     await vscode.commands.executeCommand('dagger.functions');
                 }
-            } catch (error) {
-                vscode.window.showErrorMessage(`Failed to initialize Dagger project: ${error}`);
+            } catch (error: any) {
+                vscode.window.showErrorMessage(`Failed to initialize Dagger project: ${error.message || error}`);
             }
         })
     );
