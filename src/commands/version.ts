@@ -1,11 +1,10 @@
 import * as vscode from 'vscode';
-import { exists } from '../executable';
 import DaggerCli from '../cli';
 
-export default function versionCommand(context: vscode.ExtensionContext) {
+export default function versionCommand(context: vscode.ExtensionContext, cli: DaggerCli) {
     context.subscriptions.push(
         vscode.commands.registerCommand('dagger.version', async () => {
-            if (!await exists('dagger')) {
+            if (!await cli.isInstalled()) {
                 vscode.window.showInformationMessage('Dagger is not installed. No action taken.');
                 return;
             }
@@ -14,7 +13,6 @@ export default function versionCommand(context: vscode.ExtensionContext) {
                 progress.report({ message: 'Getting Dagger version...' });
 
                 return new Promise<void>((resolve) => {
-                    const cli = new DaggerCli();
                     cli.run(['version']).then((result) => {
                         if (result.success) {
                             const versionMatch = result.stdout.match(/v(\d+\.\d+\.\d+)/);
@@ -23,13 +21,9 @@ export default function versionCommand(context: vscode.ExtensionContext) {
                         } else {
                             vscode.window.showErrorMessage(`Failed to get Dagger version: ${result.stderr}`);
                         }
-                        resolve();
-                    }).catch((error) => {
-                        vscode.window.showErrorMessage(`Error checking Dagger version: ${error}`);
-                        resolve();
                     });
                 });
             });
         })
     );
-}
+}   

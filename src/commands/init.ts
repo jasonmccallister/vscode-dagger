@@ -1,11 +1,9 @@
 import * as vscode from 'vscode';
 import DaggerCli from '../cli';
 
-export default function initCommand(context: vscode.ExtensionContext) {
+export default function initCommand(context: vscode.ExtensionContext, cli: DaggerCli) {
     context.subscriptions.push(
         vscode.commands.registerCommand('dagger.init', async () => {
-            const cli = new DaggerCli();
-
             // Ensure Dagger CLI is installed
             if (!await cli.isInstalled()) {
                 vscode.window.showErrorMessage('Dagger CLI is not installed. Please install it first.');

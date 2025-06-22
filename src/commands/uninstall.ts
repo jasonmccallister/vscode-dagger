@@ -1,14 +1,14 @@
 import * as vscode from 'vscode';
-import { exists } from '../executable';
 import { exec } from 'child_process';
+import DaggerCli from '../cli';
 
 const brewCommand = 'brew uninstall dagger/tap/dagger';
 const curlInstallCommand = 'type dagger >/dev/null 2>&1 && rm -rf $(dirname $(which dagger)) || true';
 
-export default function uninstallCommand(context: vscode.ExtensionContext) {
+export default function uninstallCommand(context: vscode.ExtensionContext, cli: DaggerCli) {
     context.subscriptions.push(
         vscode.commands.registerCommand('dagger.uninstall', async () => {
-            if (!await exists('dagger')) {
+            if (!await cli.isInstalled()) {
                 vscode.window.showInformationMessage('Dagger is not installed. No action taken.');
                 return;
             }

@@ -11,15 +11,11 @@ const curlInstallCommand = 'curl -fsSL https://dl.dagger.io/dagger/install.sh | 
 // make a custom type for install method
 type InstallMethod = 'brew' | 'curl' | '';
 
-async function isInstalled(): Promise<boolean> {
-    return await (new DaggerCli()).isInstalled();
-}
-
-export default function installCommand(context: vscode.ExtensionContext) {
+export default function installCommand(context: vscode.ExtensionContext, cli: DaggerCli) {
     // Register the install command
     context.subscriptions.push(
         vscode.commands.registerCommand('dagger.install', async () => {
-            if (!await isInstalled()) {
+            if (!await cli.isInstalled()) {
                 // Get current install method preference from settings
                 const config = vscode.workspace.getConfiguration('dagger');
                 let defaultInstallMethod: InstallMethod = config.get('installMethod', '');

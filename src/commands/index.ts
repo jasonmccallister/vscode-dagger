@@ -5,14 +5,21 @@ import versionCommand from './version';
 import initCommand from './init';
 import developCommand from './develop';
 import cloudCommand from './cloud';
+import functionsCommand from './functions';
+import DaggerCli from '../cli';
 
 export default class Commands {
-    public static register(context: vscode.ExtensionContext, workspacePath: string) {
-        cloudCommand(context);
-        developCommand(context);
-        initCommand(context);
-        installCommand(context);
-        uninstallCommand(context);
-        versionCommand(context);
+    public static register(
+        context: vscode.ExtensionContext,
+        workspacePath: string,
+        cli: DaggerCli,
+    ): void {
+        cloudCommand(context, cli);
+        developCommand(context, cli);
+        functionsCommand(context, cli);
+        initCommand(context, cli);
+        installCommand(context, cli);
+        uninstallCommand(context, cli);
+        versionCommand(context, cli);
     }
 }

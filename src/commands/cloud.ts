@@ -1,9 +1,7 @@
 import * as vscode from 'vscode';
 import DaggerCli from '../cli';
 
-export default function cloudCommand(context: vscode.ExtensionContext) {
-    const cli = new DaggerCli();
-
+export default function cloudCommand(context: vscode.ExtensionContext, cli: DaggerCli) {
     context.subscriptions.push(
         vscode.commands.registerCommand('dagger.setupCloud', async () => {
             const config = vscode.workspace.getConfiguration('dagger');
