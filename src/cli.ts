@@ -1,4 +1,4 @@
-import { execSync } from 'child_process';
+import { execSync, ExecSyncOptionsWithStringEncoding } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -9,6 +9,17 @@ export interface CommandResult {
     exitCode: number;
     success?: boolean;
 }
+
+type Function = {
+    name: string;
+    description?: string;
+};
+
+type FunctionArgument = {
+    name: string;
+    type: string;
+    required: boolean;
+};
 
 export default class DaggerCli {
     private command: string = 'dagger';
@@ -27,8 +38,12 @@ export default class DaggerCli {
     ): Promise<CommandResult> {
         const timeout = options.timeout || 30000;
         const command = `${this.command} ${args.join(' ')}`;
-        
+
         try {
+            if (options.cwd && !fs.existsSync(options.cwd)) {
+                throw new Error(`Working directory does not exist: ${options.cwd}`);
+            }
+
             const stdout = execSync(command, {
                 cwd: options.cwd || this.workspacePath || process.cwd(),
                 timeout,
@@ -50,6 +65,33 @@ export default class DaggerCli {
                 success: false
             };
         }
+    }
+
+    public async functionsList(path: string): Promise<Function[]> {
+        const result = await this.run(['functions'], { cwd: path });
+        if (!result.success) {
+            throw new Error(`Failed to list functions: ${result.stderr}`);
+        }
+
+        if (!result.stdout) {
+            return [];
+        }
+
+        const lines = result.stdout.split('\n').map(line => line.trim());
+        const headerIdx = lines.findIndex(line => line.toLowerCase().includes('name') && line.toLowerCase().includes('description'));
+        let functions: Function[] = [];
+        if (headerIdx !== -1) {
+            functions = lines.slice(headerIdx + 1)
+                .filter(line => line && !/^[-▶]/.test(line))
+                .map(line => {
+                    // Split by 2+ spaces
+                    const [name, ...descParts] = line.split(/\s{2,}/);
+                    return { name: name.trim(), description: descParts.join(' ').trim() };
+                })
+                .filter(fn => fn.name);
+        }
+
+        return functions;
     }
 
     /**
@@ -81,6 +123,44 @@ export default class DaggerCli {
         } catch (error) {
             return false; // If dagger.json file does not exist, return false
         }
+    }
+
+    /**
+     * Gets the arguments for a given Dagger function by parsing the output of `dagger call <function-name> -h`
+     * @param fnName The function name
+     * @returns Array of argument objects: { name, type, required }
+     */
+    public async getFunctionArguments(name: string, path: string): Promise<FunctionArgument[]> {
+        const result = await this.run(['call', name, '-h'], { cwd: path });
+        if (!result.success) {
+            throw new Error(`Failed to get arguments for function '${name}': ${result.stderr}`);
+        }
+
+        const lines = result.stdout.split('\n').map(line => line.trim());
+        const argsStart = lines.findIndex(line => line.includes('\x1b[1mARGUMENTS\x1b'));
+        if (argsStart === -1) {
+            return [];
+        }
+
+        const args: FunctionArgument[] = [];
+        for (let i = argsStart + 1; i < lines.length; i++) {
+            const line = lines[i];
+            console.log(`Parsing line: ${line}`);
+            // Stop at next section (all uppercase, min 2 chars) or empty line
+            if (!line || (/^[A-Z][A-Z0-9 \-]+$/.test(line) && line.length > 2)) {
+                break;
+            }
+            // Match: --arg-name [type]   [required] or --arg-name type   [required]
+            const match = line.match(/^--([a-zA-Z0-9-_]+)\s+(\[?[a-zA-Z0-9-_]+\]?)(?:\s+\[required\])?/);
+            if (match) {
+                args.push({
+                    name: match[1],
+                    type: match[2].replace(/\[|\]/g, ''),
+                    required: /\[required\]/.test(line)
+                });
+            }
+        }
+        return args;
     }
 
     /*

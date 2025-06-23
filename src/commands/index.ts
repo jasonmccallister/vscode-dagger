@@ -9,6 +9,7 @@ import functionsCommand from './functions';
 import DaggerCli from '../cli';
 import resetCommand from './reset';
 import shellCommand from './shell';
+import callCommand from './call';
 
 export default class Commands {
     public static register(
@@ -16,6 +17,7 @@ export default class Commands {
         workspacePath: string,
         cli: DaggerCli,
     ): void {
+        callCommand(context, workspacePath, cli);
         cloudCommand(context, cli);
         developCommand(context, cli);
         functionsCommand(context, cli);

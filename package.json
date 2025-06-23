@@ -9,6 +9,11 @@
   "categories": [
     "Other"
   ],
+  "icon": "images/dagger.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jasonmccallister/vscode-dagger"
+  },
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
@@ -21,9 +26,15 @@
       },
       {
         "command": "dagger.develop",
-        "title": "Run Develop",
+        "title": "Develop local dependencies",
         "category": "Dagger",
         "shortTitle": "Develop"
+      },
+      {
+        "command": "dagger.call",
+        "title": "Call Functions",
+        "category": "Dagger",
+        "shortTitle": "Call"
       },
       {
         "command": "dagger.functions",
@@ -98,7 +109,9 @@
     "taskDefinitions": [
       {
         "type": "dagger",
-        "required": ["task"],
+        "required": [
+          "task"
+        ],
         "properties": {
           "task": {
             "type": "string",
