@@ -33,7 +33,7 @@ export default function callCommand(context: vscode.ExtensionContext, workspace:
                 cancellable: false
             }, async (progress) => {
                 progress.report({ message: 'Running `dagger functions`...' });
-                const functions = await cli.functionsList();
+                const functions = await cli.functionsList(workspace);
                 if (functions.length === 0) {
                     vscode.window.showInformationMessage('No Dagger functions found in this project.');
                     return;
@@ -54,8 +54,33 @@ export default function callCommand(context: vscode.ExtensionContext, workspace:
                     return;
                 }
 
+                // get the selected function arguments
+                const args = await cli.getFunctionArguments(pick.label, workspace);
+                if (!args) {
+                    vscode.window.showErrorMessage(`Failed to get arguments for function '${pick.label}'`);
+                    return;
+                }
+
+                // Show a quick pick for the function arguments
+                const argsPicks = args.map(arg => ({
+                    label: `${arg.name} (${arg.type})`,
+                    description: arg.required ? 'Required' : 'Optional',
+                    detail: `Type: ${arg.type}`
+                }));
+
+                const selectedArgs = await vscode.window.showQuickPick(argsPicks, {
+                    placeHolder: 'Select function arguments (optional)',
+                    canPickMany: true
+                });
+                if (!selectedArgs) {
+                    return;
+                }
+
+                
+                const selectedArgNames = selectedArgs.map(arg => arg.label.split(' ')[0]); // Extract argument names
+
                 progress.report({ message: `Calling function: ${pick.label}` });
-                const callResult = await cli.run(['call', pick.label]);
+                const callResult = await cli.run(['call', pick.label, ...selectedArgNames]);
                 if (callResult.success) {
                     vscode.window.showInformationMessage(`Function '${pick.label}' called successfully.`);
                 } else {
