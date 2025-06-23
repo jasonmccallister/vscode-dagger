@@ -103,7 +103,9 @@ export default function callCommand(context: vscode.ExtensionContext, workspace:
                 }
 
                 progress.report({ message: `Calling function: ${pick.label}` });
-                const callResult = await cli.run(['call', pick.label, ...argValues]);
+                const commands = [pick.label, ...argValues];
+                vscode.window.showInformationMessage(`Running command: dagger call ${commands.join(' ')}`);
+                const callResult = await cli.run(["call", ...commands], { cwd: workspace });
                 if (callResult.success) {
                     vscode.window.showInformationMessage(`Function '${pick.label}' called successfully.`);
                 } else {
