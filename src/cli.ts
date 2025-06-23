@@ -15,6 +15,12 @@ type Function = {
     description?: string;
 };
 
+type FunctionArgument = {
+    name: string;
+    type: string;
+    required: boolean;
+};
+
 export default class DaggerCli {
     private command: string = 'dagger';
     private workspacePath?: string;
@@ -124,21 +130,22 @@ export default class DaggerCli {
      * @param fnName The function name
      * @returns Array of argument objects: { name, type, required }
      */
-    public async getFunctionArguments(name: string, path: string): Promise<{ name: string; type: string; required: boolean }[]> {
+    public async getFunctionArguments(name: string, path: string): Promise<FunctionArgument[]> {
         const result = await this.run(['call', name, '-h'], { cwd: path });
         if (!result.success) {
             throw new Error(`Failed to get arguments for function '${name}': ${result.stderr}`);
         }
 
         const lines = result.stdout.split('\n').map(line => line.trim());
-        const argsStart = lines.findIndex(line => line.toUpperCase().includes('ARGUMENTS'));
+        const argsStart = lines.findIndex(line => line.includes('\x1b[1mARGUMENTS\x1b'));
         if (argsStart === -1) {
             return [];
         }
 
-        const args: { name: string; type: string; required: boolean }[] = [];
+        const args: FunctionArgument[] = [];
         for (let i = argsStart + 1; i < lines.length; i++) {
             const line = lines[i];
+            console.log(`Parsing line: ${line}`);
             // Stop at next section (all uppercase, min 2 chars) or empty line
             if (!line || (/^[A-Z][A-Z0-9 \-]+$/.test(line) && line.length > 2)) {
                 break;
