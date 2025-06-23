@@ -1,4 +1,4 @@
-import { execSync } from 'child_process';
+import { execSync, ExecSyncOptionsWithStringEncoding } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -9,6 +9,11 @@ export interface CommandResult {
     exitCode: number;
     success?: boolean;
 }
+
+type Function = {
+    name: string;
+    description?: string;
+};
 
 export default class DaggerCli {
     private command: string = 'dagger';
@@ -27,8 +32,12 @@ export default class DaggerCli {
     ): Promise<CommandResult> {
         const timeout = options.timeout || 30000;
         const command = `${this.command} ${args.join(' ')}`;
-        
+
         try {
+            if (options.cwd && !fs.existsSync(options.cwd)) {
+                throw new Error(`Working directory does not exist: ${options.cwd}`);
+            }
+
             const stdout = execSync(command, {
                 cwd: options.cwd || this.workspacePath || process.cwd(),
                 timeout,
@@ -50,6 +59,33 @@ export default class DaggerCli {
                 success: false
             };
         }
+    }
+
+    public async functionsList(): Promise<Function[]> {
+        const result = await this.run(['functions']);
+        if (!result.success) {
+            throw new Error(`Failed to list functions: ${result.stderr}`);
+        }
+
+        if (!result.stdout) {
+            return [];
+        }
+
+        const lines = result.stdout.split('\n').map(line => line.trim());
+        const headerIdx = lines.findIndex(line => line.toLowerCase().includes('name') && line.toLowerCase().includes('description'));
+        let functions: Function[] = [];
+        if (headerIdx !== -1) {
+            functions = lines.slice(headerIdx + 1)
+                .filter(line => line && !/^[-▶]/.test(line))
+                .map(line => {
+                    // Split by 2+ spaces
+                    const [name, ...descParts] = line.split(/\s{2,}/);
+                    return { name: name.trim(), description: descParts.join(' ').trim() };
+                })
+                .filter(fn => fn.name);
+        }
+
+        return functions;
     }
 
     /**

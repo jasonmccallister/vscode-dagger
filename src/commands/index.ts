@@ -17,7 +17,7 @@ export default class Commands {
         workspacePath: string,
         cli: DaggerCli,
     ): void {
-        callCommand(context, cli);
+        callCommand(context, workspacePath, cli);
         cloudCommand(context, cli);
         developCommand(context, cli);
         functionsCommand(context, cli);
