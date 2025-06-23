@@ -17,7 +17,7 @@ export default function callCommand(context: vscode.ExtensionContext, workspace:
 
             // if workspace is not set, use the current workspace folder or cwd
             if (!workspace) {
-                vscode.window.showInformationMessage('No workspace path set. Using current workspace or cwd.');
+                console.log('No workspace path set. Using current workspace or cwd.');
                 const workspaceFolders = vscode.workspace.workspaceFolders;
                 if (workspaceFolders && workspaceFolders.length > 0) {
                     workspace = workspaceFolders[0].uri.fsPath;
@@ -61,26 +61,49 @@ export default function callCommand(context: vscode.ExtensionContext, workspace:
                     return;
                 }
 
-                // Show a quick pick for the function arguments
-                const argsPicks = args.map(arg => ({
-                    label: `${arg.name} (${arg.type})`,
-                    description: arg.required ? 'Required' : 'Optional',
-                    detail: `Type: ${arg.type}`
-                }));
+                // Separate required and optional arguments
+                const requiredArgs = args.filter(arg => arg.required);
+                const optionalArgs = args.filter(arg => !arg.required);
 
-                const selectedArgs = await vscode.window.showQuickPick(argsPicks, {
-                    placeHolder: 'Select function arguments (optional)',
-                    canPickMany: true
-                });
-                if (!selectedArgs) {
-                    return;
+                // Show a quick pick for optional arguments
+                let selectedOptionalArgs: typeof optionalArgs = [];
+                if (optionalArgs.length > 0) {
+                    const argsPicks = optionalArgs.map(arg => ({
+                        label: `${arg.name} (${arg.type})`,
+                        description: 'Optional',
+                        detail: `Type: ${arg.type}`
+                    }));
+                    const selected = await vscode.window.showQuickPick(argsPicks, {
+                        placeHolder: 'Select optional arguments to provide values for',
+                        canPickMany: true
+                    });
+                    if (selected) {
+                        const selectedNames = selected.map(arg => arg.label.split(' ')[0]);
+                        selectedOptionalArgs = optionalArgs.filter(arg => selectedNames.includes(arg.name));
+                    }
                 }
 
-                
-                const selectedArgNames = selectedArgs.map(arg => arg.label.split(' ')[0]); // Extract argument names
+                // Combine required and selected optional arguments
+                const allSelectedArgs = [...requiredArgs, ...selectedOptionalArgs];
+                const argValues: string[] = [];
+                for (const arg of allSelectedArgs) {
+                    const value = await vscode.window.showInputBox({
+                        prompt: `Enter value for --${arg.name} (${arg.type})${arg.required ? ' [required]' : ''}`,
+                        ignoreFocusOut: true,
+                        validateInput: input => arg.required && !input ? 'This value is required.' : undefined
+                    });
+                    if (arg.required && !value) {
+                        vscode.window.showErrorMessage(`Value required for argument --${arg.name}`);
+                        return;
+                    }
+                    if (value) {
+                        argValues.push(`--${arg.name}`);
+                        argValues.push(value);
+                    }
+                }
 
                 progress.report({ message: `Calling function: ${pick.label}` });
-                const callResult = await cli.run(['call', pick.label, ...selectedArgNames]);
+                const callResult = await cli.run(['call', pick.label, ...argValues]);
                 if (callResult.success) {
                     vscode.window.showInformationMessage(`Function '${pick.label}' called successfully.`);
                 } else {
