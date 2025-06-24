@@ -14,7 +14,9 @@
     "type": "git",
     "url": "https://github.com/jasonmccallister/vscode-dagger"
   },
-  "activationEvents": [],
+  "activationEvents": [
+    "workspaceContains:**/dagger.json"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
