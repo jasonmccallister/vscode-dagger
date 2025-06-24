@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import DaggerCli from '../cli';
+import { collectAndRunFunction } from '../utils/function-helpers';
 
 export async function loadTasks(cli: DaggerCli) {
     // if not installed return early
@@ -31,25 +32,19 @@ export async function loadTasks(cli: DaggerCli) {
                     function: fn.name
                 };
 
-                // Create a command that will run our custom command handler
-                // This makes our task run a VS Code command we'll register
-                const commandId = `dagger.runFunction.${fn.name}`;
+                // Use CustomExecution to prompt for arguments and run in the Dagger terminal
                 const execution = new vscode.CustomExecution(async (): Promise<vscode.Pseudoterminal> => {
-                    // Create a pseudoterminal for the task
                     return {
                         onDidWrite: new vscode.EventEmitter<string>().event,
-                        open: () => {
-                            // When the terminal opens, run our command
-                            setTimeout(() => {
-                                vscode.commands.executeCommand(commandId, fn.name, args, workspacePath);
-                            }, 100);
+                        open: async () => {
+                            // Prompt for arguments and run in the Dagger terminal
+                            await collectAndRunFunction(fn.name, args);
                         },
                         close: () => { },
                         handleInput: () => { }
                     };
                 });
 
-                // Create our task with a custom execution that first collects arguments
                 const task = new vscode.Task(
                     taskDefinition,
                     vscode.TaskScope.Workspace,
@@ -67,18 +62,9 @@ export async function loadTasks(cli: DaggerCli) {
                 task.isBackground = false;
                 task.problemMatchers = ["$dagger-matcher"];
 
-                // Task options
-                task.group = vscode.TaskGroup.Build;
-                task.presentationOptions = {
-                    reveal: vscode.TaskRevealKind.Always,
-                    echo: true,
-                    focus: true,
-                    panel: vscode.TaskPanelKind.Shared
-                };
-                task.isBackground = false;
-                task.problemMatchers = ["$dagger-matcher"];
                 return task;
             }));
+
             return tasks;
         },
         resolveTask(task: vscode.Task): vscode.Task | undefined {
