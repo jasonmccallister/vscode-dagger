@@ -32,7 +32,9 @@ export async function loadTasks(cli: DaggerCli) {
                     function: fn.name
                 };
 
-                // Use CustomExecution to prompt for arguments and run in the Dagger terminal
+                // TODO(jasonmccallister): this is hacky as VS Code will always show a pseudoterminal, 
+                // even if you don't write any output. There is no official way to prevent the 
+                // pseudoterminal from appearing when using CustomExecution
                 const execution = new vscode.CustomExecution(async (): Promise<vscode.Pseudoterminal> => {
                     return {
                         onDidWrite: new vscode.EventEmitter<string>().event,
