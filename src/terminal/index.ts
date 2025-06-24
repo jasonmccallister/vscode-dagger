@@ -3,12 +3,12 @@ import * as path from 'path';
 
 const windowName = 'Dagger';
 let isTerminalBusy = false;
+let isShellCommand = false;
 
 class Terminal {
     public static run(
         config: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration('dagger'),
         commands: string[],
-        forceShow: boolean = false,
     ): vscode.Terminal {
         let terminal: vscode.Terminal | undefined = vscode.window.terminals.find(t => t.name === windowName);
 
@@ -20,23 +20,26 @@ class Terminal {
             ).then(selection => {
                 if (selection === 'Stop Terminal' && terminal) {
                     // Clear the terminal and reset busy state
-                    terminal.sendText('\x03'); // Send Ctrl+C to interrupt current command
+                    // if its a shell command, we need to interrupt it with ctrl+d
+                    if (isShellCommand) {
+                        // For shell commands, we need to send Ctrl+D to interrupt
+                        terminal.sendText('\x04'); // Send Ctrl+D to interrupt current command
+                    } else {
+                        terminal.sendText('\x03'); // Send Ctrl+C to interrupt current command
+                    }
                     setTimeout(() => {
                         // Clear the terminal screen after a brief delay
                         terminal!.sendText('clear', true);
                         isTerminalBusy = false;
-                        
+
                         // Now execute our command
                         this.executeCommand(terminal!, commands, config);
-                        
-                        const shouldExecute = config.get<boolean>('autoExecute', true);
-                        if (shouldExecute === false || forceShow) {
-                            terminal!.show(true);
-                        }
+
+                        terminal!.show(true);
                     }, 500); // 500ms delay to allow interrupt to process
                 }
-                // If 'Wait' is selected, do nothing - user can retry later
             });
+
             return terminal;
         }
 
@@ -49,10 +52,7 @@ class Terminal {
 
         this.executeCommand(terminal, commands, config);
 
-        const shouldExecute = config.get<boolean>('autoExecute', true);
-        if (shouldExecute === false || forceShow) {
-            terminal.show(true);
-        }
+        terminal.show(true);
 
         return terminal;
     }
@@ -60,21 +60,21 @@ class Terminal {
     private static getIconPath(): vscode.Uri | vscode.ThemeIcon {
         // Try to find the extension by name first
         let extensionPath = vscode.extensions.getExtension('vscode-dagger')?.extensionPath;
-        
+
         // If not found, try with a potential publisher prefix
         if (!extensionPath) {
             extensionPath = vscode.extensions.getExtension('jasonmccallister.vscode-dagger')?.extensionPath;
         }
-        
+
         // If still not found, try to find by display name
         if (!extensionPath) {
-            const extension = vscode.extensions.all.find(ext => 
-                ext.packageJSON.name === 'vscode-dagger' || 
+            const extension = vscode.extensions.all.find(ext =>
+                ext.packageJSON.name === 'vscode-dagger' ||
                 ext.packageJSON.displayName === 'vscode-dagger'
             );
             extensionPath = extension?.extensionPath;
         }
-        
+
         return extensionPath ?
             vscode.Uri.file(path.join(extensionPath, 'images', 'dagger-white.png')) :
             new vscode.ThemeIcon('symbol-misc');
@@ -92,6 +92,9 @@ class Terminal {
 
         // Mark terminal as busy before executing
         isTerminalBusy = true;
+
+        // is the command dagger shell?
+        isShellCommand = commands[0] === 'dagger' && commands[1] === 'shell';
 
         // Set up a listener to detect when command finishes
         // This is a workaround since VS Code doesn't provide direct busy state

@@ -19,7 +19,6 @@ export default function shellCommand(context: vscode.ExtensionContext) {
             Terminal.run(
                 vscode.workspace.getConfiguration('dagger'),
                 ['shell'],
-                true, // Force show the terminal
             );
         })
     );

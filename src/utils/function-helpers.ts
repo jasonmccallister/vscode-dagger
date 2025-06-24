@@ -6,13 +6,11 @@ import { FunctionArgument } from '../cli';
  * Collects function argument values from the user and executes the Dagger function
  * @param functionName The name of the function to call
  * @param args The function arguments
- * @param forceShowTerminal Whether to force showing the terminal
  * @returns A promise that resolves when the function is called or rejects if cancelled
  */
 export async function collectAndRunFunction(
     functionName: string,
     args: FunctionArgument[],
-    forceShowTerminal: boolean = false
 ): Promise<boolean> {
     // Separate required and optional arguments
     const requiredArgs = args.filter(arg => arg.required);
@@ -73,7 +71,6 @@ export async function collectAndRunFunction(
     Terminal.run(
         vscode.workspace.getConfiguration('dagger'),
         commandArgs,
-        forceShowTerminal
     );
 
     return true;

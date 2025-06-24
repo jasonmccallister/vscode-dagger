@@ -36,7 +36,7 @@ export async function activate(context: vscode.ExtensionContext) {
 						}
 					}
 
-					return collectAndRunFunction(fnName, fnArgs, true);
+					return collectAndRunFunction(fnName, fnArgs);
 				})
 			);
 		});
