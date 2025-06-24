@@ -4,6 +4,7 @@ import Commands from './commands';
 import { promptCloud } from './actions/cloud';
 import { loadTasks } from './tasks/tasks';
 import { collectAndRunFunction } from './utils/function-helpers';
+import { FunctionArgument } from './cli';
 
 export async function activate(context: vscode.ExtensionContext) {
 	const cli = new DaggerCli();
@@ -20,15 +21,22 @@ export async function activate(context: vscode.ExtensionContext) {
 		functions.forEach(fn => {
 			const commandId = `dagger.runFunction.${fn.name}`;
 			context.subscriptions.push(
-				vscode.commands.registerCommand(commandId, async () => {
-					const workspacePath = vscode.workspace.workspaceFolders?.[0].uri.fsPath || '';
-					const args = await cli.getFunctionArguments(fn.name, workspacePath);
-					if (!args) {
-						vscode.window.showErrorMessage(`Failed to get arguments for function '${fn.name}'`);
-						return false;
+				vscode.commands.registerCommand(commandId, async (functionName?: string, args?: FunctionArgument[], workspacePath?: string) => {
+					// If parameters are passed directly (from a task), use them
+					const fnName = functionName || fn.name;
+					const wsPath = workspacePath || vscode.workspace.workspaceFolders?.[0].uri.fsPath || '';
+					
+					// If args aren't passed in, fetch them
+					let fnArgs = args;
+					if (!fnArgs) {
+						fnArgs = await cli.getFunctionArguments(fnName, wsPath);
+						if (!fnArgs) {
+							vscode.window.showErrorMessage(`Failed to get arguments for function '${fnName}'`);
+							return false;
+						}
 					}
 					
-					return collectAndRunFunction(fn.name, args, true);
+					return collectAndRunFunction(fnName, fnArgs, true);
 				})
 			);
 		});
