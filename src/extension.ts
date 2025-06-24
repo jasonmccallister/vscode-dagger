@@ -25,7 +25,7 @@ export async function activate(context: vscode.ExtensionContext) {
 					// If parameters are passed directly (from a task), use them
 					const fnName = functionName || fn.name;
 					const wsPath = workspacePath || vscode.workspace.workspaceFolders?.[0].uri.fsPath || '';
-					
+
 					// If args aren't passed in, fetch them
 					let fnArgs = args;
 					if (!fnArgs) {
@@ -35,7 +35,7 @@ export async function activate(context: vscode.ExtensionContext) {
 							return false;
 						}
 					}
-					
+
 					return collectAndRunFunction(fnName, fnArgs, true);
 				})
 			);
