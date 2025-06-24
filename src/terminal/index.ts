@@ -2,8 +2,6 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 
 const windowName = 'Dagger';
-let isTerminalBusy = false;
-let isShellCommand = false;
 
 class Terminal {
     public static run(
@@ -11,37 +9,6 @@ class Terminal {
         commands: string[],
     ): vscode.Terminal {
         let terminal: vscode.Terminal | undefined = vscode.window.terminals.find(t => t.name === windowName);
-
-        // Check if terminal exists and is busy
-        if (terminal && isTerminalBusy) {
-            vscode.window.showWarningMessage(
-                'Dagger terminal is busy running a command. Please wait for it to complete or stop the current terminal.',
-                'Wait', 'Stop Terminal'
-            ).then(selection => {
-                if (selection === 'Stop Terminal' && terminal) {
-                    // Clear the terminal and reset busy state
-                    // if its a shell command, we need to interrupt it with ctrl+d
-                    if (isShellCommand) {
-                        // For shell commands, we need to send Ctrl+D to interrupt
-                        terminal.sendText('\x04'); // Send Ctrl+D to interrupt current command
-                    } else {
-                        terminal.sendText('\x03'); // Send Ctrl+C to interrupt current command
-                    }
-                    setTimeout(() => {
-                        // Clear the terminal screen after a brief delay
-                        terminal!.sendText('clear', true);
-                        isTerminalBusy = false;
-
-                        // Now execute our command
-                        this.executeCommand(terminal!, commands, config);
-
-                        terminal!.show(true);
-                    }, 500); // 500ms delay to allow interrupt to process
-                }
-            });
-
-            return terminal;
-        }
 
         if (!terminal) {
             terminal = vscode.window.createTerminal({
@@ -89,26 +56,6 @@ class Terminal {
         if (commands[0] !== 'dagger') {
             commands.unshift('dagger');
         }
-
-        // Mark terminal as busy before executing
-        isTerminalBusy = true;
-
-        // is the command dagger shell?
-        isShellCommand = commands[0] === 'dagger' && commands[1] === 'shell';
-
-        // Set up a listener to detect when command finishes
-        // This is a workaround since VS Code doesn't provide direct busy state
-        const disposable = vscode.window.onDidCloseTerminal(closedTerminal => {
-            if (closedTerminal.name === windowName || closedTerminal.name?.startsWith(windowName)) {
-                isTerminalBusy = false;
-                disposable.dispose();
-            }
-        });
-
-        // Also reset busy state after a reasonable timeout
-        setTimeout(() => {
-            isTerminalBusy = false;
-        }, 30000); // 30 seconds timeout
 
         terminal.sendText(commands.join(' '), config.get('autoExecute', true));
     }

@@ -30,7 +30,7 @@ export async function loadTasks(cli: DaggerCli) {
                     type: 'dagger',
                     function: fn.name
                 };
-                
+
                 // Create a command that will run our custom command handler
                 // This makes our task run a VS Code command we'll register
                 const commandId = `dagger.runFunction.${fn.name}`;
@@ -44,8 +44,8 @@ export async function loadTasks(cli: DaggerCli) {
                                 vscode.commands.executeCommand(commandId, fn.name, args, workspacePath);
                             }, 100);
                         },
-                        close: () => {},
-                        handleInput: () => {}
+                        close: () => { },
+                        handleInput: () => { }
                     };
                 });
 
@@ -71,7 +71,7 @@ export async function loadTasks(cli: DaggerCli) {
                 task.group = vscode.TaskGroup.Build;
                 task.presentationOptions = {
                     reveal: vscode.TaskRevealKind.Always,
-                    echo: true, 
+                    echo: true,
                     focus: true,
                     panel: vscode.TaskPanelKind.Shared
                 };
