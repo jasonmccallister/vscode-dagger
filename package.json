@@ -139,9 +139,9 @@
             "type": "string",
             "description": "The Dagger function name to run"
           },
-          "inputs": {
+          "args": {
             "type": "array",
-            "description": "Input parameters for the function"
+            "description": "Arguments metadata for the function"
           }
         }
       }
