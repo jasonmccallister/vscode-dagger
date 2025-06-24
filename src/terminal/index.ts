@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 
 const windowName = 'Dagger';
 
@@ -10,7 +11,16 @@ class Terminal {
     ): vscode.Terminal {
         let terminal: vscode.Terminal | undefined = vscode.window.terminals.find(t => t.name === windowName);
         if (!terminal) {
-            terminal = vscode.window.createTerminal(windowName);
+            // Get the extension context to access the extension path
+            const extensionPath = vscode.extensions.getExtension('jasonmccallister.vscode-dagger')?.extensionPath;
+            const iconPath = extensionPath ? 
+                vscode.Uri.file(path.join(extensionPath, 'images', 'dagger.png')) : 
+                new vscode.ThemeIcon('symbol-misc'); // Fallback icon
+
+            terminal = vscode.window.createTerminal({
+                name: windowName,
+                iconPath: iconPath
+            });
         }
 
         const shouldExecute = config.get<boolean>('autoExecute', true);
