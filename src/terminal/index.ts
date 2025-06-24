@@ -14,7 +14,7 @@ class Terminal {
         }
 
         const shouldExecute = config.get<boolean>('autoExecute', true);
-        if (config.get('showTerminal') === 'always' || shouldExecute === false || forceShow) {
+        if (shouldExecute === false || forceShow) {
             terminal.show(true);
         }
 
