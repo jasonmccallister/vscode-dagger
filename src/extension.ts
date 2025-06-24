@@ -3,7 +3,7 @@ import DaggerCli from './cli';
 import Commands from './commands';
 import { promptCloud } from './actions/cloud';
 import { loadTasks } from './tasks/tasks';
-import { Terminal } from './terminal';
+import { collectAndRunFunction } from './utils/function-helpers';
 
 export async function activate(context: vscode.ExtensionContext) {
 	const cli = new DaggerCli();
@@ -20,40 +20,15 @@ export async function activate(context: vscode.ExtensionContext) {
 		functions.forEach(fn => {
 			const commandId = `dagger.runFunction.${fn.name}`;
 			context.subscriptions.push(
-				vscode.commands.registerCommand(commandId, async (functionName: string, args: any[], workspacePath: string) => {
-					// For each argument, collect a value from the user
-					const argValues: Record<string, string> = {};
-					for (const arg of args) {
-						const value = await vscode.window.showInputBox({
-							prompt: `Enter value for --${arg.name} (${arg.type})${arg.required ? ' [required]' : ''}`,
-							ignoreFocusOut: true,
-							validateInput: input => arg.required && !input ? 'This value is required.' : undefined
-						});
-
-						if (arg.required && !value) {
-							vscode.window.showErrorMessage(`Value required for argument --${arg.name}`);
-							return false; // Don't proceed with the task
-						}
-
-						if (value) {
-							argValues[arg.name] = value;
-						}
+				vscode.commands.registerCommand(commandId, async () => {
+					const workspacePath = vscode.workspace.workspaceFolders?.[0].uri.fsPath || '';
+					const args = await cli.getFunctionArguments(fn.name, workspacePath);
+					if (!args) {
+						vscode.window.showErrorMessage(`Failed to get arguments for function '${fn.name}'`);
+						return false;
 					}
-
-					// Build the command as an array of arguments
-					const commandArgs = ['call', functionName];
-
-					// Add all collected arguments to the command array
-					Object.entries(argValues).forEach(([name, value]) => {
-						commandArgs.push(`--${name}`);
-						commandArgs.push(value);
-					});
-
-					Terminal.run(
-						vscode.workspace.getConfiguration('dagger'),
-						commandArgs,
-						true // Force show the terminal when running function tasks
-					);
+					
+					return collectAndRunFunction(fn.name, args, true);
 				})
 			);
 		});

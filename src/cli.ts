@@ -15,7 +15,7 @@ type Function = {
     description?: string;
 };
 
-type FunctionArgument = {
+export type FunctionArgument = {
     name: string;
     type: string;
     required: boolean;
