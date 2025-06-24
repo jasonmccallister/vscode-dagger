@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import DaggerCli from '../cli';
-import { askToInstall } from '../actions/install-prompt';
+import { askToInstall } from '../actions/install';
+import { Terminal } from '../terminal';
+import { initProjectCommand } from '../actions/init';
 
 export default function functionsCommand(context: vscode.ExtensionContext, cli: DaggerCli) {
     context.subscriptions.push(
@@ -12,27 +14,16 @@ export default function functionsCommand(context: vscode.ExtensionContext, cli: 
 
             // check if this workspace is already a dagger project
             if (!await cli.isDaggerProject()) {
-                const choice = await vscode.window.showErrorMessage(
-                    `This workspace is not a Dagger project. Please run the "Dagger: Init" command to initialize it.`,
-                    { modal: true },
-                    'Run Init',
-                    'No'
-                );
-
-                if (choice === 'Run Init') {
-                    // Open a terminal and run the dagger init command
-                    const terminal = vscode.window.createTerminal('Dagger');
-                    terminal.sendText('dagger init');
-                    terminal.show();
-                }
+                initProjectCommand();
 
                 return;
             }
 
             // Open a terminal and run the dagger functions command
-            const terminal = vscode.window.createTerminal('Dagger');
-            terminal.sendText('dagger functions');
-            terminal.show();
+            Terminal.run(
+                vscode.workspace.getConfiguration('dagger'),
+                ['functions'],
+            );
         }),
     );
 }

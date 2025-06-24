@@ -67,6 +67,32 @@ export default class DaggerCli {
         }
     }
 
+    /**
+     * Runs a Dagger command with a VS Code progress window
+     * @param args Arguments to pass to the command
+     * @param options Options for running the command, such as timeout and working directory
+     * @param progressTitle Title for the progress window
+     * @param progressMessage Optional message to show during execution
+     * @returns A Promise that resolves to a CommandResult
+     */
+    public async runWithProgress(
+        args: string[] = [],
+        options: { timeout?: number; cwd?: string } = {},
+        progressTitle: string = 'Dagger: Running command',
+        progressMessage?: string
+    ): Promise<CommandResult> {
+        return await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: progressTitle,
+            cancellable: false
+        }, async (progress) => {
+            if (progressMessage) {
+                progress.report({ message: progressMessage });
+            }
+            return await this.run(args, options);
+        });
+    }
+
     public async functionsList(path: string): Promise<Function[]> {
         const result = await this.run(['functions'], { cwd: path });
         if (!result.success) {

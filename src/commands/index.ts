@@ -24,10 +24,10 @@ export default class Commands {
         functionsCommand(context, cli);
         initCommand(context, cli);
         installCommand(context, cli);
+        installModuleCommand(context, cli);
         resetCommand(context);
         shellCommand(context);
         uninstallCommand(context, cli);
         versionCommand(context, cli);
-        installModuleCommand(context, cli);
     }
 }

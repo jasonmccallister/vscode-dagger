@@ -1,13 +1,12 @@
 import * as vscode from 'vscode';
 import DaggerCli from '../cli';
-import { askToInstall } from '../actions/install-prompt';
+import { askToInstall } from '../actions/install';
 
 export default function versionCommand(context: vscode.ExtensionContext, cli: DaggerCli) {
     context.subscriptions.push(
         vscode.commands.registerCommand('dagger.version', async () => {
             if (!await cli.isInstalled()) {
-                askToInstall();
-                return;
+                return askToInstall();
             }
 
             await vscode.window.withProgress({ title: 'Dagger', location: vscode.ProgressLocation.Notification }, async (progress) => {

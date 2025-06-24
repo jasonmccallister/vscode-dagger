@@ -1,19 +1,18 @@
 import * as vscode from 'vscode';
 import DaggerCli from '../cli';
-import { askToInstall } from '../actions/install-prompt';
-import showTerminal, { Terminal } from '../terminal';
+import { askToInstall } from '../actions/install';
+import { Terminal } from '../terminal';
+import { initProjectCommand } from '../actions/init';
 
 export default function callCommand(context: vscode.ExtensionContext, workspace: string, cli: DaggerCli) {
     context.subscriptions.push(
         vscode.commands.registerCommand('dagger.call', async () => {
             if (!await cli.isInstalled()) {
-                askToInstall();
-                return;
+                return askToInstall();
             }
 
             if (!(await cli.isDaggerProject())) {
-                vscode.window.showErrorMessage('This workspace is not a Dagger project. Please run the "Dagger: Init" command to initialize it.');
-                return;
+                return initProjectCommand();
             }
 
             // if workspace is not set, use the current workspace folder or cwd
@@ -109,7 +108,7 @@ export default function callCommand(context: vscode.ExtensionContext, workspace:
 
                 Terminal.run(
                     vscode.workspace.getConfiguration('dagger'),
-                    ['dagger', 'call', ...commands],
+                    ['call', ...commands],
                 );
             });
         })

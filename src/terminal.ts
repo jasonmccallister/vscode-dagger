@@ -22,6 +22,7 @@ export class Terminal {
     public static run(
         config: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration('dagger'),
         commands: string[],
+        forceShow: boolean = false,
     ): vscode.Terminal {
         let terminal: vscode.Terminal | undefined = vscode.window.terminals.find(t => t.name === windowName);
         if (!terminal) {
@@ -29,8 +30,13 @@ export class Terminal {
         }
 
         const shouldExecute = config.get<boolean>('autoExecute', true);
-        if (config.get('showTerminal') === 'always' || shouldExecute === false) {
+        if (config.get('showTerminal') === 'always' || shouldExecute === false || forceShow) {
             terminal.show(true);
+        }
+
+        // add dagger as the first command if not already present
+        if (commands[0] !== 'dagger') {
+            commands.unshift('dagger');
         }
 
         // Always prefix with 'dagger call' when using the terminal

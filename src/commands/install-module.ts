@@ -1,12 +1,18 @@
 import * as vscode from 'vscode';
 import DaggerCli from '../cli';
-import { askToInstall } from '../actions/install-prompt';
+import { askToInstall } from '../actions/install';
+import { initProjectCommand } from '../actions/init';
 
 export default function installModuleCommand(context: vscode.ExtensionContext, cli: DaggerCli) {
     context.subscriptions.push(
         vscode.commands.registerCommand('dagger.installModule', async () => {
             if (!await cli.isInstalled()) {
                 askToInstall();
+                return;
+            }
+
+            if (!await cli.isDaggerProject()) {
+                initProjectCommand();
                 return;
             }
 

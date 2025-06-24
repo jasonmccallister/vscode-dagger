@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import DaggerCli from '../cli';
-import { askToInstall } from '../actions/install-prompt';
+import { askToInstall } from '../actions/install';
 
 export default function initCommand(context: vscode.ExtensionContext, cli: DaggerCli) {
     context.subscriptions.push(

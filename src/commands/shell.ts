@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import DaggerCli from '../cli';
-import { askToInstall } from '../actions/install-prompt';
+import { askToInstall } from '../actions/install';
+import { Terminal } from '../terminal';
 
 export default function shellCommand(context: vscode.ExtensionContext) {
     context.subscriptions.push(
@@ -15,12 +16,11 @@ export default function shellCommand(context: vscode.ExtensionContext) {
 
             cli.setWorkspacePath(vscode.workspace.workspaceFolders?.[0].uri.fsPath || '');
 
-            // Open a terminal with the Dagger CLI
-            const terminal = vscode.window.createTerminal({
-                name: 'Dagger',
-            });
-            terminal.show();
-            terminal.sendText('dagger shell');
+            Terminal.run(
+                vscode.workspace.getConfiguration('dagger'),
+                ['shell'],
+                true, // Force show the terminal
+            );
         })
     );
 }
