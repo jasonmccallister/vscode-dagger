@@ -49,6 +49,12 @@
         "shortTitle": "Install"
       },
       {
+        "command": "dagger.installModule",
+        "title": "Install a Module",
+        "category": "Dagger",
+        "shortTitle": "Install Module"
+      },
+      {
         "command": "dagger.setupCloud",
         "title": "Setup Cloud",
         "category": "Dagger",
@@ -103,6 +109,22 @@
           "default": false,
           "description": "Whether the Dagger Cloud setup notification has been permanently dismissed",
           "scope": "application"
+        },
+        "dagger.showTerminal": {
+          "type": "string",
+          "enum": [
+            "always",
+            "onError"
+          ],
+          "default": "onError",
+          "description": "When to show Dagger output in the terminal: 'always' or only 'onError'",
+          "scope": "window"
+        },
+        "dagger.autoExecute": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to automatically execute commands in the terminal when using Dagger",
+          "scope": "window"
         }
       }
     },

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import DaggerCli from '../cli';
 import { askToInstall } from '../actions/install-prompt';
+import showTerminal, { Terminal } from '../terminal';
 
 export default function callCommand(context: vscode.ExtensionContext, workspace: string, cli: DaggerCli) {
     context.subscriptions.push(
@@ -103,14 +104,13 @@ export default function callCommand(context: vscode.ExtensionContext, workspace:
                 }
 
                 progress.report({ message: `Calling function: ${pick.label}` });
+
                 const commands = [pick.label, ...argValues];
-                vscode.window.showInformationMessage(`Running command: dagger call ${commands.join(' ')}`);
-                const callResult = await cli.run(["call", ...commands], { cwd: workspace });
-                if (callResult.success) {
-                    vscode.window.showInformationMessage(`Function '${pick.label}' called successfully.`);
-                } else {
-                    vscode.window.showErrorMessage(`Failed to call function '${pick.label}': ${callResult.stderr}`);
-                }
+
+                Terminal.run(
+                    vscode.workspace.getConfiguration('dagger'),
+                    ['dagger', 'call', ...commands],
+                );
             });
         })
     );

@@ -10,6 +10,7 @@ import DaggerCli from '../cli';
 import resetCommand from './reset';
 import shellCommand from './shell';
 import callCommand from './call';
+import installModuleCommand from './install-module';
 
 export default class Commands {
     public static register(
@@ -27,5 +28,6 @@ export default class Commands {
         shellCommand(context);
         uninstallCommand(context, cli);
         versionCommand(context, cli);
+        installModuleCommand(context, cli);
     }
 }
