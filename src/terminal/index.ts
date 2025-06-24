@@ -58,9 +58,25 @@ class Terminal {
     }
 
     private static getIconPath(): vscode.Uri | vscode.ThemeIcon {
-        const extensionPath = vscode.extensions.getExtension('jasonmccallister.vscode-dagger')?.extensionPath;
+        // Try to find the extension by name first
+        let extensionPath = vscode.extensions.getExtension('vscode-dagger')?.extensionPath;
+        
+        // If not found, try with a potential publisher prefix
+        if (!extensionPath) {
+            extensionPath = vscode.extensions.getExtension('jasonmccallister.vscode-dagger')?.extensionPath;
+        }
+        
+        // If still not found, try to find by display name
+        if (!extensionPath) {
+            const extension = vscode.extensions.all.find(ext => 
+                ext.packageJSON.name === 'vscode-dagger' || 
+                ext.packageJSON.displayName === 'vscode-dagger'
+            );
+            extensionPath = extension?.extensionPath;
+        }
+        
         return extensionPath ?
-            vscode.Uri.file(path.join(extensionPath, 'images', 'dagger.png')) :
+            vscode.Uri.file(path.join(extensionPath, 'images', 'dagger-white.png')) :
             new vscode.ThemeIcon('symbol-misc');
     }
 
