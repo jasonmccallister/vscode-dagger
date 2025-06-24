@@ -21,29 +21,33 @@ export async function loadTasks(cli: DaggerCli) {
     }
 
     vscode.tasks.registerTaskProvider('dagger', {
-        provideTasks: async (token: vscode.CancellationToken) => {
+        provideTasks: async (_: vscode.CancellationToken) => {
             const tasks: vscode.Task[] = await Promise.all(functions.map(async fn => {
                 const args = await cli.getFunctionArguments(fn.name, workspacePath);
 
-                // Create simple task definition without input variables
+                // Create simple task definition 
                 const taskDefinition = {
                     type: 'dagger',
-                    function: fn.name,
-                    args: args.map(arg => ({
-                        name: arg.name,
-                        type: arg.type,
-                        required: arg.required
-                    }))
+                    function: fn.name
                 };
-
-                // Create a base command - we'll handle arg collection separately
-                const command = `dagger call ${fn.name}`;
-
-                // Create the ShellExecution with the basic command
-                const execution = new vscode.ShellExecution(
-                    command,
-                    { cwd: workspacePath }
-                );
+                
+                // Create a command that will run our custom command handler
+                // This makes our task run a VS Code command we'll register
+                const commandId = `dagger.runFunction.${fn.name}`;
+                const execution = new vscode.CustomExecution(async (): Promise<vscode.Pseudoterminal> => {
+                    // Create a pseudoterminal for the task
+                    return {
+                        onDidWrite: new vscode.EventEmitter<string>().event,
+                        open: () => {
+                            // When the terminal opens, run our command
+                            setTimeout(() => {
+                                vscode.commands.executeCommand(commandId, fn.name, args, workspacePath);
+                            }, 100);
+                        },
+                        close: () => {},
+                        handleInput: () => {}
+                    };
+                });
 
                 // Create our task with a custom execution that first collects arguments
                 const task = new vscode.Task(
@@ -63,42 +67,16 @@ export async function loadTasks(cli: DaggerCli) {
                 task.isBackground = false;
                 task.problemMatchers = ["$dagger-matcher"];
 
-                // Add custom execution callback - this gets run when the task is executed
-                // @ts-ignore - this is a custom property
-                task.runTaskCommand = async () => {
-                    // For each argument, collect a value from the user
-                    const argValues: Record<string, string> = {};
-                    for (const arg of args) {
-                        const value = await vscode.window.showInputBox({
-                            prompt: `Enter value for --${arg.name} (${arg.type})${arg.required ? ' [required]' : ''}`,
-                            ignoreFocusOut: true,
-                            validateInput: input => arg.required && !input ? 'This value is required.' : undefined
-                        });
-
-                        if (arg.required && !value) {
-                            vscode.window.showErrorMessage(`Value required for argument --${arg.name}`);
-                            return false; // Don't proceed with the task
-                        }
-
-                        if (value) {
-                            argValues[arg.name] = value;
-                        }
-                    }
-
-                    // Build the full command with collected args
-                    const argString = Object.entries(argValues)
-                        .map(([name, value]) => `--${name} ${value}`)
-                        .join(' ');
-
-                    // Update the execution command with collected args
-                    const finalCommand = `${command}${argString ? ' ' + argString : ''}`;
-
-                    // Run the command in the terminal
-                    const terminal = vscode.window.createTerminal(`Dagger: ${fn.name}`);
-                    terminal.show();
-                    terminal.sendText(finalCommand);
-                    return true; // Task completed successfully
+                // Task options
+                task.group = vscode.TaskGroup.Build;
+                task.presentationOptions = {
+                    reveal: vscode.TaskRevealKind.Always,
+                    echo: true, 
+                    focus: true,
+                    panel: vscode.TaskPanelKind.Shared
                 };
+                task.isBackground = false;
+                task.problemMatchers = ["$dagger-matcher"];
                 return task;
             }));
             return tasks;
