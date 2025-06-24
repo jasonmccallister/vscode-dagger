@@ -1,24 +1,8 @@
 import * as vscode from 'vscode';
 
-
 const windowName = 'Dagger';
 
-export default function showTerminal(
-    config: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration('dagger'),
-): vscode.Terminal {
-    const windowName = 'Dagger';
-    let terminal: vscode.Terminal | undefined = vscode.window.terminals.find(t => t.name === windowName);
-    if (!terminal) {
-        terminal = vscode.window.createTerminal(windowName);
-    }
-
-    // Always show and focus the terminal when this function is called
-    terminal.show(true);
-
-    return terminal;
-}
-
-export class Terminal {
+class Terminal {
     public static run(
         config: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration('dagger'),
         commands: string[],
@@ -45,3 +29,5 @@ export class Terminal {
         return terminal;
     }
 }
+
+export default Terminal;

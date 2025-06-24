@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import DaggerCli from '../cli';
 import { askToInstall } from '../actions/install';
-import { Terminal } from '../terminal';
+import Terminal from '../terminal';
 import { initProjectCommand } from '../actions/init';
 
 export default function developCommand(context: vscode.ExtensionContext, cli: DaggerCli) {

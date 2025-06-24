@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import DaggerCli from '../cli';
 import { askToInstall } from '../actions/install';
-import { Terminal } from '../terminal';
 import { initProjectCommand } from '../actions/init';
+import Terminal from '../terminal';
 
 export default function functionsCommand(context: vscode.ExtensionContext, cli: DaggerCli) {
     context.subscriptions.push(
@@ -19,7 +19,6 @@ export default function functionsCommand(context: vscode.ExtensionContext, cli: 
                 return;
             }
 
-            // Open a terminal and run the dagger functions command
             Terminal.run(
                 vscode.workspace.getConfiguration('dagger'),
                 ['functions'],

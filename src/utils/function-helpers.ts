@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Terminal } from '../terminal';
+import Terminal from '../terminal';
 import { FunctionArgument } from '../cli';
 
 /**
