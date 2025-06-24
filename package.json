@@ -132,13 +132,28 @@
       {
         "type": "dagger",
         "required": [
-          "task"
+          "function"
         ],
         "properties": {
-          "task": {
+          "function": {
             "type": "string",
-            "description": "The Dagger function to run"
+            "description": "The Dagger function name to run"
+          },
+          "inputs": {
+            "type": "array",
+            "description": "Input parameters for the function"
           }
+        }
+      }
+    ],
+    "problemMatchers": [
+      {
+        "name": "dagger-matcher",
+        "owner": "dagger",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": "^Error:\\s+(.*)$",
+          "message": 1
         }
       }
     ]

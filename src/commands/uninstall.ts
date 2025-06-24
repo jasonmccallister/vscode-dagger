@@ -3,7 +3,7 @@ import { exec } from 'child_process';
 import DaggerCli from '../cli';
 
 const brewCommand = 'brew uninstall dagger/tap/dagger';
-const curlInstallCommand = 'type dagger >/dev/null 2>&1 && rm -rf $(dirname $(which dagger)) || true';
+const curlCommand = 'type dagger >/dev/null 2>&1 && rm -rf $(dirname $(which dagger)) || true';
 
 export default function uninstallCommand(context: vscode.ExtensionContext, cli: DaggerCli) {
     context.subscriptions.push(
@@ -23,13 +23,14 @@ export default function uninstallCommand(context: vscode.ExtensionContext, cli: 
             if (response === 'Uninstall') {
                 try {
                     const config = vscode.workspace.getConfiguration('dagger');
-                    const installMethod: string = config.get('installMethod', 'curl');
+                    const installedMethod: string = config.get('installMethod', 'curl');
+                    
                     await vscode.window.withProgress({ title: 'Dagger', location: vscode.ProgressLocation.Notification }, async (progress) => {
                         progress.report({ message: 'Uninstalling...' });
 
                         return new Promise<void>((resolve) => {
-                            const installCommand = installMethod === 'brew' ? brewCommand : curlInstallCommand;
-                            exec(installCommand, (error, stdout, stderr) => {
+                            const command = installedMethod === 'brew' ? brewCommand : curlCommand;
+                            exec(command, (error, stdout, stderr) => {
                                 if (error) {
                                     vscode.window.showErrorMessage(`Dagger uninstallation failed: ${stderr || error.message}`);
                                     resolve();
