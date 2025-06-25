@@ -4,7 +4,7 @@ The VS Code [Dagger](https://dagger.io) extension provides seemless integration 
 
 ## Features
 
-### Easily Manage Installations
+### Easily Manage Install
 
 With this extension, you can easily manage installing, upgrading, or uninstalling Dagger from your system, all within VS Code. The extensions will determine your package manager (e.g. Homebrew) and provide options for installation.
 
