@@ -4,16 +4,22 @@ import DaggerCli, { FunctionArgument } from '../cli';
 // Implement TreeItem for Dagger functions and arguments
 export class DaggerTreeItem extends vscode.TreeItem {
     children?: DaggerTreeItem[];
-    type: 'function' | 'argument' | 'empty';
+    type: 'function' | 'argument' | 'empty' | 'action';
 
     constructor(
         label: string,
-        type: 'function' | 'argument' | 'empty',
-        collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.None
+        type: 'function' | 'argument' | 'empty' | 'action',
+        collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.None,
+        command?: vscode.Command
     ) {
         super(label, collapsibleState);
         this.type = type;
-        
+
+        // Set command if provided
+        if (command) {
+            this.command = command;
+        }
+
         // Set icons based on type
         if (type === 'function') {
             this.iconPath = new vscode.ThemeIcon('symbol-function');
@@ -23,6 +29,11 @@ export class DaggerTreeItem extends vscode.TreeItem {
             this.iconPath = new vscode.ThemeIcon('symbol-parameter');
             this.tooltip = `Argument: ${label}`;
             this.contextValue = 'argument';
+        } else if (type === 'action') {
+            this.iconPath = new vscode.ThemeIcon('arrow-right');
+            this.contextValue = 'action';
+            // Make action items look more like buttons
+            this.tooltip = command ? command.title : label;
         } else {
             this.iconPath = new vscode.ThemeIcon('info');
             this.contextValue = 'empty';
@@ -49,22 +60,62 @@ export class DaggerTreeDataProvider implements vscode.TreeDataProvider<DaggerTre
         try {
             // Check if Dagger is installed and workspace is a Dagger project
             if (!await this.cli.isInstalled()) {
-                this.items = [new DaggerTreeItem('Dagger CLI not installed', 'empty')];
+                this.items = [
+                    new DaggerTreeItem(
+                        '❌ Dagger CLI not installed',
+                        'empty'
+                    ),
+                    new DaggerTreeItem(
+                        '� Install Dagger CLI',
+                        'action',
+                        vscode.TreeItemCollapsibleState.None,
+                        {
+                            command: 'dagger.install',
+                            title: 'Install Dagger CLI'
+                        }
+                    )
+                ];
                 this.refresh();
                 return;
             }
 
             if (!await this.cli.isDaggerProject()) {
-                this.items = [new DaggerTreeItem('Not a Dagger project', 'empty')];
+                this.items = [
+                    new DaggerTreeItem(
+                        '📁 Not a Dagger project',
+                        'empty'
+                    ),
+                    new DaggerTreeItem(
+                        '🚀 Initialize Dagger Project',
+                        'action',
+                        vscode.TreeItemCollapsibleState.None,
+                        {
+                            command: 'dagger.init',
+                            title: 'Initialize Dagger Project'
+                        }
+                    )
+                ];
                 this.refresh();
                 return;
             }
 
             // Load functions
             const functions = await this.cli.functionsList(this.workspacePath);
-            
+
             if (functions.length === 0) {
-                this.items = [new DaggerTreeItem('No functions found', 'empty')];
+                this.items = [
+                    new DaggerTreeItem('📭 No functions found', 'empty'),
+                    new DaggerTreeItem(
+                        '� Learn how to create functions',
+                        'action',
+                        vscode.TreeItemCollapsibleState.None,
+                        {
+                            command: 'vscode.open',
+                            title: 'Learn about Dagger functions',
+                            arguments: [vscode.Uri.parse('https://docs.dagger.io/quickstart')]
+                        }
+                    )
+                ];
                 this.refresh();
                 return;
             }
@@ -73,29 +124,29 @@ export class DaggerTreeDataProvider implements vscode.TreeDataProvider<DaggerTre
             this.items = await Promise.all(functions.map(async (fn) => {
                 // Truncate function name for display if it's too long
                 const displayName = fn.name.length > 30 ? fn.name.substring(0, 27) + '...' : fn.name;
-                
+
                 const functionItem = new DaggerTreeItem(
-                    displayName, 
-                    'function', 
+                    displayName,
+                    'function',
                     vscode.TreeItemCollapsibleState.Collapsed
                 );
-                
+
                 // Store the original function name for command execution
                 functionItem.id = fn.name;
-                
+
                 // Build children array
                 const children: DaggerTreeItem[] = [];
-                
+
                 try {
                     // Get function arguments
                     const args = await this.cli.getFunctionArguments(fn.name, this.workspacePath);
-                    
+
                     if (args.length > 0) {
                         // Add a separator if we have description
                         if (children.length > 0) {
                             children.push(new DaggerTreeItem('─── Arguments ───', 'empty'));
                         }
-                        
+
                         const argItems = args.map(arg => {
                             const argLabel = `--${arg.name} (${arg.type})${arg.required ? ' [required]' : ''}`;
                             return new DaggerTreeItem(argLabel, 'argument');
@@ -133,15 +184,15 @@ export class DaggerTreeDataProvider implements vscode.TreeDataProvider<DaggerTre
         if (description.length <= maxLength) {
             return description;
         }
-        
+
         // Try to break at a word boundary
         const truncated = description.substring(0, maxLength);
         const lastSpace = truncated.lastIndexOf(' ');
-        
+
         if (lastSpace > maxLength * 0.7) { // If we can break at a reasonable word boundary
             return truncated.substring(0, lastSpace) + '...';
         }
-        
+
         return truncated + '...';
     }
 
