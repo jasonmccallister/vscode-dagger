@@ -59,7 +59,7 @@ export default function installCommand(context: vscode.ExtensionContext, cli: Da
             );
 
             if (installResponse === 'Cancel' || !installResponse) {
-                vscode.window.showInformationMessage('Installation cancelled. You can install Container Use later by running the "Container Use: Install" command.');
+                vscode.window.showInformationMessage('Installation cancelled. You can install Dagger later by running the "Dagger: Install CLI" command.');
                 return;
             }
 

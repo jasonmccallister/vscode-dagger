@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import installCommand from './install';
 import uninstallCommand from './uninstall';
 import versionCommand from './version';
+import updateCommand from './update';
 import initCommand from './init';
 import developCommand from './develop';
 import cloudCommand from './cloud';
@@ -28,6 +29,7 @@ export default class Commands {
         resetCommand(context);
         shellCommand(context);
         uninstallCommand(context, cli);
+        updateCommand(context, cli);
         versionCommand(context, cli);
     }
 }

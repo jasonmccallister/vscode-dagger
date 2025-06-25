@@ -15,10 +15,19 @@
     "url": "https://github.com/jasonmccallister/vscode-dagger"
   },
   "activationEvents": [
-    "workspaceContains:**/dagger.json"
+    "workspaceContains:**dagger.json",
+    "onChatParticipant:dagger"
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "chatParticipants": [
+      {
+        "id": "dagger",
+        "name": "dagger",
+        "fullName": "Dagger",
+        "description": "Searches docs.dagger.io for information on developing Dagger modules"
+      }
+    ],
     "commands": [
       {
         "command": "dagger.init",
@@ -28,31 +37,31 @@
       },
       {
         "command": "dagger.develop",
-        "title": "Develop local dependencies",
+        "title": "Develop local modules",
         "category": "Dagger",
         "shortTitle": "Develop"
       },
       {
         "command": "dagger.call",
-        "title": "Call Functions",
+        "title": "Functions call",
         "category": "Dagger",
         "shortTitle": "Call"
       },
       {
         "command": "dagger.functions",
-        "title": "View Functions",
+        "title": "Functions view",
         "category": "Dagger",
         "shortTitle": "Functions"
       },
       {
         "command": "dagger.install",
-        "title": "Install the CLI",
+        "title": "Install Dagger CLI",
         "category": "Dagger",
         "shortTitle": "Install"
       },
       {
         "command": "dagger.installModule",
-        "title": "Install a Module",
+        "title": "Install a module",
         "category": "Dagger",
         "shortTitle": "Install Module"
       },
@@ -70,21 +79,33 @@
       },
       {
         "command": "dagger.version",
-        "title": "Show Version",
+        "title": "Show version",
         "category": "Dagger",
         "shortTitle": "Version"
       },
       {
+        "command": "dagger.update",
+        "title": "Check for updates",
+        "category": "Dagger",
+        "shortTitle": "Update"
+      },
+      {
         "command": "dagger.resetPreferences",
-        "title": "Reset Preferences",
+        "title": "Reset preferences",
         "category": "Dagger",
         "shortTitle": "Reset"
       },
       {
         "command": "dagger.shell",
-        "title": "Open a Shell",
+        "title": "Open a shell",
         "category": "Dagger",
         "shortTitle": "Shell"
+      },
+      {
+        "command": "dagger.chat.searchDocs",
+        "title": "Search docs",
+        "category": "Dagger",
+        "shortTitle": "Search"
       }
     ],
     "configuration": {
@@ -94,13 +115,11 @@
           "type": "string",
           "enum": [
             "brew",
-            "curl",
-            ""
+            "curl"
           ],
           "enumDescriptions": [
             "Use Homebrew package manager (recommended for macOS/Linux)",
-            "Use curl installation script",
-            "No preferred method, will prompt for installation method if Dagger CLI is not found"
+            "Use curl installation script"
           ],
           "default": "brew",
           "description": "Method to use when installing Dagger CLI",
@@ -112,7 +131,6 @@
           "description": "Whether the Dagger Cloud setup notification has been permanently dismissed",
           "scope": "application"
         },
-
         "dagger.autoExecute": {
           "type": "boolean",
           "default": true,
@@ -143,7 +161,10 @@
       {
         "name": "dagger-matcher",
         "owner": "dagger",
-        "fileLocation": ["relative", "${workspaceFolder}"],
+        "fileLocation": [
+          "relative",
+          "${workspaceFolder}"
+        ],
         "pattern": {
           "regexp": "^Error:\\s+(.*)$",
           "message": 1
