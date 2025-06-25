@@ -136,6 +136,12 @@
           "default": true,
           "description": "Whether to automatically execute commands in the terminal when using Dagger",
           "scope": "window"
+        },
+        "dagger.experimentalFeatures": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable experimental features like chat participant and AI assistance",
+          "scope": "window"
         }
       }
     },
