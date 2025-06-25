@@ -4,6 +4,7 @@ import Commands from './commands';
 import { promptCloud } from './actions/cloud';
 import { registerDaggerChatCommand } from './chat/participant';
 import { registerDaggerChatParticipant } from './chat/provide';
+import { DaggerTreeDataProvider } from './tree/provider';
 
 export async function activate(context: vscode.ExtensionContext) {
 	console.log('Dagger extension activating...');
@@ -12,6 +13,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// Register core commands
 	Commands.register(context, "", cli);
+
+	// Register the Dagger tree view
+	const treeDataProvider = new DaggerTreeDataProvider();
+	vscode.window.registerTreeDataProvider('daggerTreeView', treeDataProvider);
+
 
 	// Show cloud prompt
 	promptCloud(context, cli);

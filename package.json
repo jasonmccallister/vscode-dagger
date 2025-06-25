@@ -176,7 +176,25 @@
           "message": 1
         }
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "daggerViewContainer",
+          "title": "Dagger",
+          "icon": "images/dagger-white.png"
+        }
+      ]
+    },
+    "views": {
+      "daggerViewContainer": [
+        {
+          "id": "daggerTreeView",
+          "name": "Dagger Functions",
+          "icon": "images/dagger-white.png"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "yarn run package",
