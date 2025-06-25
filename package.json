@@ -106,6 +106,18 @@
         "title": "Search docs",
         "category": "Dagger",
         "shortTitle": "Search"
+      },
+      {
+        "command": "dagger.refreshTreeView",
+        "title": "Refresh Functions",
+        "category": "Dagger",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "dagger.runFunctionFromTree",
+        "title": "Run Function",
+        "category": "Dagger",
+        "icon": "$(play)"
       }
     ],
     "configuration": {
@@ -192,6 +204,22 @@
           "id": "daggerTreeView",
           "name": "Dagger Functions",
           "icon": "images/dagger-white.png"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "dagger.refreshTreeView",
+          "when": "view == daggerTreeView",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "dagger.runFunctionFromTree",
+          "when": "view == daggerTreeView && viewItem == function",
+          "group": "inline"
         }
       ]
     }

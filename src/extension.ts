@@ -5,6 +5,7 @@ import { promptCloud } from './actions/cloud';
 import { registerDaggerChatCommand } from './chat/participant';
 import { registerDaggerChatParticipant } from './chat/provide';
 import { DaggerTreeDataProvider } from './tree/provider';
+import { collectAndRunFunction } from './utils/function-helpers';
 
 export async function activate(context: vscode.ExtensionContext) {
 	console.log('Dagger extension activating...');
@@ -15,8 +16,35 @@ export async function activate(context: vscode.ExtensionContext) {
 	Commands.register(context, "", cli);
 
 	// Register the Dagger tree view
-	const treeDataProvider = new DaggerTreeDataProvider();
+	const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
+	const treeDataProvider = new DaggerTreeDataProvider(cli, workspacePath);
 	vscode.window.registerTreeDataProvider('daggerTreeView', treeDataProvider);
+
+	// Add command to refresh the tree view
+	context.subscriptions.push(
+		vscode.commands.registerCommand('dagger.refreshTreeView', () => {
+			treeDataProvider.reloadFunctions();
+		})
+	);
+
+	// Add command to run function from tree view
+	context.subscriptions.push(
+		vscode.commands.registerCommand('dagger.runFunctionFromTree', async (treeItem: any) => {
+			if (treeItem && treeItem.label && treeItem.type === 'function') {
+				const functionName = treeItem.label;
+				
+				try {
+					// Get function arguments
+					const args = await cli.getFunctionArguments(functionName, workspacePath);
+					
+					// Use the shared helper to collect arguments and run the function
+					await collectAndRunFunction(functionName, args);
+				} catch (error) {
+					vscode.window.showErrorMessage(`Failed to run function '${functionName}': ${error}`);
+				}
+			}
+		})
+	);
 
 
 	// Show cloud prompt
