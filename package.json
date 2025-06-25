@@ -202,7 +202,7 @@
       "daggerViewContainer": [
         {
           "id": "daggerTreeView",
-          "name": "Dagger Functions",
+          "name": "Functions",
           "icon": "images/dagger-white.png"
         }
       ]

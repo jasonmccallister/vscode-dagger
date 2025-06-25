@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import DaggerCli, { FunctionArgument } from '../cli';
-import * as path from 'path';
 
 // Implement TreeItem for Dagger functions and arguments
 export class DaggerTreeItem extends vscode.TreeItem {
