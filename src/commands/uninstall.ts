@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { exec } from 'child_process';
-import Cli from '../cli';
+import Cli from '../dagger/dagger';
 
 const brewCommand = 'brew uninstall dagger/tap/dagger';
 const curlCommand = 'type dagger >/dev/null 2>&1 && rm -rf $(dirname $(which dagger)) || true';

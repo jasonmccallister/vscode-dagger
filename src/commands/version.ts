@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import Cli from '../cli';
+import Cli from '../dagger/dagger';
 import { askToInstall } from '../actions/install';
 
 export default function versionCommand(context: vscode.ExtensionContext, cli: Cli) {

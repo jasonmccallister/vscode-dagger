@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import Cli from '../cli';
+import Cli from '../dagger/dagger';
 
 /**
  * Check if Dagger Cloud token is available and show setup notification if needed

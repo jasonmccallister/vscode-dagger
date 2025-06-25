@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import Cli from './cli';
+import Cli from './dagger/dagger';
 import Commands from './commands';
 import { promptCloud } from './actions/cloud';
 import { registerChatCommand } from './chat/participant';

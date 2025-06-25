@@ -7,7 +7,7 @@ import initCommand from './init';
 import developCommand from './develop';
 import cloudCommand from './cloud';
 import functionsCommand from './functions';
-import Cli from '../cli';
+import Cli from '../dagger/dagger';
 import resetCommand from './reset';
 import shellCommand from './shell';
 import callCommand from './call';

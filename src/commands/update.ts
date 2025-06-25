@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import Cli from '../cli';
+import Cli from '../dagger/dagger';
 import { askToInstall } from '../actions/install';
 import { exists } from '../executable';
 import { exec } from 'child_process';

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import Terminal from '../terminal';
-import { FunctionArgument } from '../cli';
+import { FunctionArgument } from '../dagger/dagger';
 
 /**
  * Collects function argument values from the user and executes the Dagger function

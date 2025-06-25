@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import Cli from '../cli';
+import Cli from '../dagger/dagger';
 
 export default function cloudCommand(context: vscode.ExtensionContext, cli: Cli) {
     context.subscriptions.push(
