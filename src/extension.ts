@@ -4,7 +4,7 @@ import Commands from './commands';
 import { promptCloud } from './actions/cloud';
 import { registerDaggerChatCommand } from './chat/participant';
 import { registerDaggerChatParticipant } from './chat/provide';
-import { DaggerTreeDataProvider } from './tree/provider';
+import { DataProvider } from './tree/provider';
 import { collectAndRunFunction } from './utils/function-helpers';
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -17,7 +17,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// Register the Dagger tree view
 	const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
-	const treeDataProvider = new DaggerTreeDataProvider(cli, workspacePath);
+	const treeDataProvider = new DataProvider(cli, workspacePath);
 	vscode.window.registerTreeDataProvider('daggerTreeView', treeDataProvider);
 
 	// Add command to refresh the tree view

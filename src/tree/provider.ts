@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import DaggerCli, { FunctionArgument } from '../cli';
+import DaggerCli from '../cli';
 
 // Implement TreeItem for Dagger functions and arguments
-export class DaggerTreeItem extends vscode.TreeItem {
-    children?: DaggerTreeItem[];
+export class Item extends vscode.TreeItem {
+    children?: Item[];
     type: 'function' | 'argument' | 'empty' | 'action';
 
     constructor(
@@ -42,11 +42,11 @@ export class DaggerTreeItem extends vscode.TreeItem {
 }
 
 // Implement TreeDataProvider for Dagger functions
-export class DaggerTreeDataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
-    private _onDidChangeTreeData: vscode.EventEmitter<DaggerTreeItem | DaggerTreeItem[] | void | null | undefined> = new vscode.EventEmitter<DaggerTreeItem | DaggerTreeItem[] | void | null | undefined>();
-    readonly onDidChangeTreeData: vscode.Event<DaggerTreeItem | DaggerTreeItem[] | void | null | undefined> = this._onDidChangeTreeData.event;
+export class DataProvider implements vscode.TreeDataProvider<Item> {
+    private _onDidChangeTreeData: vscode.EventEmitter<Item | Item[] | void | null | undefined> = new vscode.EventEmitter<Item | Item[] | void | null | undefined>();
+    readonly onDidChangeTreeData: vscode.Event<Item | Item[] | void | null | undefined> = this._onDidChangeTreeData.event;
 
-    private items: DaggerTreeItem[] = [];
+    private items: Item[] = [];
     private cli: DaggerCli;
     private workspacePath: string;
 
@@ -61,11 +61,11 @@ export class DaggerTreeDataProvider implements vscode.TreeDataProvider<DaggerTre
             // Check if Dagger is installed and workspace is a Dagger project
             if (!await this.cli.isInstalled()) {
                 this.items = [
-                    new DaggerTreeItem(
+                    new Item(
                         '❌ Dagger CLI not installed',
                         'empty'
                     ),
-                    new DaggerTreeItem(
+                    new Item(
                         '� Install Dagger CLI',
                         'action',
                         vscode.TreeItemCollapsibleState.None,
@@ -81,11 +81,11 @@ export class DaggerTreeDataProvider implements vscode.TreeDataProvider<DaggerTre
 
             if (!await this.cli.isDaggerProject()) {
                 this.items = [
-                    new DaggerTreeItem(
+                    new Item(
                         '📁 Not a Dagger project',
                         'empty'
                     ),
-                    new DaggerTreeItem(
+                    new Item(
                         '🚀 Initialize Dagger Project',
                         'action',
                         vscode.TreeItemCollapsibleState.None,
@@ -104,8 +104,8 @@ export class DaggerTreeDataProvider implements vscode.TreeDataProvider<DaggerTre
 
             if (functions.length === 0) {
                 this.items = [
-                    new DaggerTreeItem('📭 No functions found', 'empty'),
-                    new DaggerTreeItem(
+                    new Item('📭 No functions found', 'empty'),
+                    new Item(
                         '� Learn how to create functions',
                         'action',
                         vscode.TreeItemCollapsibleState.None,
@@ -125,7 +125,7 @@ export class DaggerTreeDataProvider implements vscode.TreeDataProvider<DaggerTre
                 // Truncate function name for display if it's too long
                 const displayName = fn.name.length > 30 ? fn.name.substring(0, 27) + '...' : fn.name;
 
-                const functionItem = new DaggerTreeItem(
+                const functionItem = new Item(
                     displayName,
                     'function',
                     vscode.TreeItemCollapsibleState.Collapsed
@@ -135,7 +135,7 @@ export class DaggerTreeDataProvider implements vscode.TreeDataProvider<DaggerTre
                 functionItem.id = fn.name;
 
                 // Build children array
-                const children: DaggerTreeItem[] = [];
+                const children: Item[] = [];
 
                 try {
                     // Get function arguments
@@ -144,20 +144,20 @@ export class DaggerTreeDataProvider implements vscode.TreeDataProvider<DaggerTre
                     if (args.length > 0) {
                         // Add a separator if we have description
                         if (children.length > 0) {
-                            children.push(new DaggerTreeItem('─── Arguments ───', 'empty'));
+                            children.push(new Item('─── Arguments ───', 'empty'));
                         }
 
                         const argItems = args.map(arg => {
                             const argLabel = `--${arg.name} (${arg.type})${arg.required ? ' [required]' : ''}`;
-                            return new DaggerTreeItem(argLabel, 'argument');
+                            return new Item(argLabel, 'argument');
                         });
                         children.push(...argItems);
                     } else if (children.length === 0) {
-                        children.push(new DaggerTreeItem('No arguments', 'empty'));
+                        children.push(new Item('No arguments', 'empty'));
                     }
                 } catch (error) {
                     console.error(`Failed to get arguments for function ${fn.name}:`, error);
-                    children.push(new DaggerTreeItem('Failed to load arguments', 'empty'));
+                    children.push(new Item('Failed to load arguments', 'empty'));
                 }
 
                 functionItem.children = children;
@@ -175,7 +175,7 @@ export class DaggerTreeDataProvider implements vscode.TreeDataProvider<DaggerTre
             this.refresh();
         } catch (error) {
             console.error('Failed to load Dagger functions:', error);
-            this.items = [new DaggerTreeItem('Failed to load functions', 'empty')];
+            this.items = [new Item('Failed to load functions', 'empty')];
             this.refresh();
         }
     }
@@ -204,18 +204,18 @@ export class DaggerTreeDataProvider implements vscode.TreeDataProvider<DaggerTre
         await this.loadFunctions();
     }
 
-    getTreeItem(element: DaggerTreeItem): vscode.TreeItem {
+    getTreeItem(element: Item): vscode.TreeItem {
         return element;
     }
 
-    getChildren(element?: DaggerTreeItem): DaggerTreeItem[] {
+    getChildren(element?: Item): Item[] {
         if (!element) {
             return this.items;
         }
         return element.children ?? [];
     }
 
-    getParent(element: DaggerTreeItem): DaggerTreeItem | undefined {
+    getParent(element: Item): Item | undefined {
         // Find parent by searching through all function items
         for (const item of this.items) {
             if (item.children?.includes(element)) {
