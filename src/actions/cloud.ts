@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
-import DaggerCli from '../cli';
+import Cli from '../cli';
 
 /**
  * Check if Dagger Cloud token is available and show setup notification if needed
  */
-export async function promptCloud(context: vscode.ExtensionContext, cli: DaggerCli): Promise<void> {
+export async function promptCloud(context: vscode.ExtensionContext, cli: Cli): Promise<void> {
 	const config = vscode.workspace.getConfiguration('dagger');
 	const notificationDismissed = config.get<boolean>('cloudNotificationDismissed', false);
 

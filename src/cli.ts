@@ -1,4 +1,4 @@
-import { execSync, ExecSyncOptionsWithStringEncoding } from 'child_process';
+import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -21,7 +21,7 @@ export type FunctionArgument = {
     required: boolean;
 };
 
-export default class DaggerCli {
+export default class Cli {
     private command: string = 'dagger';
     private workspacePath?: string;
 

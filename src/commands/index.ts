@@ -7,7 +7,7 @@ import initCommand from './init';
 import developCommand from './develop';
 import cloudCommand from './cloud';
 import functionsCommand from './functions';
-import DaggerCli from '../cli';
+import Cli from '../cli';
 import resetCommand from './reset';
 import shellCommand from './shell';
 import callCommand from './call';
@@ -17,7 +17,7 @@ export default class Commands {
     public static register(
         context: vscode.ExtensionContext,
         workspacePath: string,
-        cli: DaggerCli,
+        cli: Cli,
     ): void {
         callCommand(context, workspacePath, cli);
         cloudCommand(context, cli);

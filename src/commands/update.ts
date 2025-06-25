@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
-import DaggerCli from '../cli';
+import Cli from '../cli';
 import { askToInstall } from '../actions/install';
 import { exists } from '../executable';
 import { exec } from 'child_process';
 import * as https from 'https';
 
-export default function updateCommand(context: vscode.ExtensionContext, cli: DaggerCli) {
+export default function updateCommand(context: vscode.ExtensionContext, cli: Cli) {
     context.subscriptions.push(
         vscode.commands.registerCommand('dagger.update', async () => {
             if (!await cli.isInstalled()) {

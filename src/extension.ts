@@ -1,16 +1,16 @@
 import * as vscode from 'vscode';
-import DaggerCli from './cli';
+import Cli from './cli';
 import Commands from './commands';
 import { promptCloud } from './actions/cloud';
-import { registerDaggerChatCommand } from './chat/participant';
-import { registerDaggerChatParticipant } from './chat/provide';
+import { registerChatCommand } from './chat/participant';
+import { registerProvider } from './chat/provider';
 import { DataProvider } from './tree/provider';
 import { collectAndRunFunction } from './utils/function-helpers';
 
 export async function activate(context: vscode.ExtensionContext) {
 	console.log('Dagger extension activating...');
-	
-	const cli = new DaggerCli();
+
+	const cli = new Cli();
 
 	// Register core commands
 	Commands.register(context, "", cli);
@@ -33,11 +33,11 @@ export async function activate(context: vscode.ExtensionContext) {
 			if (treeItem && treeItem.type === 'function') {
 				// Use the function ID (original name) instead of display label
 				const functionName = treeItem.id || treeItem.label;
-				
+
 				try {
 					// Get function arguments
 					const args = await cli.getFunctionArguments(functionName, workspacePath);
-					
+
 					// Use the shared helper to collect arguments and run the function
 					await collectAndRunFunction(functionName, args);
 				} catch (error) {
@@ -56,14 +56,13 @@ export async function activate(context: vscode.ExtensionContext) {
 	const experimentalFeaturesEnabled = config.get<boolean>('experimentalFeatures', false);
 
 	if (experimentalFeaturesEnabled) {
-		// Chat functionality
 		try {
 			// Register dagger chat command for manual searching
-			registerDaggerChatCommand(context);
-			
+			registerChatCommand(context);
+
 			// Register dagger as a chat participant
-			registerDaggerChatParticipant(context);
-			
+			registerProvider(context);
+
 			console.log('Dagger experimental chat features registered successfully');
 		} catch (error) {
 			console.error('Failed to register Dagger chat features:', error);
@@ -101,6 +100,6 @@ export async function activate(context: vscode.ExtensionContext) {
 			}
 		})
 	);
-	
+
 	console.log('Dagger extension activated');
 }

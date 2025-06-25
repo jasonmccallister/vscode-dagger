@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import DaggerCli from '../cli';
+import Cli from '../cli';
 import { exists } from '../executable';
 import { exec } from 'child_process';
 
@@ -11,7 +11,7 @@ const curlInstallCommand = 'curl -fsSL https://dl.dagger.io/dagger/install.sh | 
 // make a custom type for install method
 type InstallMethod = 'brew' | 'curl' | '';
 
-export default function installCommand(context: vscode.ExtensionContext, cli: DaggerCli) {
+export default function installCommand(context: vscode.ExtensionContext, cli: Cli) {
     // Register the install command
     context.subscriptions.push(
         vscode.commands.registerCommand('dagger.install', async () => {
@@ -114,7 +114,7 @@ export default function installCommand(context: vscode.ExtensionContext, cli: Da
                 if (verifyResponse === 'Verify') {
                     if (await exists('dagger')) {
                         // get the version of dagger
-                        const version = await new DaggerCli().run(['version']);
+                        const version = await new Cli().run(['version']);
                         // parse the output (example dagger v0.18.10 (docker-image://registry.dagger.io/engine:v0.18.10) darwin/arm64)to only the version
                         const versionMatch = version.stdout.match(/v(\d+\.\d+\.\d+)/);
                         const versionNumber = versionMatch ? versionMatch[1] : 'unknown';

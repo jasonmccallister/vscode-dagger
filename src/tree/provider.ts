@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import DaggerCli from '../cli';
+import Cli from '../cli';
 
 // Implement TreeItem for Dagger functions and arguments
 export class Item extends vscode.TreeItem {
@@ -47,10 +47,10 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
     readonly onDidChangeTreeData: vscode.Event<Item | Item[] | void | null | undefined> = this._onDidChangeTreeData.event;
 
     private items: Item[] = [];
-    private cli: DaggerCli;
+    private cli: Cli;
     private workspacePath: string;
 
-    constructor(cli: DaggerCli, workspacePath: string) {
+    constructor(cli: Cli, workspacePath: string) {
         this.cli = cli;
         this.workspacePath = workspacePath;
         this.loadFunctions();

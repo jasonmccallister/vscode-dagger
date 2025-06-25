@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
-import DaggerCli from '../cli';
+import Cli from '../cli';
 import { askToInstall } from '../actions/install';
 import Terminal from '../terminal';
 
 export default function shellCommand(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('dagger.shell', async () => {
-            const cli = new DaggerCli();
+            const cli = new Cli();
 
             // Ensure Dagger CLI is installed
             if (!await cli.isInstalled()) {
