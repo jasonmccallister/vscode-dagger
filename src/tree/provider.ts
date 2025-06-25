@@ -71,34 +71,52 @@ export class DaggerTreeDataProvider implements vscode.TreeDataProvider<DaggerTre
 
             // Create tree items for functions with their arguments as children
             this.items = await Promise.all(functions.map(async (fn) => {
+                // Truncate function name for display if it's too long
+                const displayName = fn.name.length > 30 ? fn.name.substring(0, 27) + '...' : fn.name;
+                
                 const functionItem = new DaggerTreeItem(
-                    fn.name, 
+                    displayName, 
                     'function', 
                     vscode.TreeItemCollapsibleState.Collapsed
                 );
+                
+                // Store the original function name for command execution
+                functionItem.id = fn.name;
+                
+                // Build children array
+                const children: DaggerTreeItem[] = [];
                 
                 try {
                     // Get function arguments
                     const args = await this.cli.getFunctionArguments(fn.name, this.workspacePath);
                     
                     if (args.length > 0) {
-                        functionItem.children = args.map(arg => {
+                        // Add a separator if we have description
+                        if (children.length > 0) {
+                            children.push(new DaggerTreeItem('─── Arguments ───', 'empty'));
+                        }
+                        
+                        const argItems = args.map(arg => {
                             const argLabel = `--${arg.name} (${arg.type})${arg.required ? ' [required]' : ''}`;
                             return new DaggerTreeItem(argLabel, 'argument');
                         });
-                    } else {
-                        functionItem.children = [new DaggerTreeItem('No arguments', 'empty')];
+                        children.push(...argItems);
+                    } else if (children.length === 0) {
+                        children.push(new DaggerTreeItem('No arguments', 'empty'));
                     }
                 } catch (error) {
                     console.error(`Failed to get arguments for function ${fn.name}:`, error);
-                    functionItem.children = [new DaggerTreeItem('Failed to load arguments', 'empty')];
+                    children.push(new DaggerTreeItem('Failed to load arguments', 'empty'));
                 }
 
-                // Add description if available
+                functionItem.children = children;
+
+                // Set tooltip with full information
+                let tooltip = `Function: ${fn.name}`;
                 if (fn.description) {
-                    functionItem.description = fn.description;
-                    functionItem.tooltip = `${fn.name}\n${fn.description}`;
+                    tooltip += `\n\nDescription:\n${fn.description}`;
                 }
+                functionItem.tooltip = tooltip;
 
                 return functionItem;
             }));
@@ -109,6 +127,22 @@ export class DaggerTreeDataProvider implements vscode.TreeDataProvider<DaggerTre
             this.items = [new DaggerTreeItem('Failed to load functions', 'empty')];
             this.refresh();
         }
+    }
+
+    private truncateDescription(description: string, maxLength: number = 60): string {
+        if (description.length <= maxLength) {
+            return description;
+        }
+        
+        // Try to break at a word boundary
+        const truncated = description.substring(0, maxLength);
+        const lastSpace = truncated.lastIndexOf(' ');
+        
+        if (lastSpace > maxLength * 0.7) { // If we can break at a reasonable word boundary
+            return truncated.substring(0, lastSpace) + '...';
+        }
+        
+        return truncated + '...';
     }
 
     refresh(): void {

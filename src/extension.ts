@@ -30,8 +30,9 @@ export async function activate(context: vscode.ExtensionContext) {
 	// Add command to run function from tree view
 	context.subscriptions.push(
 		vscode.commands.registerCommand('dagger.runFunctionFromTree', async (treeItem: any) => {
-			if (treeItem && treeItem.label && treeItem.type === 'function') {
-				const functionName = treeItem.label;
+			if (treeItem && treeItem.type === 'function') {
+				// Use the function ID (original name) instead of display label
+				const functionName = treeItem.id || treeItem.label;
 				
 				try {
 					// Get function arguments
