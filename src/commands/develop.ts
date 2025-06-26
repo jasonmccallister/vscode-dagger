@@ -3,9 +3,11 @@ import Cli from '../dagger/dagger';
 import Terminal from '../terminal';
 import { initProjectCommand } from '../actions/init';
 
-export const registerDevelopCommand = (context: vscode.ExtensionContext): void => {
-    const cli = new Cli();
-    
+export const registerDevelopCommand = (
+    context: vscode.ExtensionContext,
+    cli: Cli,
+    workspacePath: string
+): void => {
     const disposable = vscode.commands.registerCommand('dagger.develop', async () => {
         if (!(await cli.isDaggerProject())) {
             await initProjectCommand();

@@ -4,9 +4,10 @@ import { exec } from 'child_process';
 import * as https from 'https';
 import { checkInstallation } from '../utils/installation';
 
-export const registerUpdateCommand = (context: vscode.ExtensionContext): void => {
-    const cli = new Cli();
-    
+export const registerUpdateCommand = (
+    context: vscode.ExtensionContext,
+    cli: Cli
+): void => {
     context.subscriptions.push(
         vscode.commands.registerCommand('dagger.update', async () => {
             await vscode.window.withProgress({

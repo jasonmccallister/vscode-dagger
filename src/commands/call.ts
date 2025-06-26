@@ -52,16 +52,17 @@ const selectFunction = async (cli: Cli, workspacePath: string): Promise<string |
     return pick?.label;
 };
 
-export const registerCallCommand = (context: vscode.ExtensionContext): void => {
+export const registerCallCommand = (
+    context: vscode.ExtensionContext,
+    cli: Cli,
+    workspacePath: string
+): void => {
     const disposable = vscode.commands.registerCommand('dagger.call', async () => {
-        const cli = new Cli();
-        const workspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
-        
         if (!(await cli.isDaggerProject())) {
             return initProjectCommand();
         }
 
-        const workspacePath = getWorkspacePath(workspace);
+        const workspacePathForCli = getWorkspacePath(workspacePath);
 
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,

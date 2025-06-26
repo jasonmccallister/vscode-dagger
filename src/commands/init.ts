@@ -81,8 +81,10 @@ const initializeProject = async (cli: Cli, sdk: SdkOption): Promise<void> => {
     }
 };
 
-export const registerInitCommand = (context: vscode.ExtensionContext): void => {
-    const cli = new Cli();
+export const registerInitCommand = (
+    context: vscode.ExtensionContext,
+    cli: Cli
+): void => {
     const disposable = vscode.commands.registerCommand('dagger.init', async () => {
         // Check if this workspace is already a Dagger project
         if (await cli.isDaggerProject()) {

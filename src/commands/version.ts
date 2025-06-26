@@ -1,9 +1,10 @@
 import * as vscode from 'vscode';
 import Cli from '../dagger/dagger';
 
-export const registerVersionCommand = (context: vscode.ExtensionContext): void => {
-    const cli = new Cli();
-    
+export const registerVersionCommand = (
+    context: vscode.ExtensionContext,
+    cli: Cli
+): void => {
     const commandHandler = async (): Promise<void> => {
         const progressOptions = { 
             title: 'Dagger', 
