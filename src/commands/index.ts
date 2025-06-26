@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import Cli from '../dagger/dagger';
+import { getTreeView, getDataProvider } from '../tree/provider';
 
 // Import all command registration functions
 import { registerUpdateCommand } from './update';
@@ -15,6 +16,7 @@ import { registerCallCommand } from './call';
 import { registerInstallModuleCommand } from './install-module';
 import { registerRefreshFunctionsCommand } from './refresh';
 import { registerViewFunctionsCommand } from './view-functions';
+import { registerExpandCommand } from './expand';
 
 // Export all command registration functions
 export { registerInstallCommand } from './install';
@@ -30,6 +32,7 @@ export { registerCallCommand } from './call';
 export { registerInstallModuleCommand } from './install-module';
 export { registerRefreshFunctionsCommand } from './refresh';
 export { registerViewFunctionsCommand } from './view-functions';
+export { registerExpandCommand } from './expand';
 
 // Function to register all commands when Dagger is installed
 export const registerAllCommands = (
@@ -60,4 +63,7 @@ export const registerTreeCommands = (
     refreshCallback: () => void
 ): void => {
     registerRefreshFunctionsCommand(context, refreshCallback);
+    
+    // Register expand command with tree view access (after tree view is created)
+    registerExpandCommand(context, getTreeView, getDataProvider);
 };

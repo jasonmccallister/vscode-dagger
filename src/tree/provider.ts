@@ -10,6 +10,13 @@ interface TreeViewConfig {
     registerCommands?: boolean; // Flag to control command registration
 }
 
+// Global references to tree view and data provider for expand all functionality
+let globalTreeView: vscode.TreeView<Item> | undefined;
+let globalDataProvider: DataProvider | undefined;
+
+export const getTreeView = (): vscode.TreeView<Item> | undefined => globalTreeView;
+export const getDataProvider = (): DataProvider | undefined => globalDataProvider;
+
 // Constants to eliminate magic strings and numbers
 const TREE_VIEW_ID = 'daggerTreeView';
 const FUNCTION_ICON_NAME = 'symbol-function';
@@ -250,12 +257,14 @@ export const registerTreeView = (context: vscode.ExtensionContext, config: TreeV
     } = config;
 
     const dataProvider = new DataProvider(cli!, workspacePath);
+    globalDataProvider = dataProvider;
 
     const treeView = vscode.window.createTreeView(TREE_VIEW_ID, {
         treeDataProvider: dataProvider,
         showCollapseAll: TREE_VIEW_OPTIONS.SHOW_COLLAPSE_ALL,
         canSelectMany: TREE_VIEW_OPTIONS.CAN_SELECT_MANY
     });
+    globalTreeView = treeView;
 
     // Only register tree commands when explicitly requested (to avoid duplicates)
     if (registerCommands) {

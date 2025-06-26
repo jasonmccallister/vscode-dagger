@@ -115,7 +115,7 @@
         "icon": "$(refresh)"
       },
       {
-        "command": "dagger.expandAll",
+        "command": "dagger.expand",
         "title": "Expand All Functions",
         "category": "Dagger",
         "icon": "$(expand-all)"
@@ -184,7 +184,7 @@
           "group": "navigation@1"
         },
         {
-          "command": "dagger.expandAll",
+          "command": "dagger.expand",
           "when": "view == daggerTreeView",
           "group": "navigation@2"
         }
