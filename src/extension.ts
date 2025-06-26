@@ -1,8 +1,19 @@
 import * as vscode from 'vscode';
 import { registerTreeView } from './tree/provider';
 import { registerInstallCommand } from './commands/install';
+import { registerUpdateCommand } from './commands/update';
+import { registerUninstallCommand } from './commands/uninstall';
+import { registerVersionCommand } from './commands/version';
+import { registerInitCommand } from './commands/init';
+import { registerDevelopCommand } from './commands/develop';
+import { registerCloudCommand } from './commands/cloud';
+import { registerFunctionsCommand } from './commands/functions';
+import { registerResetCommand } from './commands/reset';
+import { registerShellCommand } from './commands/shell';
+import { registerCallCommand } from './commands/call';
+import { registerInstallModuleCommand } from './commands/install-module';
 import { checkInstallation, InstallResult } from './utils/installation';
-import os from 'os';
+import * as os from 'os';
 
 export async function activate(context: vscode.ExtensionContext) {
 	try {
@@ -26,7 +37,18 @@ export async function activate(context: vscode.ExtensionContext) {
 
 const activateExtension = async (context: vscode.ExtensionContext): Promise<void> => {
 	// Register all commands when Dagger is installed
-	registerAllCommands(context);
+	registerInstallCommand(context);
+	registerUpdateCommand(context);
+	registerUninstallCommand(context);
+	registerVersionCommand(context);
+	registerInitCommand(context);
+	registerDevelopCommand(context);
+	registerCloudCommand(context);
+	registerFunctionsCommand(context);
+	registerResetCommand(context);
+	registerShellCommand(context);
+	registerCallCommand(context);
+	registerInstallModuleCommand(context);
 
 	// Register tree view for environments
 	registerTreeView(context);

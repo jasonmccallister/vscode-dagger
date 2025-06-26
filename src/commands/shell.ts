@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import Cli from '../dagger/dagger';
-import { askToInstall } from '../actions/install';
 import Terminal from '../terminal';
 
 /**
@@ -14,12 +13,6 @@ const getWorkspacePath = (): string => {
 export const registerShellCommand = (context: vscode.ExtensionContext): void => {
     const disposable = vscode.commands.registerCommand('dagger.shell', async () => {
         const cli = new Cli();
-
-        // Ensure Dagger CLI is installed
-        if (!await cli.isInstalled()) {
-            await askToInstall();
-            return;
-        }
 
         const workspacePath = getWorkspacePath();
         cli.setWorkspacePath(workspacePath);

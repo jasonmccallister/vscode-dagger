@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import Cli from '../dagger/dagger';
-import { askToInstall } from '../actions/install';
 
 interface SdkOption {
     readonly label: string;
@@ -85,12 +84,6 @@ const initializeProject = async (cli: Cli, sdk: SdkOption): Promise<void> => {
 export const registerInitCommand = (context: vscode.ExtensionContext): void => {
     const cli = new Cli();
     const disposable = vscode.commands.registerCommand('dagger.init', async () => {
-        // Ensure Dagger CLI is installed
-        if (!await cli.isInstalled()) {
-            await askToInstall();
-            return;
-        }
-
         // Check if this workspace is already a Dagger project
         if (await cli.isDaggerProject()) {
             await handleExistingProject(cli);

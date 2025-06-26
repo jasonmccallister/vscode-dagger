@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import Cli from '../dagger/dagger';
-import { askToInstall } from '../actions/install';
 import { exec } from 'child_process';
 import * as https from 'https';
 import { checkInstallation } from '../utils/installation';
@@ -10,10 +9,6 @@ export const registerUpdateCommand = (context: vscode.ExtensionContext): void =>
     
     context.subscriptions.push(
         vscode.commands.registerCommand('dagger.update', async () => {
-            if (!await cli.isInstalled()) {
-                return askToInstall();
-            }
-
             await vscode.window.withProgress({
                 title: 'Dagger',
                 location: vscode.ProgressLocation.Notification

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { checkInstallation, InstallResult } from '../utils/installation';
-import os from 'os';
+import * as os from 'os';
 
 export const registerInstallCommand = (context: vscode.ExtensionContext): void => {
     const installCommand = vscode.commands.registerCommand('dagger.install', async () => {

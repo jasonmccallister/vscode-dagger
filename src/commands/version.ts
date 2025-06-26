@@ -1,15 +1,10 @@
 import * as vscode from 'vscode';
 import Cli from '../dagger/dagger';
-import { askToInstall } from '../actions/install';
 
 export const registerVersionCommand = (context: vscode.ExtensionContext): void => {
     const cli = new Cli();
     
     const commandHandler = async (): Promise<void> => {
-        if (!(await cli.isInstalled())) {
-            return askToInstall();
-        }
-
         const progressOptions = { 
             title: 'Dagger', 
             location: vscode.ProgressLocation.Notification 

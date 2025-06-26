@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import Cli from '../dagger/dagger';
-import { askToInstall } from '../actions/install';
 import { initProjectCommand } from '../actions/init';
 import { collectAndRunFunction } from '../utils/function-helpers';
 
@@ -58,10 +57,6 @@ export const registerCallCommand = (context: vscode.ExtensionContext): void => {
         const cli = new Cli();
         const workspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
         
-        if (!await cli.isInstalled()) {
-            return askToInstall();
-        }
-
         if (!(await cli.isDaggerProject())) {
             return initProjectCommand();
         }
