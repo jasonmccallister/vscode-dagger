@@ -9,7 +9,7 @@ export class ChatParticipant {
     async searchDocs(query: string): Promise<string> {
         // Use VS Code's fetch API or Node fetch to get docs.dagger.io search results
         // For demo, just return a formatted search URL
-        const searchUrl = `https://docs.dagger.io/search?q=${encodeURIComponent(query)}`;
+        const searchUrl = `https://docs.dagger.io/search-api?q=${encodeURIComponent(query)}`;
         return `You can find information about "${query}" here: ${searchUrl}`;
     }
 }

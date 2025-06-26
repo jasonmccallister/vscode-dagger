@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import Terminal from '../terminal';
 import { FunctionArgument } from '../dagger/dagger';
+import { executeInTerminal } from './terminal';
 
 interface ArgumentPick {
     readonly label: string;
@@ -116,10 +117,8 @@ export const collectAndRunFunction = async (
 
     // Build and execute the command
     const commandArgs = buildCommandArgs(functionName, argValues);
-    Terminal.run(
-        vscode.workspace.getConfiguration('dagger'),
-        commandArgs,
-    );
+    
+    executeInTerminal(commandArgs.join( ' ') );
 
     return true;
 };

@@ -1,9 +1,5 @@
 import * as vscode from 'vscode';
 import Cli, { FunctionArgument, FunctionInfo } from '../dagger/dagger';
-import { REFRESH_COMMAND } from '../commands/refresh';
-import { VIEW_FUNCTIONS_COMMAND } from '../commands/view-functions';
-import { CALL_COMMAND } from '../commands/call';
-import { registerTreeCommands } from '../commands';
 
 type ItemType = 'function' | 'argument' | 'empty' | 'action';
 
@@ -24,9 +20,8 @@ const TREE_VIEW_OPTIONS = {
 } as const;
 
 const COMMANDS = {
-    REFRESH: REFRESH_COMMAND,
-    VIEW_FUNCTIONS: VIEW_FUNCTIONS_COMMAND,
-    CALL: CALL_COMMAND
+    REFRESH: 'dagger.refreshFunctions',
+    VIEW_FUNCTIONS: 'dagger.viewFunctions'
 } as const;
 
 const MESSAGES = {
@@ -163,12 +158,7 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
                 const functionItem = new Item(
                     displayName,
                     'function',
-                    vscode.TreeItemCollapsibleState.Collapsed,
-                    {
-                        command: COMMANDS.CALL,
-                        title: 'Run Function',
-                        arguments: [fn.name]
-                    }
+                    vscode.TreeItemCollapsibleState.Collapsed
                 );
 
                 // Store the original function name for command execution
@@ -258,9 +248,9 @@ export const registerTreeView = (context: vscode.ExtensionContext, config: TreeV
 
     const dataProvider = new DataProvider(cli!, workspacePath);
 
-    // Register tree-specific commands with callback
-    registerTreeCommands(context, () => {
-        dataProvider.reloadFunctions();
+    // Register refresh command
+    const refreshCommand = vscode.commands.registerCommand(COMMANDS.REFRESH, () => {
+        dataProvider.refresh();
     });
 
     const treeView = vscode.window.createTreeView(TREE_VIEW_ID, {
@@ -269,21 +259,13 @@ export const registerTreeView = (context: vscode.ExtensionContext, config: TreeV
         canSelectMany: TREE_VIEW_OPTIONS.CAN_SELECT_MANY
     });
 
-    // Register expand all command with tree view access
-    const expandAllDisposable = vscode.commands.registerCommand('dagger.expandAll', async () => {
-        // Expand all function items in the tree view
-        const rootItems = dataProvider.getChildren();
-        for (const item of rootItems) {
-            if (item.type === 'function' && item.children && item.children.length > 0) {
-                try {
-                    await treeView.reveal(item, { expand: true, select: false, focus: false });
-                } catch (error) {
-                    // Silently ignore reveal errors (e.g., if item is not yet rendered)
-                    console.debug(`Could not expand item ${item.label}:`, error);
-                }
-            }
-        }
+    // Register view command to focus/reveal the tree view
+    const viewFunctionsCommand = vscode.commands.registerCommand(COMMANDS.VIEW_FUNCTIONS, async () => {
+        await vscode.commands.executeCommand('workbench.view.extension.daggerViewContainer');
+
+        // Focus on the tree view specifically
+        await vscode.commands.executeCommand(`${TREE_VIEW_ID}.focus`);
     });
 
-    context.subscriptions.push(treeView, expandAllDisposable);
+    context.subscriptions.push(treeView, refreshCommand, viewFunctionsCommand);
 };

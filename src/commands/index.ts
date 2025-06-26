@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import Cli from '../dagger/dagger';
 
 // Import all command registration functions
-import { registerInstallCommand } from './install';
 import { registerUpdateCommand } from './update';
 import { registerUninstallCommand } from './uninstall';
 import { registerVersionCommand } from './version';
@@ -50,7 +49,7 @@ export const registerAllCommands = (
     registerShellCommand(context, cli, workspacePath);
     registerCallCommand(context, cli, workspacePath);
     registerInstallModuleCommand(context, cli);
-    
+
     // Register tree view related commands
     registerViewFunctionsCommand(context);
 };
