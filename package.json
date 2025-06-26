@@ -25,7 +25,7 @@
         "id": "dagger",
         "name": "dagger",
         "fullName": "Dagger",
-        "description": "Searches docs.dagger.io for information on developing Dagger modules"
+        "description": "search documentation, ask questions, and get help with Dagger"
       }
     ],
     "commands": [
@@ -111,7 +111,8 @@
         "command": "dagger.refreshTreeView",
         "title": "Refresh Functions",
         "category": "Dagger",
-        "icon": "$(refresh)"
+        "icon": "$(refresh)",
+        "enablement": "false"
       }
     ],
     "configuration": {
@@ -151,38 +152,6 @@
         }
       }
     },
-    "taskDefinitions": [
-      {
-        "type": "dagger",
-        "required": [
-          "function"
-        ],
-        "properties": {
-          "function": {
-            "type": "string",
-            "description": "The Dagger function name to run"
-          },
-          "args": {
-            "type": "array",
-            "description": "Arguments metadata for the function"
-          }
-        }
-      }
-    ],
-    "problemMatchers": [
-      {
-        "name": "dagger-matcher",
-        "owner": "dagger",
-        "fileLocation": [
-          "relative",
-          "${workspaceFolder}"
-        ],
-        "pattern": {
-          "regexp": "^Error:\\s+(.*)$",
-          "message": 1
-        }
-      }
-    ],
     "viewsContainers": {
       "activitybar": [
         {
