@@ -1,5 +1,9 @@
 import * as vscode from 'vscode';
 import Cli, { FunctionArgument, FunctionInfo } from '../dagger/dagger';
+import { REFRESH_FUNCTIONS_COMMAND } from '../commands/refresh-functions';
+import { VIEW_FUNCTIONS_COMMAND } from '../commands/view-functions';
+import { CALL_COMMAND } from '../commands/call';
+import { registerTreeCommands } from '../commands';
 
 type ItemType = 'function' | 'argument' | 'empty' | 'action';
 
@@ -20,9 +24,9 @@ const TREE_VIEW_OPTIONS = {
 } as const;
 
 const COMMANDS = {
-    REFRESH: 'dagger.refreshFunctions',
-    VIEW_FUNCTIONS: 'dagger.viewFunctions',
-    RUN_FUNCTION_FROM_TREE: 'dagger.runFunctionFromTree'
+    REFRESH: REFRESH_FUNCTIONS_COMMAND,
+    VIEW_FUNCTIONS: VIEW_FUNCTIONS_COMMAND,
+    CALL: CALL_COMMAND
 } as const;
 
 const MESSAGES = {
@@ -161,7 +165,7 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
                     'function',
                     vscode.TreeItemCollapsibleState.Collapsed,
                     {
-                        command: COMMANDS.RUN_FUNCTION_FROM_TREE,
+                        command: COMMANDS.CALL,
                         title: 'Run Function',
                         arguments: [fn.name]
                     }
@@ -254,8 +258,8 @@ export const registerTreeView = (context: vscode.ExtensionContext, config: TreeV
 
     const dataProvider = new DataProvider(cli!, workspacePath);
 
-    // Register refresh command
-    const refreshCommand = vscode.commands.registerCommand(COMMANDS.REFRESH, () => {
+    // Register tree-specific commands with callback
+    registerTreeCommands(context, () => {
         dataProvider.reloadFunctions();
     });
 
@@ -265,24 +269,5 @@ export const registerTreeView = (context: vscode.ExtensionContext, config: TreeV
         canSelectMany: TREE_VIEW_OPTIONS.CAN_SELECT_MANY
     });
 
-    // Register view command to focus/reveal the tree view
-    const viewFunctionsCommand = vscode.commands.registerCommand(COMMANDS.VIEW_FUNCTIONS, async () => {
-        await vscode.commands.executeCommand('workbench.view.extension.daggerViewContainer');
-
-        // Focus on the tree view specifically
-        await vscode.commands.executeCommand(`${TREE_VIEW_ID}.focus`);
-    });
-
-    // Register run function command
-    const runFunctionCommand = vscode.commands.registerCommand(COMMANDS.RUN_FUNCTION_FROM_TREE, async (functionName: string) => {
-        if (!functionName) {
-            vscode.window.showErrorMessage('No function name provided');
-            return;
-        }
-
-        // Trigger the call command with the specific function
-        await vscode.commands.executeCommand('dagger.call', functionName);
-    });
-
-    context.subscriptions.push(treeView, refreshCommand, viewFunctionsCommand, runFunctionCommand);
+    context.subscriptions.push(treeView);
 };

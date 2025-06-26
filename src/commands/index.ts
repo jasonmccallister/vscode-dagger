@@ -14,6 +14,8 @@ import { registerResetCommand } from './reset';
 import { registerShellCommand } from './shell';
 import { registerCallCommand } from './call';
 import { registerInstallModuleCommand } from './install-module';
+import { registerRefreshFunctionsCommand } from './refresh-functions';
+import { registerViewFunctionsCommand } from './view-functions';
 
 // Export all command registration functions
 export { registerInstallCommand } from './install';
@@ -27,6 +29,8 @@ export { registerResetCommand } from './reset';
 export { registerShellCommand } from './shell';
 export { registerCallCommand } from './call';
 export { registerInstallModuleCommand } from './install-module';
+export { registerRefreshFunctionsCommand } from './refresh-functions';
+export { registerViewFunctionsCommand } from './view-functions';
 
 // Function to register all commands when Dagger is installed
 export const registerAllCommands = (
@@ -46,4 +50,15 @@ export const registerAllCommands = (
     registerShellCommand(context, cli, workspacePath);
     registerCallCommand(context, cli, workspacePath);
     registerInstallModuleCommand(context, cli);
+    
+    // Register tree view related commands
+    registerViewFunctionsCommand(context);
+};
+
+// Function to register tree view commands that need a data provider callback
+export const registerTreeCommands = (
+    context: vscode.ExtensionContext,
+    refreshCallback: () => void
+): void => {
+    registerRefreshFunctionsCommand(context, refreshCallback);
 };

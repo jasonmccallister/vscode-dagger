@@ -3,6 +3,8 @@ import Cli from '../dagger/dagger';
 import { initProjectCommand } from '../actions/init';
 import { collectAndRunFunction } from '../utils/function-helpers';
 
+export const CALL_COMMAND = 'dagger.call';
+
 interface FunctionQuickPickItem {
     readonly label: string;
     readonly description: string;
@@ -57,7 +59,7 @@ export const registerCallCommand = (
     cli: Cli,
     workspacePath: string
 ): void => {
-    const disposable = vscode.commands.registerCommand('dagger.call', async (preSelectedFunction?: string) => {
+    const disposable = vscode.commands.registerCommand(CALL_COMMAND, async (preSelectedFunction?: string) => {
         if (!(await cli.isDaggerProject())) {
             return initProjectCommand();
         }
