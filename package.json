@@ -111,8 +111,7 @@
         "command": "dagger.refresh",
         "title": "Refresh Functions",
         "category": "Dagger",
-        "icon": "$(refresh)",
-        "enablement": "false"
+        "icon": "$(refresh)"
       }
     ],
     "configuration": {
