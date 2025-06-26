@@ -180,12 +180,12 @@
         {
           "command": "dagger.refresh",
           "when": "view == daggerTreeView",
-          "group": "navigation"
+          "group": "navigation@1"
         },
         {
           "command": "dagger.expandAll",
           "when": "view == daggerTreeView",
-          "group": "navigation"
+          "group": "navigation@2"
         }
       ],
       "view/item/context": [
