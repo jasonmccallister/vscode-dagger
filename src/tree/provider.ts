@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import Cli, { FunctionArgument, FunctionInfo } from '../dagger/dagger';
-import { REFRESH_FUNCTIONS_COMMAND } from '../commands/refresh-functions';
+import { REFRESH_COMMAND } from '../commands/refresh';
 import { VIEW_FUNCTIONS_COMMAND } from '../commands/view-functions';
 import { CALL_COMMAND } from '../commands/call';
 import { registerTreeCommands } from '../commands';
@@ -24,7 +24,7 @@ const TREE_VIEW_OPTIONS = {
 } as const;
 
 const COMMANDS = {
-    REFRESH: REFRESH_FUNCTIONS_COMMAND,
+    REFRESH: REFRESH_COMMAND,
     VIEW_FUNCTIONS: VIEW_FUNCTIONS_COMMAND,
     CALL: CALL_COMMAND
 } as const;

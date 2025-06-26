@@ -20,7 +20,7 @@ const resetPreferences = async (
 };
 
 export const registerResetCommand = (context: vscode.ExtensionContext): void => {
-    const disposable = vscode.commands.registerCommand('dagger.resetPreferences', async () => {
+    const disposable = vscode.commands.registerCommand('dagger.reset', async () => {
         const config = vscode.workspace.getConfiguration('dagger');
 
         const response = await vscode.window.showWarningMessage(

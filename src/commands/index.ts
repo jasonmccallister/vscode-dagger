@@ -14,7 +14,7 @@ import { registerResetCommand } from './reset';
 import { registerShellCommand } from './shell';
 import { registerCallCommand } from './call';
 import { registerInstallModuleCommand } from './install-module';
-import { registerRefreshFunctionsCommand } from './refresh-functions';
+import { registerRefreshFunctionsCommand } from './refresh';
 import { registerViewFunctionsCommand } from './view-functions';
 
 // Export all command registration functions
@@ -29,7 +29,7 @@ export { registerResetCommand } from './reset';
 export { registerShellCommand } from './shell';
 export { registerCallCommand } from './call';
 export { registerInstallModuleCommand } from './install-module';
-export { registerRefreshFunctionsCommand } from './refresh-functions';
+export { registerRefreshFunctionsCommand } from './refresh';
 export { registerViewFunctionsCommand } from './view-functions';
 
 // Function to register all commands when Dagger is installed

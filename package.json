@@ -43,19 +43,19 @@
       },
       {
         "command": "dagger.call",
-        "title": "Functions call",
+        "title": "Call a function",
         "category": "Dagger",
         "shortTitle": "Call"
       },
       {
         "command": "dagger.functions",
-        "title": "Functions view",
+        "title": "View Functions",
         "category": "Dagger",
         "shortTitle": "Functions"
       },
       {
         "command": "dagger.install",
-        "title": "Install Dagger CLI",
+        "title": "Install CLI",
         "category": "Dagger",
         "shortTitle": "Install"
       },
@@ -90,7 +90,7 @@
         "shortTitle": "Update"
       },
       {
-        "command": "dagger.resetPreferences",
+        "command": "dagger.reset",
         "title": "Reset preferences",
         "category": "Dagger",
         "shortTitle": "Reset"
@@ -108,7 +108,7 @@
         "shortTitle": "Search"
       },
       {
-        "command": "dagger.refreshTreeView",
+        "command": "dagger.refresh",
         "title": "Refresh Functions",
         "category": "Dagger",
         "icon": "$(refresh)",
@@ -173,7 +173,7 @@
     "menus": {
       "view/title": [
         {
-          "command": "dagger.refreshTreeView",
+          "command": "dagger.refresh",
           "when": "view == daggerTreeView",
           "group": "navigation"
         }
