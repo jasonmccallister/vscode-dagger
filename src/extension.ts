@@ -7,11 +7,14 @@ import * as os from 'os';
 
 export async function activate(context: vscode.ExtensionContext) {
 	try {
-		// Check installation status before setting up commands and views
+		// Register install command first (always needed regardless of installation status)
+		registerInstallCommand(context);
+		
+		// Check installation status before setting up other commands and views
 		const installResult = await checkInstallation(os.platform());
 
 		if (!installResult.hasCorrectBinary) {
-			// Show installation prompt and register install command only
+			// Show installation prompt but don't register install command again
 			await handleMissingInstallation(context, installResult);
 			return;
 		}
@@ -20,8 +23,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		await activateExtension(context);
 	} catch (error) {
 		vscode.window.showErrorMessage(`Failed to activate Dagger extension: ${error}`);
-		// Still register commands as fallback
-		registerInstallCommand(context);
+		// Install command already registered above
 	}
 }
 
@@ -35,10 +37,8 @@ const activateExtension = async (context: vscode.ExtensionContext): Promise<void
 		cli.setWorkspacePath(workspacePath);
 	}
 
-	// Register install command (needed for manual installation/reinstallation)
-	registerInstallCommand(context);
-
 	// Register all other commands when Dagger is installed with dependency injection
+	// (install command already registered in activate function)
 	registerAllCommands(context, cli, workspacePath);
 
 	// Register tree view for environments with CLI and workspace path
@@ -46,8 +46,7 @@ const activateExtension = async (context: vscode.ExtensionContext): Promise<void
 };
 
 const handleMissingInstallation = async (context: vscode.ExtensionContext, installResult: InstallResult): Promise<void> => {
-	// Register only the install command when not installed
-	registerInstallCommand(context);
+	// Install command already registered in activate function
 
 	// Still register tree view to show installation status
 	const cli = new Cli();
