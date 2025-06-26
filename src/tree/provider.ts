@@ -3,7 +3,32 @@ import Cli, { FunctionArgument, FunctionInfo } from '../dagger/dagger';
 
 type ItemType = 'function' | 'argument' | 'empty' | 'action';
 
-// Implement TreeItem for Dagger functions and arguments
+interface TreeViewConfig {
+    workspacePath?: string;
+    cli?: Cli;
+}
+
+// Constants to eliminate magic strings and numbers
+const TREE_VIEW_ID = 'daggerFunctionsTreeView';
+const FUNCTION_ICON_NAME = 'symbol-function';
+const ARGUMENT_ICON_NAME = 'symbol-parameter';
+const ACTION_ICON_NAME = 'arrow-right';
+
+const TREE_VIEW_OPTIONS = {
+    SHOW_COLLAPSE_ALL: true,
+    CAN_SELECT_MANY: false
+} as const;
+
+const COMMANDS = {
+    REFRESH: 'dagger.refreshFunctions',
+    VIEW_FUNCTIONS: 'dagger.viewFunctions'
+} as const;
+
+const MESSAGES = {
+    NO_FUNCTIONS: 'No functions available.',
+    FAILED_TO_LOAD: 'Failed to load functions'
+} as const;
+
 export class Item extends vscode.TreeItem {
     children?: Item[];
     readonly type: ItemType;
@@ -25,17 +50,17 @@ export class Item extends vscode.TreeItem {
         // Set icons based on type
         switch (type) {
             case 'function':
-                this.iconPath = new vscode.ThemeIcon('symbol-function');
+                this.iconPath = new vscode.ThemeIcon(FUNCTION_ICON_NAME);
                 this.tooltip = `Function: ${label}`;
                 this.contextValue = 'function';
                 break;
             case 'argument':
-                this.iconPath = new vscode.ThemeIcon('symbol-parameter');
+                this.iconPath = new vscode.ThemeIcon(ARGUMENT_ICON_NAME);
                 this.tooltip = `Argument: ${label}`;
                 this.contextValue = 'argument';
                 break;
             case 'action':
-                this.iconPath = new vscode.ThemeIcon('arrow-right');
+                this.iconPath = new vscode.ThemeIcon(ACTION_ICON_NAME);
                 this.contextValue = 'action';
                 this.tooltip = command?.title ?? label;
                 break;
@@ -47,7 +72,6 @@ export class Item extends vscode.TreeItem {
     }
 }
 
-// Implement TreeDataProvider for Dagger functions
 export class DataProvider implements vscode.TreeDataProvider<Item> {
     private _onDidChangeTreeData: vscode.EventEmitter<Item | Item[] | void | null | undefined> = new vscode.EventEmitter<Item | Item[] | void | null | undefined>();
     readonly onDidChangeTreeData: vscode.Event<Item | Item[] | void | null | undefined> = this._onDidChangeTreeData.event;
@@ -186,22 +210,6 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
         }
     }
 
-    private truncateDescription(description: string, maxLength: number = 60): string {
-        if (description.length <= maxLength) {
-            return description;
-        }
-
-        // Try to break at a word boundary
-        const truncated = description.substring(0, maxLength);
-        const lastSpace = truncated.lastIndexOf(' ');
-
-        if (lastSpace > maxLength * 0.7) { // If we can break at a reasonable word boundary
-            return truncated.substring(0, lastSpace) + '...';
-        }
-
-        return truncated + '...';
-    }
-
     refresh(): void {
         this._onDidChangeTreeData.fire();
     }
@@ -231,3 +239,33 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
         return undefined;
     }
 }
+
+export const registerTreeView = (context: vscode.ExtensionContext, config: TreeViewConfig = {}): void => {
+    const {
+        workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '',
+        cli
+    } = config;
+
+    const dataProvider = new DataProvider(cli!, workspacePath);
+
+    // Register refresh command
+    const refreshCommand = vscode.commands.registerCommand(COMMANDS.REFRESH, () => {
+        dataProvider.refresh();
+    });
+
+    const treeView = vscode.window.createTreeView(TREE_VIEW_ID, {
+        treeDataProvider: dataProvider,
+        showCollapseAll: TREE_VIEW_OPTIONS.SHOW_COLLAPSE_ALL,
+        canSelectMany: TREE_VIEW_OPTIONS.CAN_SELECT_MANY
+    });
+
+    // Register view environments command to focus/reveal the tree view
+    const viewEnvironmentsCommand = vscode.commands.registerCommand(COMMANDS.VIEW_FUNCTIONS, async () => {
+        await vscode.commands.executeCommand('workbench.view.extension.daggerViewContainer');
+
+        // Focus on the tree view specifically
+        await vscode.commands.executeCommand(`${TREE_VIEW_ID}.focus`);
+    });
+
+    context.subscriptions.push(treeView, refreshCommand, viewEnvironmentsCommand);
+};

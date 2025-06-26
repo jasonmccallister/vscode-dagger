@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import installCommand from './install';
 import uninstallCommand from './uninstall';
 import versionCommand from './version';
 import updateCommand from './update';
@@ -25,7 +24,6 @@ export default class Commands {
         developCommand(context, cli);
         functionsCommand(context, cli);
         initCommand(context, cli);
-        installCommand(context, cli);
         installModuleCommand(context, cli);
         resetCommand(context);
         shellCommand(context);

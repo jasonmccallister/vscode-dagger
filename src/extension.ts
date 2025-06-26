@@ -1,117 +1,69 @@
 import * as vscode from 'vscode';
-import Cli from './dagger/dagger';
-import Commands from './commands';
-import { promptCloud } from './actions/cloud';
-import { registerChatCommand } from './chat/participant';
-import { registerProvider } from './chat/provider';
-import { DataProvider } from './tree/provider';
-import { collectAndRunFunction } from './utils/function-helpers';
+import { registerTreeView } from './tree/provider';
+import { registerInstallCommand } from './commands/install';
+// import { registerUpdateCommand } from './commands/update';
+import { checkInstallation, InstallResult } from './utils/installation';
+import os from 'os';
 
-interface ExtensionApi {
-	cli: Cli;
-}
+export async function activate(context: vscode.ExtensionContext) {
+	try {
+		// Check installation status before setting up commands and views
+		const installResult = await checkInstallation(os.platform());
 
-interface TreeItem {
-	id?: string;
-	label: string;
-	type: string;
-}
-
-export const activate = async (context: vscode.ExtensionContext): Promise<ExtensionApi> => {
-	console.log('Dagger extension activating...');
-
-	const cli = new Cli();
-
-	// Register core commands
-	Commands.register(context, '', cli);
-
-	// Register the Dagger tree view
-	const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? process.cwd();
-	const treeDataProvider = new DataProvider(cli, workspacePath);
-	vscode.window.registerTreeDataProvider('daggerTreeView', treeDataProvider);
-
-	// Add command to refresh the tree view
-	const refreshCommand = vscode.commands.registerCommand('dagger.refreshTreeView', () => {
-		treeDataProvider.reloadFunctions();
-	});
-	context.subscriptions.push(refreshCommand);
-
-	// Add command to run function from tree view
-	const runFunctionCommand = vscode.commands.registerCommand(
-		'dagger.runFunctionFromTree',
-		async (treeItem: TreeItem) => {
-			if (treeItem?.type === 'function') {
-				// Use the function ID (original name) instead of display label
-				const functionName = treeItem.id ?? treeItem.label;
-
-				try {
-					// Get function arguments
-					const args = await cli.getFunctionArguments(functionName, workspacePath);
-
-					// Use the shared helper to collect arguments and run the function
-					await collectAndRunFunction(functionName, args);
-				} catch (error) {
-					const errorMessage = error instanceof Error ? error.message : String(error);
-					vscode.window.showErrorMessage(`Failed to run function '${functionName}': ${errorMessage}`);
-				}
-			}
+		if (!installResult.hasCorrectBinary) {
+			// Show installation prompt and register install command only
+			await handleMissingInstallation(context, installResult);
+			return;
 		}
-	);
-	context.subscriptions.push(runFunctionCommand);
 
-
-	// Show cloud prompt
-	promptCloud(context, cli);
-
-	// Check if experimental features are enabled
-	const config = vscode.workspace.getConfiguration('dagger');
-	const experimentalFeaturesEnabled = config.get<boolean>('experimentalFeatures', false);
-
-	if (experimentalFeaturesEnabled) {
-		try {
-			// Register dagger chat command for manual searching
-			registerChatCommand(context);
-
-			// Register dagger as a chat participant
-			registerProvider(context);
-
-			console.log('Dagger experimental chat features registered successfully');
-		} catch (error) {
-			console.error('Failed to register Dagger chat features:', error);
-		}
-	} else {
-		console.log('Dagger experimental features disabled. Enable in settings to use chat features.');
+		// Dagger is properly installed, proceed with full activation
+		await activateExtension(context);
+	} catch (error) {
+		vscode.window.showErrorMessage(`Failed to activate Dagger extension: ${error}`);
+		// Still register commands as fallback
+		registerInstallCommand(context);
 	}
+}
 
-	// Listen for configuration changes to dynamically enable/disable experimental features
-	const configChangeListener = vscode.workspace.onDidChangeConfiguration((e) => {
-		if (e.affectsConfiguration('dagger.experimentalFeatures')) {
-			const newStatus = vscode.workspace.getConfiguration('dagger').get<boolean>('experimentalFeatures', false);
-			const handleResponse = (response?: string) => {
-				if (response === 'Reload Now') {
-					vscode.commands.executeCommand('workbench.action.reloadWindow');
-				}
-			};
+const activateExtension = async (context: vscode.ExtensionContext): Promise<void> => {
+	// Register all commands (including install command for manual re-installation)
+	registerInstallCommand(context);
 
-			if (newStatus && !experimentalFeaturesEnabled) {
-				vscode.window.showInformationMessage(
-					'Experimental features enabled! Please reload the window for chat participant to be available.',
-					'Reload Now',
-					'Later'
-				).then(handleResponse);
-			} else if (!newStatus && experimentalFeaturesEnabled) {
-				vscode.window.showInformationMessage(
-					'Experimental features disabled. Reload the window to fully disable chat features.',
-					'Reload Now',
-					'Later'
-				).then(handleResponse);
-			}
-		}
-	});
-	context.subscriptions.push(configChangeListener);
+	// Register tree view for environments
+	registerTreeView(context);
+};
 
-	console.log('Dagger extension activated');
+const handleMissingInstallation = async (context: vscode.ExtensionContext, installResult: InstallResult): Promise<void> => {
+	// Register only the install command when not installed
+	registerInstallCommand(context);
 
-	// Return API
-	return { cli };
+	// Determine available installation methods for the prompt
+	const installMethods: string[] = [];
+	if (installResult.hasHomebrew && (installResult.platform === 'darwin' || installResult.platform === 'linux')) {
+		installMethods.push('Homebrew (recommended)');
+	}
+	installMethods.push('curl script');
+
+	const methodText = installMethods.length > 1
+		? `Available installation methods: ${installMethods.join(', ')}`
+		: `Installation method: ${installMethods[0]}`;
+
+	// Show installation prompt
+	const action = await vscode.window.showWarningMessage(
+		`Dagger is not installed or not properly configured. ${methodText}`,
+		'Install Now',
+		'Install Later',
+		'Learn More'
+	);
+
+	switch (action) {
+		case 'Install Now':
+			// Trigger the install command
+			await vscode.commands.executeCommand('dagger.install');
+			break;
+		case 'Learn More':
+			vscode.env.openExternal(vscode.Uri.parse('https://github.com/dagger/dagger'));
+			break;
+		// 'Install Later' or no selection just continues without action
+	}
 };
