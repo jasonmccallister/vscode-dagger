@@ -112,6 +112,12 @@
         "title": "Refresh Functions",
         "category": "Dagger",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "dagger.expandAll",
+        "title": "Expand All Functions",
+        "category": "Dagger",
+        "icon": "$(expand-all)"
       }
     ],
     "configuration": {
@@ -173,6 +179,11 @@
       "view/title": [
         {
           "command": "dagger.refresh",
+          "when": "view == daggerTreeView",
+          "group": "navigation"
+        },
+        {
+          "command": "dagger.expandAll",
           "when": "view == daggerTreeView",
           "group": "navigation"
         }

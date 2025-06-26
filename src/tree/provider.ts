@@ -269,5 +269,21 @@ export const registerTreeView = (context: vscode.ExtensionContext, config: TreeV
         canSelectMany: TREE_VIEW_OPTIONS.CAN_SELECT_MANY
     });
 
-    context.subscriptions.push(treeView);
+    // Register expand all command with tree view access
+    const expandAllDisposable = vscode.commands.registerCommand('dagger.expandAll', async () => {
+        // Expand all function items in the tree view
+        const rootItems = dataProvider.getChildren();
+        for (const item of rootItems) {
+            if (item.type === 'function' && item.children && item.children.length > 0) {
+                try {
+                    await treeView.reveal(item, { expand: true, select: false, focus: false });
+                } catch (error) {
+                    // Silently ignore reveal errors (e.g., if item is not yet rendered)
+                    console.debug(`Could not expand item ${item.label}:`, error);
+                }
+            }
+        }
+    });
+
+    context.subscriptions.push(treeView, expandAllDisposable);
 };
