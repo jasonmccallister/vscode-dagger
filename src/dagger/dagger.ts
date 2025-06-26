@@ -4,48 +4,49 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 
 export interface CommandResult {
-    stdout: string;
-    stderr: string;
-    exitCode: number;
-    success?: boolean;
+    readonly stdout: string;
+    readonly stderr: string;
+    readonly exitCode: number;
+    readonly success?: boolean;
 }
 
-type Function = {
-    name: string;
-    description?: string;
-};
+export interface FunctionInfo {
+    readonly name: string;
+    readonly description?: string;
+}
 
-export type FunctionArgument = {
-    name: string;
-    type: string;
-    required: boolean;
-};
+export interface FunctionArgument {
+    readonly name: string;
+    readonly type: string;
+    readonly required: boolean;
+}
+
+interface RunOptions {
+    readonly timeout?: number;
+    readonly cwd?: string;
+}
 
 export default class Cli {
-    private command: string = 'dagger';
+    private readonly command = 'dagger';
     private workspacePath?: string;
 
     /**
      * Runs the Dagger command with the specified arguments and options
-     * @param args Arguments to pass to the command
-     * @param options Options for running the command, such as timeout and working directory
-     * @returns A Promise that resolves to a CommandResult containing stdout, stderr, and exit code
-     * @throws Error if the command fails to execute or the working directory does not exist
      */
     public async run(
         args: string[] = [],
-        options: { timeout?: number; cwd?: string } = {}
+        options: RunOptions = {}
     ): Promise<CommandResult> {
-        const timeout = options.timeout || 30000;
+        const { timeout = 30_000, cwd } = options;
         const command = `${this.command} ${args.join(' ')}`;
 
         try {
-            if (options.cwd && !fs.existsSync(options.cwd)) {
-                throw new Error(`Working directory does not exist: ${options.cwd}`);
+            if (cwd && !fs.existsSync(cwd)) {
+                throw new Error(`Working directory does not exist: ${cwd}`);
             }
 
             const stdout = execSync(command, {
-                cwd: options.cwd || this.workspacePath || process.cwd(),
+                cwd: cwd ?? this.workspacePath ?? process.cwd(),
                 timeout,
                 env: process.env,
                 stdio: ['ignore', 'pipe', 'pipe']
@@ -93,8 +94,8 @@ export default class Cli {
         });
     }
 
-    public async functionsList(path: string): Promise<Function[]> {
-        const result = await this.run(['functions'], { cwd: path });
+    public async functionsList(targetPath: string): Promise<FunctionInfo[]> {
+        const result = await this.run(['functions'], { cwd: targetPath });
         if (!result.success) {
             throw new Error(`Failed to list functions: ${result.stderr}`);
         }
@@ -104,60 +105,55 @@ export default class Cli {
         }
 
         const lines = result.stdout.split('\n').map(line => line.trim());
-        const headerIdx = lines.findIndex(line => line.toLowerCase().includes('name') && line.toLowerCase().includes('description'));
-        let functions: Function[] = [];
-        if (headerIdx !== -1) {
-            functions = lines.slice(headerIdx + 1)
-                .filter(line => line && !/^[-▶]/.test(line))
-                .map(line => {
-                    // Split by 2+ spaces
-                    const [name, ...descParts] = line.split(/\s{2,}/);
-                    return { name: name.trim(), description: descParts.join(' ').trim() };
-                })
-                .filter(fn => fn.name);
+        const headerIdx = lines.findIndex(line => 
+            line.toLowerCase().includes('name') && line.toLowerCase().includes('description')
+        );
+        
+        if (headerIdx === -1) {
+            return [];
         }
+
+        const functions = lines.slice(headerIdx + 1)
+            .filter(line => line && !/^[-▶]/.test(line))
+            .map(line => {
+                // Split by 2+ spaces
+                const [name, ...descParts] = line.split(/\s{2,}/);
+                return { 
+                    name: name.trim(), 
+                    description: descParts.join(' ').trim() 
+                } satisfies FunctionInfo;
+            })
+            .filter(fn => fn.name);
 
         return functions;
     }
 
     /**
      * Validates if the Dagger command is available in the system
-     * @returns A Promise that resolves to true if the command is available, false otherwise
      */
     public async isInstalled(): Promise<boolean> {
         const result = await this.run(['version']);
-        if (result.stdout !== '' && result.stdout.includes('dagger')) {
-            return true;
-        }
-
-        return false;
+        return result.stdout !== '' && result.stdout.includes('dagger');
     }
 
     public async isDaggerProject(): Promise<boolean> {
-        let projectRoot = this.workspacePath;
-        if (!projectRoot) {
-            const workspaceFolders = vscode.workspace.workspaceFolders;
-            if (workspaceFolders && workspaceFolders.length > 0) {
-                projectRoot = workspaceFolders[0].uri.fsPath;
-            } else {
-                projectRoot = process.cwd();
-            }
-        }
+        const projectRoot = this.workspacePath ?? 
+            vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? 
+            process.cwd();
+
         try {
             const stats = await fs.promises.stat(path.join(projectRoot, 'dagger.json'));
             return stats.isFile();
-        } catch (error) {
+        } catch {
             return false; // If dagger.json file does not exist, return false
         }
     }
 
     /**
      * Gets the arguments for a given Dagger function by parsing the output of `dagger call <function-name> -h`
-     * @param fnName The function name
-     * @returns Array of argument objects: { name, type, required }
      */
-    public async getFunctionArguments(name: string, path: string): Promise<FunctionArgument[]> {
-        const result = await this.run(['call', name, '-h'], { cwd: path });
+    public async getFunctionArguments(name: string, targetPath: string): Promise<FunctionArgument[]> {
+        const result = await this.run(['call', name, '-h'], { cwd: targetPath });
         if (!result.success) {
             throw new Error(`Failed to get arguments for function '${name}': ${result.stderr}`);
         }

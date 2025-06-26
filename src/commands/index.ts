@@ -19,6 +19,7 @@ export default class Commands {
         workspacePath: string,
         cli: Cli,
     ): void {
+        // Register all command handlers
         callCommand(context, workspacePath, cli);
         cloudCommand(context, cli);
         developCommand(context, cli);

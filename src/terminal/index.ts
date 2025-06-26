@@ -1,18 +1,22 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 
-const windowName = 'Dagger';
+const WINDOW_NAME = 'Dagger' as const;
+
+interface TerminalConfiguration {
+    readonly autoExecute?: boolean;
+}
 
 class Terminal {
     public static run(
         config: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration('dagger'),
-        commands: string[],
+        commands: readonly string[],
     ): vscode.Terminal {
-        let terminal: vscode.Terminal | undefined = vscode.window.terminals.find(t => t.name === windowName);
+        let terminal: vscode.Terminal | undefined = vscode.window.terminals.find(t => t.name === WINDOW_NAME);
 
         if (!terminal) {
             terminal = vscode.window.createTerminal({
-                name: windowName,
+                name: WINDOW_NAME,
                 iconPath: this.getIconPath()
             });
         }
@@ -26,38 +30,39 @@ class Terminal {
 
     private static getIconPath(): vscode.Uri | vscode.ThemeIcon {
         // Try to find the extension by name first
-        let extensionPath = vscode.extensions.getExtension('vscode-dagger')?.extensionPath;
-
-        // If not found, try with a potential publisher prefix
-        if (!extensionPath) {
-            extensionPath = vscode.extensions.getExtension('jasonmccallister.vscode-dagger')?.extensionPath;
+        const possibleExtensionIds = ['vscode-dagger', 'jasonmccallister.vscode-dagger'] as const;
+        
+        for (const extensionId of possibleExtensionIds) {
+            const extension = vscode.extensions.getExtension(extensionId);
+            if (extension?.extensionPath) {
+                return vscode.Uri.file(path.join(extension.extensionPath, 'images', 'dagger-white.png'));
+            }
         }
 
-        // If still not found, try to find by display name
-        if (!extensionPath) {
-            const extension = vscode.extensions.all.find(ext =>
-                ext.packageJSON.name === 'vscode-dagger' ||
-                ext.packageJSON.displayName === 'vscode-dagger'
-            );
-            extensionPath = extension?.extensionPath;
-        }
+        // If not found, try to find by display name
+        const extension = vscode.extensions.all.find(ext =>
+            ext.packageJSON.name === 'vscode-dagger' ||
+            ext.packageJSON.displayName === 'vscode-dagger'
+        );
 
-        return extensionPath ?
-            vscode.Uri.file(path.join(extensionPath, 'images', 'dagger-white.png')) :
+        return extension?.extensionPath ?
+            vscode.Uri.file(path.join(extension.extensionPath, 'images', 'dagger-white.png')) :
             new vscode.ThemeIcon('symbol-misc');
     }
 
     private static executeCommand(
         terminal: vscode.Terminal,
-        commands: string[],
+        commands: readonly string[],
         config: vscode.WorkspaceConfiguration
     ): void {
         // add dagger as the first command if not already present
-        if (commands[0] !== 'dagger') {
-            commands.unshift('dagger');
+        const commandsArray = [...commands];
+        if (commandsArray[0] !== 'dagger') {
+            commandsArray.unshift('dagger');
         }
 
-        terminal.sendText(commands.join(' '), config.get('autoExecute', true));
+        const autoExecute = config.get<boolean>('autoExecute', true);
+        terminal.sendText(commandsArray.join(' '), autoExecute);
     }
 }
 

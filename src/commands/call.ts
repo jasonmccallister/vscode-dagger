@@ -4,65 +4,92 @@ import { askToInstall } from '../actions/install';
 import { initProjectCommand } from '../actions/init';
 import { collectAndRunFunction } from '../utils/function-helpers';
 
-export default function callCommand(context: vscode.ExtensionContext, workspace: string, cli: Cli) {
-    context.subscriptions.push(
-        vscode.commands.registerCommand('dagger.call', async () => {
-            if (!await cli.isInstalled()) {
-                return askToInstall();
+interface FunctionQuickPickItem {
+    readonly label: string;
+    readonly description: string;
+}
+
+/**
+ * Gets the workspace path, falling back to current working directory
+ * @param workspace The initial workspace path
+ * @returns The resolved workspace path
+ */
+const getWorkspacePath = (workspace: string): string => {
+    if (workspace) {
+        return workspace;
+    }
+
+    console.log('No workspace path set. Using current workspace or cwd.');
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    
+    return workspaceFolders && workspaceFolders.length > 0 
+        ? workspaceFolders[0].uri.fsPath 
+        : process.cwd();
+};
+
+/**
+ * Loads functions and shows quick pick for selection
+ * @param cli The Dagger CLI instance
+ * @param workspacePath The workspace path
+ * @returns The selected function name or undefined if cancelled
+ */
+const selectFunction = async (cli: Cli, workspacePath: string): Promise<string | undefined> => {
+    const functions = await cli.functionsList(workspacePath);
+    
+    if (functions.length === 0) {
+        vscode.window.showInformationMessage('No Dagger functions found in this project.');
+        return undefined;
+    }
+
+    const functionItems: readonly FunctionQuickPickItem[] = functions.map(fn => ({
+        label: fn.name,
+        description: fn.description ?? ''
+    }));
+
+    const pick = await vscode.window.showQuickPick(functionItems, {
+        placeHolder: 'Select a function to call'
+    });
+
+    return pick?.label;
+};
+
+export default function callCommand(context: vscode.ExtensionContext, workspace: string, cli: Cli): void {
+    const disposable = vscode.commands.registerCommand('dagger.call', async () => {
+        if (!await cli.isInstalled()) {
+            return askToInstall();
+        }
+
+        if (!(await cli.isDaggerProject())) {
+            return initProjectCommand();
+        }
+
+        const workspacePath = getWorkspacePath(workspace);
+
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: 'Dagger: Loading functions',
+            cancellable: false
+        }, async (progress) => {
+            progress.report({ message: 'Running `dagger functions`...' });
+            
+            const selectedFunction = await selectFunction(cli, workspacePath);
+            if (!selectedFunction) {
+                return;
             }
 
-            if (!(await cli.isDaggerProject())) {
-                return initProjectCommand();
+            progress.report({ message: 'Select a function to call...' });
+
+            // get the selected function arguments
+            const args = await cli.getFunctionArguments(selectedFunction, workspacePath);
+            if (!args) {
+                vscode.window.showErrorMessage(`Failed to get arguments for function '${selectedFunction}'`);
+                return;
             }
 
-            // if workspace is not set, use the current workspace folder or cwd
-            if (!workspace) {
-                console.log('No workspace path set. Using current workspace or cwd.');
-                const workspaceFolders = vscode.workspace.workspaceFolders;
-                if (workspaceFolders && workspaceFolders.length > 0) {
-                    workspace = workspaceFolders[0].uri.fsPath;
-                } else {
-                    workspace = process.cwd();
-                }
-            }
+            // Use the shared helper to collect arguments and run the function
+            await collectAndRunFunction(selectedFunction, args);
+        });
+    });
 
-            await vscode.window.withProgress({
-                location: vscode.ProgressLocation.Notification,
-                title: 'Dagger: Loading functions',
-                cancellable: false
-            }, async (progress) => {
-                progress.report({ message: 'Running `dagger functions`...' });
-                const functions = await cli.functionsList(workspace);
-                if (functions.length === 0) {
-                    vscode.window.showInformationMessage('No Dagger functions found in this project.');
-                    return;
-                }
-
-                progress.report({ message: 'Select a function to call...' });
-                const pick = await vscode.window.showQuickPick(
-                    functions.map(fn => ({
-                        label: fn.name,
-                        description: fn.description
-                    })),
-                    {
-                        placeHolder: 'Select a function to call'
-                    }
-                );
-
-                if (!pick) {
-                    return;
-                }
-
-                // get the selected function arguments
-                const args = await cli.getFunctionArguments(pick.label, workspace);
-                if (!args) {
-                    vscode.window.showErrorMessage(`Failed to get arguments for function '${pick.label}'`);
-                    return;
-                }
-
-                // Use the shared helper to collect arguments and run the function
-                await collectAndRunFunction(pick.label, args);
-            });
-        })
-    );
+    context.subscriptions.push(disposable);
 }

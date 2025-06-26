@@ -1,14 +1,16 @@
 import * as vscode from 'vscode';
-import Cli from '../dagger/dagger';
+import Cli, { FunctionArgument, FunctionInfo } from '../dagger/dagger';
+
+type ItemType = 'function' | 'argument' | 'empty' | 'action';
 
 // Implement TreeItem for Dagger functions and arguments
 export class Item extends vscode.TreeItem {
     children?: Item[];
-    type: 'function' | 'argument' | 'empty' | 'action';
+    readonly type: ItemType;
 
     constructor(
         label: string,
-        type: 'function' | 'argument' | 'empty' | 'action',
+        type: ItemType,
         collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.None,
         command?: vscode.Command
     ) {
@@ -21,22 +23,26 @@ export class Item extends vscode.TreeItem {
         }
 
         // Set icons based on type
-        if (type === 'function') {
-            this.iconPath = new vscode.ThemeIcon('symbol-function');
-            this.tooltip = `Function: ${label}`;
-            this.contextValue = 'function';
-        } else if (type === 'argument') {
-            this.iconPath = new vscode.ThemeIcon('symbol-parameter');
-            this.tooltip = `Argument: ${label}`;
-            this.contextValue = 'argument';
-        } else if (type === 'action') {
-            this.iconPath = new vscode.ThemeIcon('arrow-right');
-            this.contextValue = 'action';
-            // Make action items look more like buttons
-            this.tooltip = command ? command.title : label;
-        } else {
-            this.iconPath = new vscode.ThemeIcon('info');
-            this.contextValue = 'empty';
+        switch (type) {
+            case 'function':
+                this.iconPath = new vscode.ThemeIcon('symbol-function');
+                this.tooltip = `Function: ${label}`;
+                this.contextValue = 'function';
+                break;
+            case 'argument':
+                this.iconPath = new vscode.ThemeIcon('symbol-parameter');
+                this.tooltip = `Argument: ${label}`;
+                this.contextValue = 'argument';
+                break;
+            case 'action':
+                this.iconPath = new vscode.ThemeIcon('arrow-right');
+                this.contextValue = 'action';
+                this.tooltip = command?.title ?? label;
+                break;
+            default:
+                this.iconPath = new vscode.ThemeIcon('info');
+                this.contextValue = 'empty';
+                break;
         }
     }
 }

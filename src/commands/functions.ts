@@ -4,25 +4,24 @@ import { askToInstall } from '../actions/install';
 import { initProjectCommand } from '../actions/init';
 import Terminal from '../terminal';
 
-export default function functionsCommand(context: vscode.ExtensionContext, cli: Cli) {
-    context.subscriptions.push(
-        vscode.commands.registerCommand('dagger.functions', async () => {
-            if (!await cli.isInstalled()) {
-                askToInstall();
-                return;
-            }
+export default function functionsCommand(context: vscode.ExtensionContext, cli: Cli): void {
+    const disposable = vscode.commands.registerCommand('dagger.functions', async () => {
+        if (!await cli.isInstalled()) {
+            await askToInstall();
+            return;
+        }
 
-            // check if this workspace is already a dagger project
-            if (!await cli.isDaggerProject()) {
-                initProjectCommand();
+        // check if this workspace is already a dagger project
+        if (!await cli.isDaggerProject()) {
+            await initProjectCommand();
+            return;
+        }
 
-                return;
-            }
+        Terminal.run(
+            vscode.workspace.getConfiguration('dagger'),
+            ['functions'],
+        );
+    });
 
-            Terminal.run(
-                vscode.workspace.getConfiguration('dagger'),
-                ['functions'],
-            );
-        }),
-    );
+    context.subscriptions.push(disposable);
 }

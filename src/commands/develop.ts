@@ -4,32 +4,31 @@ import { askToInstall } from '../actions/install';
 import Terminal from '../terminal';
 import { initProjectCommand } from '../actions/init';
 
-export default function developCommand(context: vscode.ExtensionContext, cli: Cli) {
-    context.subscriptions.push(
-        vscode.commands.registerCommand('dagger.develop', async () => {
-            if (!await cli.isInstalled()) {
-                askToInstall();
-                return;
-            }
+export default function developCommand(context: vscode.ExtensionContext, cli: Cli): void {
+    const disposable = vscode.commands.registerCommand('dagger.develop', async () => {
+        if (!await cli.isInstalled()) {
+            await askToInstall();
+            return;
+        }
 
-            if (!await cli.isDaggerProject()) {
-                initProjectCommand();
+        if (!await cli.isDaggerProject()) {
+            await initProjectCommand();
+            return;
+        }
 
-                return;
-            }
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: 'Dagger: Running develop',
+            cancellable: false
+        }, async (progress) => {
+            progress.report({ message: 'Running `dagger develop`...' });
 
-            await vscode.window.withProgress({
-                location: vscode.ProgressLocation.Notification,
-                title: 'Dagger: Running develop',
-                cancellable: false
-            }, async (progress) => {
-                progress.report({ message: 'Running `dagger develop`...' });
+            Terminal.run(
+                vscode.workspace.getConfiguration('dagger'),
+                ['develop'],
+            );
+        });
+    });
 
-                Terminal.run(
-                    vscode.workspace.getConfiguration('dagger'),
-                    ['develop'],
-                );
-            });
-        })
-    );
+    context.subscriptions.push(disposable);
 }

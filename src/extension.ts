@@ -7,32 +7,42 @@ import { registerProvider } from './chat/provider';
 import { DataProvider } from './tree/provider';
 import { collectAndRunFunction } from './utils/function-helpers';
 
-export async function activate(context: vscode.ExtensionContext) {
+interface ExtensionApi {
+	cli: Cli;
+}
+
+interface TreeItem {
+	id?: string;
+	label: string;
+	type: string;
+}
+
+export const activate = async (context: vscode.ExtensionContext): Promise<ExtensionApi> => {
 	console.log('Dagger extension activating...');
 
 	const cli = new Cli();
 
 	// Register core commands
-	Commands.register(context, "", cli);
+	Commands.register(context, '', cli);
 
 	// Register the Dagger tree view
-	const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
+	const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? process.cwd();
 	const treeDataProvider = new DataProvider(cli, workspacePath);
 	vscode.window.registerTreeDataProvider('daggerTreeView', treeDataProvider);
 
 	// Add command to refresh the tree view
-	context.subscriptions.push(
-		vscode.commands.registerCommand('dagger.refreshTreeView', () => {
-			treeDataProvider.reloadFunctions();
-		})
-	);
+	const refreshCommand = vscode.commands.registerCommand('dagger.refreshTreeView', () => {
+		treeDataProvider.reloadFunctions();
+	});
+	context.subscriptions.push(refreshCommand);
 
 	// Add command to run function from tree view
-	context.subscriptions.push(
-		vscode.commands.registerCommand('dagger.runFunctionFromTree', async (treeItem: any) => {
-			if (treeItem && treeItem.type === 'function') {
+	const runFunctionCommand = vscode.commands.registerCommand(
+		'dagger.runFunctionFromTree',
+		async (treeItem: TreeItem) => {
+			if (treeItem?.type === 'function') {
 				// Use the function ID (original name) instead of display label
-				const functionName = treeItem.id || treeItem.label;
+				const functionName = treeItem.id ?? treeItem.label;
 
 				try {
 					// Get function arguments
@@ -41,11 +51,13 @@ export async function activate(context: vscode.ExtensionContext) {
 					// Use the shared helper to collect arguments and run the function
 					await collectAndRunFunction(functionName, args);
 				} catch (error) {
-					vscode.window.showErrorMessage(`Failed to run function '${functionName}': ${error}`);
+					const errorMessage = error instanceof Error ? error.message : String(error);
+					vscode.window.showErrorMessage(`Failed to run function '${functionName}': ${errorMessage}`);
 				}
 			}
-		})
+		}
 	);
+	context.subscriptions.push(runFunctionCommand);
 
 
 	// Show cloud prompt
@@ -72,34 +84,34 @@ export async function activate(context: vscode.ExtensionContext) {
 	}
 
 	// Listen for configuration changes to dynamically enable/disable experimental features
-	context.subscriptions.push(
-		vscode.workspace.onDidChangeConfiguration(e => {
-			if (e.affectsConfiguration('dagger.experimentalFeatures')) {
-				const newStatus = vscode.workspace.getConfiguration('dagger').get<boolean>('experimentalFeatures', false);
-				if (newStatus && !experimentalFeaturesEnabled) {
-					vscode.window.showInformationMessage(
-						'Experimental features enabled! Please reload the window for chat participant to be available.',
-						'Reload Now',
-						'Later'
-					).then(response => {
-						if (response === 'Reload Now') {
-							vscode.commands.executeCommand('workbench.action.reloadWindow');
-						}
-					});
-				} else if (!newStatus && experimentalFeaturesEnabled) {
-					vscode.window.showInformationMessage(
-						'Experimental features disabled. Reload the window to fully disable chat features.',
-						'Reload Now',
-						'Later'
-					).then(response => {
-						if (response === 'Reload Now') {
-							vscode.commands.executeCommand('workbench.action.reloadWindow');
-						}
-					});
+	const configChangeListener = vscode.workspace.onDidChangeConfiguration((e) => {
+		if (e.affectsConfiguration('dagger.experimentalFeatures')) {
+			const newStatus = vscode.workspace.getConfiguration('dagger').get<boolean>('experimentalFeatures', false);
+			const handleResponse = (response?: string) => {
+				if (response === 'Reload Now') {
+					vscode.commands.executeCommand('workbench.action.reloadWindow');
 				}
+			};
+
+			if (newStatus && !experimentalFeaturesEnabled) {
+				vscode.window.showInformationMessage(
+					'Experimental features enabled! Please reload the window for chat participant to be available.',
+					'Reload Now',
+					'Later'
+				).then(handleResponse);
+			} else if (!newStatus && experimentalFeaturesEnabled) {
+				vscode.window.showInformationMessage(
+					'Experimental features disabled. Reload the window to fully disable chat features.',
+					'Reload Now',
+					'Later'
+				).then(handleResponse);
 			}
-		})
-	);
+		}
+	});
+	context.subscriptions.push(configChangeListener);
 
 	console.log('Dagger extension activated');
-}
+
+	// Return API
+	return { cli };
+};
