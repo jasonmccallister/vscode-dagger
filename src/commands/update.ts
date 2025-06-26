@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import Cli from '../dagger/dagger';
 import { askToInstall } from '../actions/install';
-import { exists } from '../executable';
 import { exec } from 'child_process';
 import * as https from 'https';
+import { checkInstallation } from '../utils/installation';
 
 export default function updateCommand(context: vscode.ExtensionContext, cli: Cli) {
     context.subscriptions.push(
@@ -42,7 +42,7 @@ export default function updateCommand(context: vscode.ExtensionContext, cli: Cli
                     let latestVersion = '';
                     let updateCommand = '';
 
-                    if (installMethod === 'brew' && await exists('brew')) {
+                    if (installMethod === 'brew' && await checkInstallation('brew')) {
                         // Check for brew updates
                         progress.report({ message: 'Checking Homebrew for updates...' });
 
