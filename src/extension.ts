@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { registerTreeView } from './tree/provider';
 import { registerInstallCommand } from './commands/install';
-// import { registerUpdateCommand } from './commands/update';
 import { checkInstallation, InstallResult } from './utils/installation';
 import os from 'os';
 
@@ -26,8 +25,8 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 const activateExtension = async (context: vscode.ExtensionContext): Promise<void> => {
-	// Register all commands (including install command for manual re-installation)
-	registerInstallCommand(context);
+	// Register all commands when Dagger is installed
+	registerAllCommands(context);
 
 	// Register tree view for environments
 	registerTreeView(context);

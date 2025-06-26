@@ -82,7 +82,8 @@ const initializeProject = async (cli: Cli, sdk: SdkOption): Promise<void> => {
     }
 };
 
-export default function initCommand(context: vscode.ExtensionContext, cli: Cli): void {
+export const registerInitCommand = (context: vscode.ExtensionContext): void => {
+    const cli = new Cli();
     const disposable = vscode.commands.registerCommand('dagger.init', async () => {
         // Ensure Dagger CLI is installed
         if (!await cli.isInstalled()) {
@@ -110,4 +111,4 @@ export default function initCommand(context: vscode.ExtensionContext, cli: Cli):
     });
 
     context.subscriptions.push(disposable);
-}
+};

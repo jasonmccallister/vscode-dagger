@@ -3,7 +3,9 @@ import Cli from '../dagger/dagger';
 import { askToInstall } from '../actions/install';
 import { initProjectCommand } from '../actions/init';
 
-export default function installModuleCommand(context: vscode.ExtensionContext, cli: Cli) {
+export const registerInstallModuleCommand = (context: vscode.ExtensionContext): void => {
+    const cli = new Cli();
+    
     context.subscriptions.push(
         vscode.commands.registerCommand('dagger.installModule', async () => {
             if (!await cli.isInstalled()) {
@@ -121,7 +123,7 @@ export default function installModuleCommand(context: vscode.ExtensionContext, c
             });
         })
     );
-}
+};
 
 function findSubdirectoriesWithFile(basePath: string, fileName: string): Promise<string[]> {
     const fs = require('fs').promises;

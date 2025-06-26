@@ -5,7 +5,9 @@ import { exec } from 'child_process';
 import * as https from 'https';
 import { checkInstallation } from '../utils/installation';
 
-export default function updateCommand(context: vscode.ExtensionContext, cli: Cli) {
+export const registerUpdateCommand = (context: vscode.ExtensionContext): void => {
+    const cli = new Cli();
+    
     context.subscriptions.push(
         vscode.commands.registerCommand('dagger.update', async () => {
             if (!await cli.isInstalled()) {
@@ -100,7 +102,7 @@ export default function updateCommand(context: vscode.ExtensionContext, cli: Cli
             });
         })
     );
-}
+};
 
 // Helper function to run shell commands
 function runCommand(command: string): Promise<{ success: boolean; stdout: string; stderr: string }> {

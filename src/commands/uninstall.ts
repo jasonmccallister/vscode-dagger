@@ -36,7 +36,9 @@ const executeUninstallCommand = async (installMethod: InstallMethod): Promise<vo
     });
 };
 
-export default function uninstallCommand(context: vscode.ExtensionContext, cli: Cli): void {
+export const registerUninstallCommand = (context: vscode.ExtensionContext): void => {
+    const cli = new Cli();
+    
     const disposable = vscode.commands.registerCommand('dagger.uninstall', async () => {
         if (!await cli.isInstalled()) {
             vscode.window.showInformationMessage('Dagger is not installed. No action taken.');
@@ -64,4 +66,4 @@ export default function uninstallCommand(context: vscode.ExtensionContext, cli: 
     });
 
     context.subscriptions.push(disposable);
-}
+};

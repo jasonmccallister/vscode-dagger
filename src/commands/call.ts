@@ -53,8 +53,11 @@ const selectFunction = async (cli: Cli, workspacePath: string): Promise<string |
     return pick?.label;
 };
 
-export default function callCommand(context: vscode.ExtensionContext, workspace: string, cli: Cli): void {
+export const registerCallCommand = (context: vscode.ExtensionContext): void => {
     const disposable = vscode.commands.registerCommand('dagger.call', async () => {
+        const cli = new Cli();
+        const workspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+        
         if (!await cli.isInstalled()) {
             return askToInstall();
         }
@@ -92,4 +95,4 @@ export default function callCommand(context: vscode.ExtensionContext, workspace:
     });
 
     context.subscriptions.push(disposable);
-}
+};

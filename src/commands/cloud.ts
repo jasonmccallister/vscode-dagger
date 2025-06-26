@@ -90,7 +90,9 @@ const handleCloudResponse = async (response: CloudResponse | undefined, tokens: 
     }
 };
 
-export default function cloudCommand(context: vscode.ExtensionContext, cli: Cli): void {
+export const registerCloudCommand = (context: vscode.ExtensionContext): void => {
+    const cli = new Cli();
+    
     const disposable = vscode.commands.registerCommand('dagger.setupCloud', async () => {
         const config = vscode.workspace.getConfiguration('dagger');
         const tokens = await getTokenSources(config);
@@ -106,4 +108,4 @@ export default function cloudCommand(context: vscode.ExtensionContext, cli: Cli)
     });
 
     context.subscriptions.push(disposable);
-}
+};

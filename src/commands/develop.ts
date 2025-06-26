@@ -4,7 +4,9 @@ import { askToInstall } from '../actions/install';
 import Terminal from '../terminal';
 import { initProjectCommand } from '../actions/init';
 
-export default function developCommand(context: vscode.ExtensionContext, cli: Cli): void {
+export const registerDevelopCommand = (context: vscode.ExtensionContext): void => {
+    const cli = new Cli();
+    
     const disposable = vscode.commands.registerCommand('dagger.develop', async () => {
         if (!await cli.isInstalled()) {
             await askToInstall();
@@ -31,4 +33,4 @@ export default function developCommand(context: vscode.ExtensionContext, cli: Cl
     });
 
     context.subscriptions.push(disposable);
-}
+};

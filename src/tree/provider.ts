@@ -83,10 +83,10 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
     constructor(cli: Cli, workspacePath: string) {
         this.cli = cli;
         this.workspacePath = workspacePath;
-        this.loadFunctions();
+        this.loadData();
     }
 
-    private async loadFunctions(): Promise<void> {
+    private async loadData(): Promise<void> {
         try {
             // Check if Dagger is installed and workspace is a Dagger project
             if (!await this.cli.isInstalled()) {
@@ -215,7 +215,7 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
     }
 
     async reloadFunctions(): Promise<void> {
-        await this.loadFunctions();
+        await this.loadData();
     }
 
     getTreeItem(element: Item): vscode.TreeItem {

@@ -2,7 +2,9 @@ import * as vscode from 'vscode';
 import Cli from '../dagger/dagger';
 import { askToInstall } from '../actions/install';
 
-export default function versionCommand(context: vscode.ExtensionContext, cli: Cli): void {
+export const registerVersionCommand = (context: vscode.ExtensionContext): void => {
+    const cli = new Cli();
+    
     const commandHandler = async (): Promise<void> => {
         if (!(await cli.isInstalled())) {
             return askToInstall();
@@ -29,4 +31,4 @@ export default function versionCommand(context: vscode.ExtensionContext, cli: Cl
 
     const disposable = vscode.commands.registerCommand('dagger.version', commandHandler);
     context.subscriptions.push(disposable);
-}
+};

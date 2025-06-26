@@ -11,7 +11,7 @@ const getWorkspacePath = (): string => {
     return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
 };
 
-export default function shellCommand(context: vscode.ExtensionContext): void {
+export const registerShellCommand = (context: vscode.ExtensionContext): void => {
     const disposable = vscode.commands.registerCommand('dagger.shell', async () => {
         const cli = new Cli();
 
@@ -31,4 +31,4 @@ export default function shellCommand(context: vscode.ExtensionContext): void {
     });
 
     context.subscriptions.push(disposable);
-}
+};
