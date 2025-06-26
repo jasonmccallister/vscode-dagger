@@ -21,7 +21,7 @@ interface CollectArgumentsResult {
  */
 const collectArgumentValues = async (args: readonly FunctionArgument[]): Promise<CollectArgumentsResult> => {
     const argValues: Record<string, string> = {};
-    
+
     for (const arg of args) {
         const value = await vscode.window.showInputBox({
             prompt: `Enter value for --${arg.name} (${arg.type})${arg.required ? ' [required]' : ''}`,
@@ -38,7 +38,7 @@ const collectArgumentValues = async (args: readonly FunctionArgument[]): Promise
             argValues[arg.name] = value;
         }
     }
-    
+
     return { argValues, cancelled: false };
 };
 
@@ -57,12 +57,12 @@ const selectOptionalArguments = async (optionalArgs: readonly FunctionArgument[]
         description: 'Optional',
         detail: `Type: ${arg.type}`
     }));
-    
+
     const selected = await vscode.window.showQuickPick(argsPicks, {
         placeHolder: 'Select optional arguments to provide values for',
         canPickMany: true
     });
-    
+
     if (!selected) {
         return [];
     }
@@ -78,7 +78,7 @@ const selectOptionalArguments = async (optionalArgs: readonly FunctionArgument[]
  * @returns Command arguments array
  */
 const buildCommandArgs = (functionName: string, argValues: Record<string, string>): readonly string[] => {
-    const commandArgs = ['call', functionName];
+    const commandArgs = ['dagger', 'call', functionName];
 
     // Add all collected arguments to the command array
     Object.entries(argValues).forEach(([name, value]) => {
@@ -107,18 +107,18 @@ export const collectAndRunFunction = async (
 
     // Combine required and selected optional arguments
     const allSelectedArgs = [...requiredArgs, ...selectedOptionalArgs];
-    
+
     // Collect values for all arguments
     const { argValues, cancelled } = await collectArgumentValues(allSelectedArgs);
-    
+
     if (cancelled) {
         return false;
     }
 
     // Build and execute the command
     const commandArgs = buildCommandArgs(functionName, argValues);
-    
-    executeInTerminal(commandArgs.join( ' ') );
+
+    executeInTerminal(commandArgs.join(' '));
 
     return true;
 };

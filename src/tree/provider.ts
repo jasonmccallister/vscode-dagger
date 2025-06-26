@@ -1,11 +1,13 @@
 import * as vscode from 'vscode';
 import Cli, { FunctionArgument, FunctionInfo } from '../dagger/dagger';
+import { registerTreeCommands } from '../commands';
 
 type ItemType = 'function' | 'argument' | 'empty' | 'action';
 
 interface TreeViewConfig {
     workspacePath?: string;
     cli?: Cli;
+    registerCommands?: boolean; // Flag to control command registration
 }
 
 // Constants to eliminate magic strings and numbers
@@ -20,7 +22,7 @@ const TREE_VIEW_OPTIONS = {
 } as const;
 
 const COMMANDS = {
-    REFRESH: 'dagger.refreshFunctions',
+    REFRESH: 'dagger.refresh',
     VIEW_FUNCTIONS: 'dagger.viewFunctions'
 } as const;
 
@@ -243,15 +245,11 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
 export const registerTreeView = (context: vscode.ExtensionContext, config: TreeViewConfig = {}): void => {
     const {
         workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '',
-        cli
+        cli,
+        registerCommands = true
     } = config;
 
     const dataProvider = new DataProvider(cli!, workspacePath);
-
-    // Register refresh command
-    const refreshCommand = vscode.commands.registerCommand(COMMANDS.REFRESH, () => {
-        dataProvider.refresh();
-    });
 
     const treeView = vscode.window.createTreeView(TREE_VIEW_ID, {
         treeDataProvider: dataProvider,
@@ -259,13 +257,10 @@ export const registerTreeView = (context: vscode.ExtensionContext, config: TreeV
         canSelectMany: TREE_VIEW_OPTIONS.CAN_SELECT_MANY
     });
 
-    // Register view command to focus/reveal the tree view
-    const viewFunctionsCommand = vscode.commands.registerCommand(COMMANDS.VIEW_FUNCTIONS, async () => {
-        await vscode.commands.executeCommand('workbench.view.extension.daggerViewContainer');
+    // Only register tree commands when explicitly requested (to avoid duplicates)
+    if (registerCommands) {
+        registerTreeCommands(context, () => dataProvider.reloadFunctions());
+    }
 
-        // Focus on the tree view specifically
-        await vscode.commands.executeCommand(`${TREE_VIEW_ID}.focus`);
-    });
-
-    context.subscriptions.push(treeView, refreshCommand, viewFunctionsCommand);
+    context.subscriptions.push(treeView);
 };

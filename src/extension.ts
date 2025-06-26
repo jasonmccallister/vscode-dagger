@@ -42,7 +42,7 @@ const activateExtension = async (context: vscode.ExtensionContext): Promise<void
 	registerAllCommands(context, cli, workspacePath);
 
 	// Register tree view for environments with CLI and workspace path
-	registerTreeView(context, { cli, workspacePath });
+	registerTreeView(context, { cli, workspacePath, registerCommands: true });
 };
 
 const handleMissingInstallation = async (context: vscode.ExtensionContext, installResult: InstallResult): Promise<void> => {
@@ -51,7 +51,7 @@ const handleMissingInstallation = async (context: vscode.ExtensionContext, insta
 	// Still register tree view to show installation status
 	const cli = new Cli();
 	const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
-	registerTreeView(context, { cli, workspacePath });
+	registerTreeView(context, { cli, workspacePath, registerCommands: false });
 
 	// Determine available installation methods for the prompt
 	const installMethods: string[] = [];
