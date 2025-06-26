@@ -23,7 +23,6 @@ export { registerVersionCommand } from './version';
 export { registerInitCommand } from './init';
 export { registerDevelopCommand } from './develop';
 export { registerCloudCommand } from './cloud';
-export { registerFunctionsCommand } from './functions';
 export { registerResetCommand } from './reset';
 export { registerShellCommand } from './shell';
 export { registerCallCommand } from './call';

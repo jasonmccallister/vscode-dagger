@@ -259,13 +259,13 @@ export const registerTreeView = (context: vscode.ExtensionContext, config: TreeV
         canSelectMany: TREE_VIEW_OPTIONS.CAN_SELECT_MANY
     });
 
-    // Register view environments command to focus/reveal the tree view
-    const viewEnvironmentsCommand = vscode.commands.registerCommand(COMMANDS.VIEW_FUNCTIONS, async () => {
+    // Register view command to focus/reveal the tree view
+    const viewFunctionsCommand = vscode.commands.registerCommand(COMMANDS.VIEW_FUNCTIONS, async () => {
         await vscode.commands.executeCommand('workbench.view.extension.daggerViewContainer');
 
         // Focus on the tree view specifically
         await vscode.commands.executeCommand(`${TREE_VIEW_ID}.focus`);
     });
 
-    context.subscriptions.push(treeView, refreshCommand, viewEnvironmentsCommand);
+    context.subscriptions.push(treeView, refreshCommand, viewFunctionsCommand);
 };
