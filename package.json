@@ -43,7 +43,8 @@
       },
       {
         "command": "dagger.call",
-        "title": "Call a function",
+        "title": "Call Function",
+        "icon": "$(play)",
         "category": "Dagger",
         "shortTitle": "Call"
       },
