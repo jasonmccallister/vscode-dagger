@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import Terminal from '../terminal';
 import { FunctionArgument } from '../dagger/dagger';
 import { executeInTerminal } from './terminal';
 
@@ -19,7 +18,7 @@ interface CollectArgumentsResult {
  * @param args The function arguments to collect values for
  * @returns Object containing collected argument values and cancellation status
  */
-const collectArgumentValues = async (args: readonly FunctionArgument[]): Promise<CollectArgumentsResult> => {
+export const collectArgumentValues = async (args: readonly FunctionArgument[]): Promise<CollectArgumentsResult> => {
     const argValues: Record<string, string> = {};
 
     for (const arg of args) {
@@ -47,7 +46,7 @@ const collectArgumentValues = async (args: readonly FunctionArgument[]): Promise
  * @param optionalArgs The optional arguments to choose from
  * @returns Selected optional arguments
  */
-const selectOptionalArguments = async (optionalArgs: readonly FunctionArgument[]): Promise<readonly FunctionArgument[]> => {
+export const selectOptionalArguments = async (optionalArgs: readonly FunctionArgument[]): Promise<readonly FunctionArgument[]> => {
     if (optionalArgs.length === 0) {
         return [];
     }
@@ -77,7 +76,7 @@ const selectOptionalArguments = async (optionalArgs: readonly FunctionArgument[]
  * @param argValues The collected argument values
  * @returns Command arguments array
  */
-const buildCommandArgs = (functionName: string, argValues: Record<string, string>): readonly string[] => {
+export const buildCommandArgs = (functionName: string, argValues: Record<string, string>): readonly string[] => {
     const commandArgs = ['dagger', 'call', functionName];
 
     // Add all collected arguments to the command array

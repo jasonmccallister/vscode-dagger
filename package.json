@@ -49,6 +49,20 @@
         "shortTitle": "Call"
       },
       {
+        "command": "dagger.createTask",
+        "title": "Create VS Code Task",
+        "icon": "$(add)",
+        "category": "Dagger",
+        "shortTitle": "Create Task"
+      },
+      {
+        "command": "dagger.createTaskFromTree",
+        "title": "Create VS Code Task",
+        "icon": "$(add)",
+        "category": "Dagger",
+        "shortTitle": "Create Task"
+      },
+      {
         "command": "dagger.functions",
         "title": "View Functions",
         "category": "Dagger",
@@ -191,9 +205,14 @@
       ],
       "view/item/context": [
         {
+          "command": "dagger.createTaskFromTree",
+          "when": "view == daggerTreeView && viewItem == function",
+          "group": "inline@1"
+        },
+        {
           "command": "dagger.call",
           "when": "view == daggerTreeView && viewItem == function",
-          "group": "inline"
+          "group": "inline@2"
         }
       ]
     }

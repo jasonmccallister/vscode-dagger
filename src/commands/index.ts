@@ -17,6 +17,8 @@ import { registerInstallModuleCommand } from './install-module';
 import { registerRefreshFunctionsCommand } from './refresh';
 import { registerViewFunctionsCommand } from './view-functions';
 import { registerExpandCommand } from './expand';
+import { registerCreateTaskCommand } from './create-task';
+import { registerCreateTaskFromTreeCommand } from './create-task-from-tree';
 
 // Export all command registration functions
 export { registerInstallCommand } from './install';
@@ -33,6 +35,8 @@ export { registerInstallModuleCommand } from './install-module';
 export { registerRefreshFunctionsCommand } from './refresh';
 export { registerViewFunctionsCommand } from './view-functions';
 export { registerExpandCommand } from './expand';
+export { registerCreateTaskCommand } from './create-task';
+export { registerCreateTaskFromTreeCommand } from './create-task-from-tree';
 
 // Function to register all commands when Dagger is installed
 export const registerAllCommands = (
@@ -52,6 +56,7 @@ export const registerAllCommands = (
     registerShellCommand(context, cli, workspacePath);
     registerCallCommand(context, cli, workspacePath);
     registerInstallModuleCommand(context, cli);
+    registerCreateTaskCommand(context, cli, workspacePath);
 
     // Register tree view related commands
     registerViewFunctionsCommand(context);
@@ -63,6 +68,7 @@ export const registerTreeCommands = (
     refreshCallback: () => void
 ): void => {
     registerRefreshFunctionsCommand(context, refreshCallback);
+    registerCreateTaskFromTreeCommand(context);
     
     // Register expand command with tree view access (after tree view is created)
     registerExpandCommand(context, getTreeView, getDataProvider);
