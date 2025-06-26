@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import Cli from '../dagger/dagger';
 import { initProjectCommand } from '../actions/init';
-import Terminal from '../terminal';
 
 export const registerFunctionsCommand = (
     context: vscode.ExtensionContext,
@@ -14,10 +13,8 @@ export const registerFunctionsCommand = (
             return;
         }
 
-        Terminal.run(
-            vscode.workspace.getConfiguration('dagger'),
-            ['functions'],
-        );
+        // Open the tree view to show functions instead of running terminal command
+        await vscode.commands.executeCommand('dagger.viewFunctions');
     });
 
     context.subscriptions.push(disposable);

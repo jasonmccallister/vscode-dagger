@@ -21,7 +21,8 @@ const TREE_VIEW_OPTIONS = {
 
 const COMMANDS = {
     REFRESH: 'dagger.refreshFunctions',
-    VIEW_FUNCTIONS: 'dagger.viewFunctions'
+    VIEW_FUNCTIONS: 'dagger.viewFunctions',
+    RUN_FUNCTION_FROM_TREE: 'dagger.runFunctionFromTree'
 } as const;
 
 const MESSAGES = {
@@ -158,7 +159,12 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
                 const functionItem = new Item(
                     displayName,
                     'function',
-                    vscode.TreeItemCollapsibleState.Collapsed
+                    vscode.TreeItemCollapsibleState.Collapsed,
+                    {
+                        command: COMMANDS.RUN_FUNCTION_FROM_TREE,
+                        title: 'Run Function',
+                        arguments: [fn.name]
+                    }
                 );
 
                 // Store the original function name for command execution
@@ -250,7 +256,7 @@ export const registerTreeView = (context: vscode.ExtensionContext, config: TreeV
 
     // Register refresh command
     const refreshCommand = vscode.commands.registerCommand(COMMANDS.REFRESH, () => {
-        dataProvider.refresh();
+        dataProvider.reloadFunctions();
     });
 
     const treeView = vscode.window.createTreeView(TREE_VIEW_ID, {
@@ -267,5 +273,16 @@ export const registerTreeView = (context: vscode.ExtensionContext, config: TreeV
         await vscode.commands.executeCommand(`${TREE_VIEW_ID}.focus`);
     });
 
-    context.subscriptions.push(treeView, refreshCommand, viewFunctionsCommand);
+    // Register run function command
+    const runFunctionCommand = vscode.commands.registerCommand(COMMANDS.RUN_FUNCTION_FROM_TREE, async (functionName: string) => {
+        if (!functionName) {
+            vscode.window.showErrorMessage('No function name provided');
+            return;
+        }
+
+        // Trigger the call command with the specific function
+        await vscode.commands.executeCommand('dagger.call', functionName);
+    });
+
+    context.subscriptions.push(treeView, refreshCommand, viewFunctionsCommand, runFunctionCommand);
 };

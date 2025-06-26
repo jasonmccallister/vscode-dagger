@@ -35,16 +35,24 @@ const activateExtension = async (context: vscode.ExtensionContext): Promise<void
 		cli.setWorkspacePath(workspacePath);
 	}
 
-	// Register all commands when Dagger is installed with dependency injection
+	// Register install command (needed for manual installation/reinstallation)
+	registerInstallCommand(context);
+
+	// Register all other commands when Dagger is installed with dependency injection
 	registerAllCommands(context, cli, workspacePath);
 
-	// Register tree view for environments
-	registerTreeView(context);
+	// Register tree view for environments with CLI and workspace path
+	registerTreeView(context, { cli, workspacePath });
 };
 
 const handleMissingInstallation = async (context: vscode.ExtensionContext, installResult: InstallResult): Promise<void> => {
 	// Register only the install command when not installed
 	registerInstallCommand(context);
+
+	// Still register tree view to show installation status
+	const cli = new Cli();
+	const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+	registerTreeView(context, { cli, workspacePath });
 
 	// Determine available installation methods for the prompt
 	const installMethods: string[] = [];

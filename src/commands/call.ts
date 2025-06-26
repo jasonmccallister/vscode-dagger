@@ -57,36 +57,56 @@ export const registerCallCommand = (
     cli: Cli,
     workspacePath: string
 ): void => {
-    const disposable = vscode.commands.registerCommand('dagger.call', async () => {
+    const disposable = vscode.commands.registerCommand('dagger.call', async (preSelectedFunction?: string) => {
         if (!(await cli.isDaggerProject())) {
             return initProjectCommand();
         }
 
         const workspacePathForCli = getWorkspacePath(workspacePath);
+        
+        // Ensure CLI has the workspace path set
+        cli.setWorkspacePath(workspacePathForCli);
 
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
             title: 'Dagger: Loading functions',
             cancellable: false
         }, async (progress) => {
-            progress.report({ message: 'Running `dagger functions`...' });
+            progress.report({ message: 'Loading functions...' });
             
-            const selectedFunction = await selectFunction(cli, workspacePath);
-            if (!selectedFunction) {
-                return;
+            console.log(`Call command - workspace path: ${workspacePathForCli}, preSelected: ${preSelectedFunction}`);
+            
+            let selectedFunction: string;
+
+            // Use pre-selected function if provided, otherwise show picker
+            if (preSelectedFunction) {
+                selectedFunction = preSelectedFunction;
+            } else {
+                const result = await selectFunction(cli, workspacePathForCli);
+                if (!result) {
+                    return;
+                }
+                selectedFunction = result;
             }
 
-            progress.report({ message: 'Select a function to call...' });
+            progress.report({ message: 'Getting function arguments...' });
 
-            // get the selected function arguments
-            const args = await cli.getFunctionArguments(selectedFunction, workspacePath);
-            if (!args) {
-                vscode.window.showErrorMessage(`Failed to get arguments for function '${selectedFunction}'`);
+            // get the selected function arguments - use the CLI workspace path consistently
+            try {
+                const args = await cli.getFunctionArguments(selectedFunction, workspacePathForCli);
+                if (!args) {
+                    vscode.window.showErrorMessage(`Failed to get arguments for function '${selectedFunction}' - no arguments returned`);
+                    return;
+                }
+
+                // Use the shared helper to collect arguments and run the function
+                await collectAndRunFunction(selectedFunction, args);
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                vscode.window.showErrorMessage(`Failed to get arguments for function '${selectedFunction}': ${errorMessage}`);
+                console.error('Error getting function arguments:', error);
                 return;
             }
-
-            // Use the shared helper to collect arguments and run the function
-            await collectAndRunFunction(selectedFunction, args);
         });
     });
 

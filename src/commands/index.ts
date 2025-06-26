@@ -34,10 +34,7 @@ export const registerAllCommands = (
     cli: Cli,
     workspacePath: string
 ): void => {
-    // Always register install command (needed for manual installation/reinstallation)
-    registerInstallCommand(context);
-    
-    // Register all other commands with dependency injection
+    // Register commands with dependency injection (install command is registered separately)
     registerUpdateCommand(context, cli);
     registerUninstallCommand(context, cli);
     registerVersionCommand(context, cli);
