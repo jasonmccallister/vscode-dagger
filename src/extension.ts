@@ -17,11 +17,17 @@ import { registerShellCommand } from './commands/shell';
 import { registerUninstallCommand } from './commands/uninstall';
 import { registerUpdateCommand } from './commands/update';
 import { registerVersionCommand } from './commands/version';
+import { chatRequestHandler } from './chat/participant';
 
 export async function activate(context: vscode.ExtensionContext) {
 	try {
 		// Register install command first (always needed regardless of installation status)
 		registerInstallCommand(context);
+
+		// Register chat participant for chat UI
+		if ('chat' in vscode && typeof vscode.chat.createChatParticipant === 'function') {
+			vscode.chat.createChatParticipant('dagger', chatRequestHandler);
+		}
 
 		// Check installation status before setting up other commands and views
 		const installResult = await checkInstallation(os.platform());
