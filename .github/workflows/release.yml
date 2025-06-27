@@ -1,0 +1,144 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  # Validate and build the extension
+  validate:
+    name: "🔍 Validate Release"
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'yarn'
+
+    - name: Install dependencies
+      run: yarn install --frozen-lockfile
+
+    - name: Get version from package.json
+      id: get-version
+      run: |
+        VERSION=$(node -p "require('./package.json').version")
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Package version: $VERSION"
+
+    - name: Validate version matches release tag
+      run: |
+        PACKAGE_VERSION="${{ steps.get-version.outputs.version }}"
+        RELEASE_TAG="${{ github.event.release.tag_name }}"
+        # Remove 'v' prefix from tag if present
+        RELEASE_VERSION="${RELEASE_TAG#v}"
+        
+        if [ "$PACKAGE_VERSION" != "$RELEASE_VERSION" ]; then
+          echo "❌ Version mismatch!"
+          echo "Package.json version: $PACKAGE_VERSION"
+          echo "Release tag: $RELEASE_TAG (normalized: $RELEASE_VERSION)"
+          exit 1
+        fi
+        echo "✅ Version validation passed: $PACKAGE_VERSION"
+
+    - name: Run type checking
+      run: yarn run check-types
+
+    - name: Run linting
+      run: yarn run lint
+
+    - name: Build extension
+      run: node esbuild.js
+
+    - name: Run tests
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y xvfb
+        xvfb-run -a yarn test
+      env:
+        DISPLAY: ':99.0'
+
+  # Publish to VS Code Marketplace
+  publish:
+    name: "🚀 Publish to Marketplace"
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'yarn'
+
+    - name: Install dependencies
+      run: yarn install --frozen-lockfile
+
+    - name: Install vsce
+      run: yarn add --dev @vscode/vsce
+
+    - name: Build extension
+      run: yarn run package
+
+    - name: Publish to VS Code Marketplace
+      run: yarn vsce publish --no-dependencies
+      env:
+        VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+    - name: Package extension for artifacts
+      run: yarn vsce package --no-dependencies
+
+    - name: Upload .vsix to release assets
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./*.vsix
+        asset_name: vscode-dagger-${{ needs.validate.outputs.version }}.vsix
+        asset_content_type: application/zip
+
+    - name: Upload .vsix as workflow artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: vscode-extension-release
+        path: '*.vsix'
+
+  # Optional: Publish to Open VSX Registry (alternative marketplace)
+  publish-openvsx:
+    name: "📦 Publish to Open VSX"
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: release
+    if: vars.PUBLISH_TO_OPENVSX == 'true'
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'yarn'
+
+    - name: Install dependencies
+      run: yarn install --frozen-lockfile
+
+    - name: Install ovsx
+      run: yarn add --dev ovsx
+
+    - name: Build extension
+      run: yarn run package
+
+    - name: Publish to Open VSX Registry
+      run: yarn ovsx publish --no-dependencies
+      env:
+        OVSX_PAT: ${{ secrets.OVSX_PAT }}
