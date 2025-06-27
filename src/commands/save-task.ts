@@ -87,7 +87,7 @@ const buildCommandArgs = (functionName: string, argValues: Record<string, string
     return commandArgs;
 };
 
-export const CREATE_TASK_COMMAND = 'dagger.createTask';
+export const SAVE_TASK_COMMAND = 'dagger.saveTask';
 
 interface TaskCreationResult {
     readonly taskName: string;
@@ -96,7 +96,7 @@ interface TaskCreationResult {
 }
 
 /**
- * Collects function argument values and builds the command for task creation
+ * Collects function argument values and builds the command for saving as a task
  * @param functionName The name of the function to call
  * @param args The function arguments
  * @returns Task creation result with command string
@@ -156,7 +156,7 @@ const collectArgumentsForTask = async (
  * @param command The command to execute
  * @param workspacePath The workspace path
  */
-const createOrUpdateTasksJson = async (
+const saveTaskToTasksJson = async (
     taskName: string,
     command: string,
     workspacePath: string
@@ -229,13 +229,13 @@ const createOrUpdateTasksJson = async (
 };
 
 /**
- * Asks the user if they want to run the newly created task
- * @param taskName The name of the created task
+ * Asks the user if they want to run the newly saved task
+ * @param taskName The name of the saved task
  * @returns True if user wants to run the task
  */
 const askToRunTask = async (taskName: string): Promise<boolean> => {
     const choice = await vscode.window.showInformationMessage(
-        `Task "${taskName}" has been created successfully. Would you like to run it now?`,
+        `Task "${taskName}" has been saved successfully. Would you like to run it now?`,
         'Yes',
         'No'
     );
@@ -257,21 +257,21 @@ const runTask = async (taskName: string): Promise<void> => {
     }
 };
 
-export const registerCreateTaskCommand = (
+export const registerSaveTaskCommand = (
     context: vscode.ExtensionContext,
     cli: Cli,
     workspacePath: string
 ): void => {
-    const disposable = vscode.commands.registerCommand(CREATE_TASK_COMMAND, async (functionName?: string) => {
+    const disposable = vscode.commands.registerCommand(SAVE_TASK_COMMAND, async (functionName?: string) => {
         if (!functionName) {
-            vscode.window.showErrorMessage('No function specified for task creation');
+            vscode.window.showErrorMessage('No function specified for task saving');
             return;
         }
 
         try {
             await vscode.window.withProgress({
                 location: vscode.ProgressLocation.Notification,
-                title: 'Creating VS Code Task',
+                title: 'Dagger',
                 cancellable: true
             }, async (progress, token) => {
                 progress.report({ message: 'Getting function arguments...' });
@@ -299,12 +299,12 @@ export const registerCreateTaskCommand = (
                     return;
                 }
 
-                progress.report({ message: 'Creating task...' });
+                progress.report({ message: 'Saving task...' });
 
-                // Create the task
-                await createOrUpdateTasksJson(result.taskName, result.command, workspacePath);
+                // Save the task
+                await saveTaskToTasksJson(result.taskName, result.command, workspacePath);
 
-                progress.report({ message: 'Task created successfully' });
+                progress.report({ message: 'Task saved successfully' });
 
                 // Ask if user wants to run the task
                 const shouldRun = await askToRunTask(result.taskName);
@@ -314,8 +314,8 @@ export const registerCreateTaskCommand = (
             });
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
-            vscode.window.showErrorMessage(`Failed to create task: ${errorMessage}`);
-            console.error('Error creating task:', error);
+            vscode.window.showErrorMessage(`Failed to save task: ${errorMessage}`);
+            console.error('Error saving task:', error);
         }
     });
 

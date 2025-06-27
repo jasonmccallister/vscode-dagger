@@ -17,8 +17,8 @@ import { registerInstallModuleCommand } from './install-module';
 import { registerRefreshFunctionsCommand } from './refresh';
 import { registerViewFunctionsCommand } from './view-functions';
 import { registerExpandCommand } from './expand';
-import { registerCreateTaskCommand } from './create-task';
-import { registerCreateTaskFromTreeCommand } from './create-task-from-tree';
+import { registerCreateTaskCommand } from './save-task';
+import { registerCreateTaskFromTreeCommand } from './save-task-from-tree';
 
 // Export all command registration functions
 export { registerInstallCommand } from './install';
@@ -35,8 +35,8 @@ export { registerInstallModuleCommand } from './install-module';
 export { registerRefreshFunctionsCommand } from './refresh';
 export { registerViewFunctionsCommand } from './view-functions';
 export { registerExpandCommand } from './expand';
-export { registerCreateTaskCommand } from './create-task';
-export { registerCreateTaskFromTreeCommand } from './create-task-from-tree';
+export { registerSaveTaskCommand } from './save-task';
+export { registerSaveTaskFromTreeCommand } from './save-task-from-tree';
 
 // Function to register all commands when Dagger is installed
 export const registerAllCommands = (
