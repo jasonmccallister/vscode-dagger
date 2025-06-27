@@ -1,15 +1,12 @@
 # Dagger for VS Code
 
-The VS Code extension for [Dagger](https://dagger.io). Simplify containerized CI/CD workflows with IDE integration.
+The VS Code extension for [Dagger](https://dagger.io). Built for developers who use Dagger and VS Code together. Run Dagger commands, edit workflows, and manage projects—all without leaving your editor.
 
 [![Version](https://img.shields.io/visual-studio-marketplace/v/jasonmccallister.vscode-dagger)](https://marketplace.visualstudio.com/items?itemName=jasonmccallister.vscode-dagger)
 [![Downloads](https://img.shields.io/visual-studio-marketplace/d/jasonmccallister.vscode-dagger)](https://marketplace.visualstudio.com/items?itemName=jasonmccallister.vscode-dagger)
 [![Rating](https://img.shields.io/visual-studio-marketplace/r/jasonmccallister.vscode-dagger)](https://marketplace.visualstudio.com/items?itemName=jasonmccallister.vscode-dagger)
 
 ## Features
-
-### ⚙️ CLI Management
-Install, update, or uninstall the Dagger CLI with one click. Supports macOS, Linux, and Windows.
 
 ### 🌲 Functions Explorer
 Browse and execute Dagger functions directly in VS Code. View arguments and details in a tree view.
@@ -20,14 +17,17 @@ Run Dagger functions with validated arguments. Output is shown in the integrated
 ### 📝 Save as VS Code Tasks
 Convert function calls into reusable tasks. Automatically updates `.vscode/tasks.json`.
 
+### 🤖 AI-Powered Documentation
+Ask questions about Dagger docs directly in VS Code with Copilot using `@dagger`.
+
+### ⚙️ CLI Management
+Install, update, or uninstall the Dagger CLI with one click. Supports macOS, Linux, and Windows.
+
 ### 🏗️ Project Initialization
 Start new Dagger projects or work with existing ones. Includes an interactive setup wizard.
 
 ### 🛠️ Development Workflow
 Use `dagger develop`, manage modules, and run commands with proper environment setup in the IDE.
-
-### 🤖 AI-Powered Documentation (Experimental)
-Search Dagger docs directly in VS Code.
 
 ## Getting Started
 
@@ -44,7 +44,7 @@ Search Dagger docs directly in VS Code.
 1. Open the Dagger panel.
 2. Initialize a project or browse functions.
 3. Execute functions with one click.
-4. Save calls as tasks for reuse.
+4. Save function calls as tasks for reuse.
 
 ## Contributing
 
