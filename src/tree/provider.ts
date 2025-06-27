@@ -193,6 +193,15 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
         }
     }
 
+    async reloadFunctions(): Promise<void> {
+        // Show loading state
+        this.items = [new Item('🔄 Reloading Dagger functions...', 'empty')];
+        this.refresh();
+
+        // Reload data asynchronously
+        await this.loadDataAsync();
+    }
+
     refresh(): void {
         this._onDidChangeTreeData.fire();
     }
@@ -284,7 +293,7 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
     static preloadTreeDataAsync(): void {
         const dataProvider = getDataProvider();
         if (dataProvider) {
-            dataProvider.loadDataAsync().catch(error => {
+            dataProvider.reloadFunctions().catch(error => {
                 console.warn('Manual preload failed:', error);
             });
         }
