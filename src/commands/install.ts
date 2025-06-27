@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { checkInstallation, InstallResult } from '../utils/installation';
 import * as os from 'os';
+import { exec } from 'child_process';
 
 export const registerInstallCommand = (context: vscode.ExtensionContext): void => {
     const installCommand = vscode.commands.registerCommand('dagger.install', async () => {
@@ -62,43 +63,44 @@ const handleInstallation = async (result: InstallResult): Promise<void> => {
     await config.update('installMethod', selectedMethod.value, vscode.ConfigurationTarget.Global);
 
     // Show instructions based on selected method
-    await showInstallationInstructions(selectedMethod.value);
-};
-
-const showInstallationInstructions = async (method: string): Promise<void> => {
-    let instructions: string;
-    let terminalCommand: string;
-
-    switch (method) {
+    let command: string;
+    let methodLabel: string;
+    switch (selectedMethod.value) {
         case 'brew':
-            instructions = 'Dagger will be installed using Homebrew.';
-            terminalCommand = 'brew install dagger/tap/dagger';
+            command = 'brew install dagger/tap/dagger';
+            methodLabel = 'Homebrew';
             break;
         case 'curl':
-            instructions = 'Dagger will be installed using the curl script.';
-            terminalCommand = 'curl -fsSL https://raw.githubusercontent.com/dagger/dagger/main/install.sh | bash';
+            command = 'curl -fsSL https://raw.githubusercontent.com/dagger/dagger/main/install.sh | bash';
+            methodLabel = 'curl script';
             break;
         default:
             vscode.window.showErrorMessage('Unknown installation method selected.');
             return;
     }
 
-    const action = await vscode.window.showInformationMessage(
-        instructions,
-        'Copy Command',
-        'Open Terminal',
-        'Cancel'
+    await vscode.window.withProgress(
+        {
+            location: vscode.ProgressLocation.Notification,
+            title: 'Dagger',
+            cancellable: true
+        },
+        async (progress) => {
+            progress.report({ message: `Installing using ${methodLabel}...` });
+            try {
+                await new Promise<void>((resolve, reject) => {
+                    exec(command, (error: any, _stdout: string, stderr: string) => {
+                        if (error) {
+                            reject(stderr || error.message);
+                        } else {
+                            resolve();
+                        }
+                    });
+                });
+                vscode.window.showInformationMessage('Container Use installed successfully!');
+            } catch (err: any) {
+                vscode.window.showErrorMessage(`Installation failed: ${err}`);
+            }
+        }
     );
-
-    switch (action) {
-        case 'Copy Command':
-            await vscode.env.clipboard.writeText(terminalCommand);
-            vscode.window.showInformationMessage('Installation command copied to clipboard!');
-            break;
-        case 'Open Terminal':
-            const terminal = vscode.window.createTerminal('Dagger Installation');
-            terminal.show();
-            terminal.sendText(terminalCommand);
-            break;
-    }
 };
