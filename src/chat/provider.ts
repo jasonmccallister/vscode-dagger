@@ -88,9 +88,9 @@ const generateSearchResponse = async (query: string, stream: vscode.ChatResponse
 const createChatHandler = (): vscode.ChatRequestHandler => {
     return async (
         request: vscode.ChatRequest,
-        context: vscode.ChatContext,
+        _context: vscode.ChatContext,
         stream: vscode.ChatResponseStream,
-        token: vscode.CancellationToken
+        _token: vscode.CancellationToken
     ) => {
         // Check if experimental features are enabled
         if (!checkExperimentalFeatures(stream)) {
