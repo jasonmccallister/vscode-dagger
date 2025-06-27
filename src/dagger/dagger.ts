@@ -104,12 +104,15 @@ export default class Cli {
             return [];
         }
 
+        console.log('Raw dagger functions output:', result.stdout);
+
         const lines = result.stdout.split('\n').map(line => line.trim());
         const headerIdx = lines.findIndex(line => 
             line.toLowerCase().includes('name') && line.toLowerCase().includes('description')
         );
         
         if (headerIdx === -1) {
+            console.log('No header found in functions output. Lines:', lines);
             return [];
         }
 
@@ -124,12 +127,20 @@ export default class Cli {
                 console.log(`Parsing function line: "${line}"`);
                 console.log(`Extracted name: "${trimmedName}", type: ${typeof trimmedName}`);
                 
-                return { 
+                // Additional validation
+                if (!trimmedName || typeof trimmedName !== 'string') {
+                    console.warn(`Invalid function name extracted from line: "${line}"`);
+                    return null;
+                }
+                
+                const functionInfo: FunctionInfo = { 
                     name: trimmedName, 
-                    description: descParts.join(' ').trim() 
-                } satisfies FunctionInfo;
+                    description: descParts.join(' ').trim() || undefined 
+                };
+                
+                return functionInfo;
             })
-            .filter(fn => fn.name);
+            .filter((fn): fn is FunctionInfo => fn !== null);
 
         return functions;
     }
