@@ -1,16 +1,28 @@
 import * as vscode from 'vscode';
 import { registerTreeView } from './tree/provider';
-import { registerInstallCommand, registerAllCommands } from './commands';
 import { checkInstallation, InstallResult } from './utils/installation';
 import { promptCloud } from './actions/cloud';
 import Cli from './dagger/dagger';
 import * as os from 'os';
+import { registerCallCommand } from './commands/call';
+import { registerCloudCommand } from './commands/cloud';
+import { registerDevelopCommand } from './commands/develop';
+import { registerFunctionsCommand } from './commands/functions';
+import { registerInitCommand } from './commands/init';
+import { registerInstallCommand } from './commands/install';
+import { registerInstallModuleCommand } from './commands/install-module';
+import { registerResetCommand } from './commands/reset';
+import { registerSaveTaskCommand } from './commands/save-task';
+import { registerShellCommand } from './commands/shell';
+import { registerUninstallCommand } from './commands/uninstall';
+import { registerUpdateCommand } from './commands/update';
+import { registerVersionCommand } from './commands/version';
 
 export async function activate(context: vscode.ExtensionContext) {
 	try {
 		// Register install command first (always needed regardless of installation status)
 		registerInstallCommand(context);
-		
+
 		// Check installation status before setting up other commands and views
 		const installResult = await checkInstallation(os.platform());
 
@@ -32,15 +44,25 @@ const activateExtension = async (context: vscode.ExtensionContext): Promise<void
 	// Create CLI instance and get workspace path
 	const cli = new Cli();
 	const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
-	
+
 	// Set workspace path for CLI if available
 	if (workspacePath) {
 		cli.setWorkspacePath(workspacePath);
 	}
 
-	// Register all other commands when Dagger is installed with dependency injection
 	// (install command already registered in activate function)
-	registerAllCommands(context, cli, workspacePath);
+	registerUpdateCommand(context, cli);
+	registerUninstallCommand(context, cli);
+	registerVersionCommand(context, cli);
+	registerInitCommand(context, cli);
+	registerDevelopCommand(context, cli, workspacePath);
+	registerCloudCommand(context, cli);
+	registerFunctionsCommand(context, cli);
+	registerResetCommand(context);
+	registerShellCommand(context, cli, workspacePath);
+	registerCallCommand(context, cli, workspacePath);
+	registerInstallModuleCommand(context, cli);
+	registerSaveTaskCommand(context, cli, workspacePath);
 
 	// Register tree view for environments with CLI and workspace path
 	registerTreeView(context, { cli, workspacePath, registerCommands: true });

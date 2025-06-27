@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import Cli, { FunctionArgument, FunctionInfo } from '../dagger/dagger';
-import { registerTreeCommands } from '../commands';
+import { registerExpandCommand } from '../commands/expand';
+import { registerRefreshFunctionsCommand } from '../commands/refresh';
+import { registerSaveTaskFromTreeCommand } from '../commands/save-task-from-tree';
 
 type ItemType = 'function' | 'argument' | 'empty' | 'action';
 
@@ -490,4 +492,16 @@ export const clearTreeCache = (): void => {
     if (dataProvider) {
         dataProvider.clearArgumentsCache();
     }
+};
+
+// Function to register tree view commands that need a data provider callback
+export const registerTreeCommands = (
+    context: vscode.ExtensionContext,
+    refreshCallback: () => void
+): void => {
+    registerRefreshFunctionsCommand(context, refreshCallback);
+    registerSaveTaskFromTreeCommand(context);
+
+    // Register expand command with tree view access (after tree view is created)
+    registerExpandCommand(context, getTreeView, getDataProvider);
 };
