@@ -13,17 +13,12 @@ export class ChatParticipant {
     public readonly iconPath: string | vscode.ThemeIcon;
     private readonly _searchDocs: (query: string) => Promise<ISearchResponse | string>;
 
-    constructor(searchDocsDep: (query: string) => Promise<ISearchResponse | string> = defaultSearchDocs) {
+    constructor(
+        searchDocsDep: (query: string) => Promise<ISearchResponse | string> = defaultSearchDocs,
+        iconPath?: string | vscode.ThemeIcon
+    ) {
         this._searchDocs = searchDocsDep;
-        // Try to use the extension's icon-white.png, fallback to a VS Code codicon
-        const ext = vscode.extensions.getExtension('vscode-dagger');
-        if (ext) {
-            vscode.window.showInformationMessage(`Using extension icon for Dagger: ${ext.packageJSON.displayName || ext.packageJSON.name}`);
-            this.iconPath = vscode.Uri.joinPath(ext.extensionUri, 'images', 'icon-white.png').toString();
-        } else {
-            vscode.window.showInformationMessage('Using default codicon for Dagger participant');
-            this.iconPath = new vscode.ThemeIcon('source-control');
-        }
+        this.iconPath = iconPath ?? new vscode.ThemeIcon('source-control');
     }
 
     public async searchDocs(query: string): Promise<ISearchResponse | string> {
@@ -69,8 +64,11 @@ export class ChatParticipant {
  * Utility function to create a ChatParticipant and process search results
  * This can be used when you have search result data to display
  */
-export const createChatParticipantWithResults = (searchData: ISearchResponse): { participant: ChatParticipant; formattedResults: string } => {
-    const participant = new ChatParticipant();
+export const createChatParticipantWithResults = (
+    searchData: ISearchResponse,
+    iconPath?: string | vscode.ThemeIcon
+): { participant: ChatParticipant; formattedResults: string } => {
+    const participant = new ChatParticipant(undefined, iconPath);
     const formattedResults = participant.processSearchResults(searchData);
     return { participant, formattedResults };
 };
@@ -113,8 +111,13 @@ export const chatRequestHandler: vscode.ChatRequestHandler = async (
         }
     }
 
-    // 2. Call the search API with the summarized query
-    const participant = new ChatParticipant();
+    // 2. Get the extension and icon path, then call the search API with the summarized query
+    let iconPath: string | vscode.ThemeIcon = new vscode.ThemeIcon('source-control');
+    const ext = vscode.extensions.getExtension('jasonmccallister.vscode-dagger');
+    if (ext) {
+        iconPath = vscode.Uri.joinPath(ext.extensionUri, 'images', 'icon-white.png').toString();
+    }
+    const participant = new ChatParticipant(undefined, iconPath);
     const result = await participant.searchDocs(searchQuery);
 
     // 3. If results are relevant, explain them; otherwise, provide links
