@@ -2,6 +2,9 @@ import * as vscode from 'vscode';
 
 const prefix = 'dagger';
 
+// get the base url from the environment variable or DAGGER_CODE_SEARCH_BASE_URL
+const baseUrl = process.env.DAGGER_CODE_SEARCH_BASE_URL || 'http://localhost:8888/.netlify/functions/search';
+
 export class ChatParticipant {
     public readonly name = '@dagger';
     public readonly description = 'Searches docs.dagger.io for information on developing Dagger modules.';
@@ -9,7 +12,7 @@ export class ChatParticipant {
     async searchDocs(query: string): Promise<string> {
         // Use VS Code's fetch API or Node fetch to get docs.dagger.io search results
         // For demo, just return a formatted search URL
-        const searchUrl = `https://docs.dagger.io/search-api?q=${encodeURIComponent(query)}`;
+        const searchUrl = `${baseUrl}?q=${encodeURIComponent(query)}`;
         return `You can find information about "${query}" here: ${searchUrl}`;
     }
 }

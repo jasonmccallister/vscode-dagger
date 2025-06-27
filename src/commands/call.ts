@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import Cli from '../dagger/dagger';
 import { initProjectCommand } from '../actions/init';
 import { collectAndRunFunction } from '../utils/function-helpers';
+import type { Item } from '../tree/provider';
 
 export const CALL_COMMAND = 'dagger.call';
 
@@ -22,9 +23,9 @@ const getWorkspacePath = (workspace: string): string => {
 
     console.log('No workspace path set. Using current workspace or cwd.');
     const workspaceFolders = vscode.workspace.workspaceFolders;
-    
-    return workspaceFolders && workspaceFolders.length > 0 
-        ? workspaceFolders[0].uri.fsPath 
+
+    return workspaceFolders && workspaceFolders.length > 0
+        ? workspaceFolders[0].uri.fsPath
         : process.cwd();
 };
 
@@ -36,7 +37,7 @@ const getWorkspacePath = (workspace: string): string => {
  */
 const selectFunction = async (cli: Cli, workspacePath: string): Promise<string | undefined> => {
     const functions = await cli.functionsList(workspacePath);
-    
+
     if (functions.length === 0) {
         vscode.window.showInformationMessage('No Dagger functions found in this project.');
         return undefined;
@@ -59,26 +60,34 @@ export const registerCallCommand = (
     cli: Cli,
     workspacePath: string
 ): void => {
-    const disposable = vscode.commands.registerCommand(CALL_COMMAND, async (preSelectedFunction?: string) => {
-        if (!(await cli.isDaggerProject())) {
-            return initProjectCommand();
-        }
+    const disposable = vscode.commands.registerCommand(CALL_COMMAND, async (preSelectedFunctionOrItem?: string | Item) => {
+        if (!(await cli.isDaggerProject())) { return initProjectCommand(); }
 
         const workspacePathForCli = getWorkspacePath(workspacePath);
-        
+
         // Ensure CLI has the workspace path set
         cli.setWorkspacePath(workspacePathForCli);
 
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: 'Dagger: Loading functions',
+            title: 'Dagger',
             cancellable: false
         }, async (progress) => {
             progress.report({ message: 'Loading functions...' });
-            
-            console.log(`Call command - workspace path: ${workspacePathForCli}, preSelected: ${preSelectedFunction}`);
-            
+
+            console.log(`Call command - workspace path: ${workspacePathForCli}, preSelected: ${preSelectedFunctionOrItem}`);
+
             let selectedFunction: string;
+
+            // Handle different types of input - string or tree item object
+            let preSelectedFunction: string | undefined;
+            if (typeof preSelectedFunctionOrItem === 'string') {
+                preSelectedFunction = preSelectedFunctionOrItem;
+            } else if (preSelectedFunctionOrItem && preSelectedFunctionOrItem.id && typeof preSelectedFunctionOrItem.id === 'string') {
+                // Tree item was passed - extract the function name from the id property
+                preSelectedFunction = preSelectedFunctionOrItem.id;
+                console.log(`Function selected from tree: ${preSelectedFunction}`);
+            }
 
             // Use pre-selected function if provided, otherwise show picker
             if (preSelectedFunction) {

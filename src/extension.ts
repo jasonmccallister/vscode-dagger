@@ -59,7 +59,7 @@ const activateExtension = async (context: vscode.ExtensionContext): Promise<void
 	registerCloudCommand(context, cli);
 	registerFunctionsCommand(context);
 	registerResetCommand(context);
-	registerShellCommand(context, cli, workspacePath);
+	registerShellCommand(context, workspacePath);
 	registerCallCommand(context, cli, workspacePath);
 	registerInstallModuleCommand(context, cli);
 	registerSaveTaskCommand(context, cli, workspacePath);

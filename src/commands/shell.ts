@@ -1,19 +1,12 @@
 import * as vscode from 'vscode';
-import Cli from '../dagger/dagger';
-import Terminal from '../terminal';
+import { executeInTerminal } from '../utils/terminal';
 
 export const registerShellCommand = (
     context: vscode.ExtensionContext,
-    cli: Cli,
     workspacePath: string
 ): void => {
     const disposable = vscode.commands.registerCommand('dagger.shell', async () => {
-        cli.setWorkspacePath(workspacePath);
-
-        Terminal.run(
-            vscode.workspace.getConfiguration('dagger'),
-            ['shell'],
-        );
+        executeInTerminal('dagger shell', workspacePath);
     });
 
     context.subscriptions.push(disposable);

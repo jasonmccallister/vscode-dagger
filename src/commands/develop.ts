@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
 import Cli from '../dagger/dagger';
-import Terminal from '../terminal';
 import { initProjectCommand } from '../actions/init';
+import { executeInTerminal } from '../utils/terminal';
 
 export const registerDevelopCommand = (
     context: vscode.ExtensionContext,
     cli: Cli,
-    _workspacePath: string
+    workspacePath: string
 ): void => {
     const disposable = vscode.commands.registerCommand('dagger.develop', async () => {
         if (!(await cli.isDaggerProject())) {
@@ -21,10 +21,7 @@ export const registerDevelopCommand = (
         }, async (progress) => {
             progress.report({ message: 'Running `dagger develop`...' });
 
-            Terminal.run(
-                vscode.workspace.getConfiguration('dagger'),
-                ['develop'],
-            );
+            executeInTerminal('dagger develop', workspacePath);
         });
     });
 
