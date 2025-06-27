@@ -1,21 +1,17 @@
 import * as vscode from 'vscode';
-import Cli from '../dagger/dagger';
-import { initProjectCommand } from '../actions/init';
-import { VIEW_FUNCTIONS_COMMAND } from './view-functions';
 
-export const registerFunctionsCommand = (
-    context: vscode.ExtensionContext,
-    cli: Cli
-): void => {
-    const disposable = vscode.commands.registerCommand('dagger.functions', async () => {
-        // Check if this workspace is already a dagger project
-        if (!(await cli.isDaggerProject())) {
-            await initProjectCommand();
-            return;
-        }
+export const VIEW_FUNCTIONS_COMMAND = 'dagger.functions';
 
-        // Open the tree view to show functions instead of running terminal command
-        await vscode.commands.executeCommand(VIEW_FUNCTIONS_COMMAND);
+const TREE_VIEW_ID = 'daggerTreeView';
+
+export const registerFunctionsCommand = (context: vscode.ExtensionContext): void => {
+    const disposable = vscode.commands.registerCommand(VIEW_FUNCTIONS_COMMAND, async () => {
+        await vscode.commands.executeCommand('workbench.view.extension.daggerViewContainer');
+        // call the refresh command to ensure the tree view is up-to-date in the background
+        await vscode.commands.executeCommand('dagger.refresh');
+
+        // Focus on the tree view specifically
+        await vscode.commands.executeCommand(`${TREE_VIEW_ID}.focus`);
     });
 
     context.subscriptions.push(disposable);

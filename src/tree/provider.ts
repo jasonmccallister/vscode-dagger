@@ -9,7 +9,7 @@ type ItemType = 'function' | 'argument' | 'empty' | 'action';
 interface TreeViewConfig {
     workspacePath?: string;
     cli?: Cli;
-    registerCommands?: boolean; // Flag to control command registration
+    registerTreeCommands?: boolean; // Flag to control command registration
 }
 
 // Global references to tree view and data provider for expand all functionality
@@ -449,7 +449,7 @@ export const registerTreeView = (context: vscode.ExtensionContext, config: TreeV
     const {
         workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '',
         cli,
-        registerCommands = true
+        registerTreeCommands: registerCommands = true
     } = config;
 
     const dataProvider = new DataProvider(cli!, workspacePath);

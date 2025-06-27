@@ -57,7 +57,7 @@ const activateExtension = async (context: vscode.ExtensionContext): Promise<void
 	registerInitCommand(context, cli);
 	registerDevelopCommand(context, cli, workspacePath);
 	registerCloudCommand(context, cli);
-	registerFunctionsCommand(context, cli);
+	registerFunctionsCommand(context);
 	registerResetCommand(context);
 	registerShellCommand(context, cli, workspacePath);
 	registerCallCommand(context, cli, workspacePath);
@@ -65,7 +65,7 @@ const activateExtension = async (context: vscode.ExtensionContext): Promise<void
 	registerSaveTaskCommand(context, cli, workspacePath);
 
 	// Register tree view for environments with CLI and workspace path
-	registerTreeView(context, { cli, workspacePath, registerCommands: true });
+	registerTreeView(context, { cli, workspacePath, registerTreeCommands: true });
 
 	// Show cloud setup notification if appropriate
 	await promptCloud(context, cli);
@@ -77,7 +77,7 @@ const handleMissingInstallation = async (context: vscode.ExtensionContext, insta
 	// Still register tree view to show installation status
 	const cli = new Cli();
 	const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
-	registerTreeView(context, { cli, workspacePath, registerCommands: false });
+	registerTreeView(context, { cli, workspacePath, registerTreeCommands: false });
 
 	// Determine available installation methods for the prompt
 	const installMethods: string[] = [];
