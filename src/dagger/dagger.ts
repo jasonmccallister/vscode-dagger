@@ -118,8 +118,14 @@ export default class Cli {
             .map(line => {
                 // Split by 2+ spaces
                 const [name, ...descParts] = line.split(/\s{2,}/);
+                const trimmedName = name.trim();
+                
+                // Debug logging
+                console.log(`Parsing function line: "${line}"`);
+                console.log(`Extracted name: "${trimmedName}", type: ${typeof trimmedName}`);
+                
                 return { 
-                    name: name.trim(), 
+                    name: trimmedName, 
                     description: descParts.join(' ').trim() 
                 } satisfies FunctionInfo;
             })

@@ -140,6 +140,9 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
 
             // Load functions
             const functions = await this.cli.functionsList(this.workspacePath);
+            
+            // Debug logging to understand the structure
+            console.log('Functions returned from CLI:', JSON.stringify(functions, null, 2));
 
             if (functions.length === 0) {
                 this.items = [
@@ -161,8 +164,11 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
 
             // Create tree items for functions with their arguments as children
             this.items = await Promise.all(functions.map(async (fn) => {
+                // Ensure we have a valid function name string
+                const functionName = typeof fn.name === 'string' ? fn.name : String(fn.name);
+                
                 // Truncate function name for display if it's too long
-                const displayName = fn.name.length > 30 ? fn.name.substring(0, 27) + '...' : fn.name;
+                const displayName = functionName.length > 30 ? functionName.substring(0, 27) + '...' : functionName;
 
                 const functionItem = new Item(
                     displayName,
@@ -171,14 +177,14 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
                 );
 
                 // Store the original function name for command execution
-                functionItem.id = fn.name;
+                functionItem.id = functionName;
 
                 // Build children array
                 const children: Item[] = [];
 
                 try {
                     // Get function arguments
-                    const args = await this.cli.getFunctionArguments(fn.name, this.workspacePath);
+                    const args = await this.cli.getFunctionArguments(functionName, this.workspacePath);
 
                     if (args.length > 0) {
                         // Add a separator if we have description
@@ -195,14 +201,15 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
                         children.push(new Item('No arguments', 'empty'));
                     }
                 } catch (error) {
-                    console.error(`Failed to get arguments for function ${fn.name}:`, error);
+                    console.error(`Failed to get arguments for function ${functionName}:`, error);
+                    console.error('Function object:', JSON.stringify(fn, null, 2));
                     children.push(new Item('Failed to load arguments', 'empty'));
                 }
 
                 functionItem.children = children;
 
                 // Set tooltip with full information
-                let tooltip = `Function: ${fn.name}`;
+                let tooltip = `Function: ${functionName}`;
                 if (fn.description) {
                     tooltip += `\n\nDescription:\n${fn.description}`;
                 }
