@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import Cli, { FunctionArgument, FunctionInfo } from '../dagger/dagger';
-import { Cache, MapCache } from './cache';
+import { Cache, MapCache } from '../cache';
 import { registerExpandCommand } from '../commands/expand';
 import { registerRefreshFunctionsCommand } from '../commands/refresh';
 import { registerSaveTaskFromTreeCommand } from '../commands/save-task-from-tree';

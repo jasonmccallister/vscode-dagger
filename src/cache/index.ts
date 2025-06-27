@@ -1,5 +1,5 @@
-// src/tree/cache.ts
-// Generic cache abstraction for function arguments and other tree data
+// src/cache/index.ts
+// Generic cache abstraction for function arguments and other data
 
 export interface Cache<K, V> {
     get(key: K): V | undefined;
