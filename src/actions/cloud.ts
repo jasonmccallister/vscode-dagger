@@ -53,7 +53,7 @@ const handleCloudPromptResponse = async (
             break;
             
         case 'Learn More':
-            await vscode.env.openExternal(vscode.Uri.parse('https://docs.dagger.io/cloud'));
+            await vscode.env.openExternal(vscode.Uri.parse('https://dagger.io/cloud'));
             break;
             
         case "Don't show again":

@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { registerTreeView } from './tree/provider';
 import { registerInstallCommand, registerAllCommands } from './commands';
 import { checkInstallation, InstallResult } from './utils/installation';
+import { promptCloud } from './actions/cloud';
 import Cli from './dagger/dagger';
 import * as os from 'os';
 
@@ -43,6 +44,9 @@ const activateExtension = async (context: vscode.ExtensionContext): Promise<void
 
 	// Register tree view for environments with CLI and workspace path
 	registerTreeView(context, { cli, workspacePath, registerCommands: true });
+
+	// Show cloud setup notification if appropriate
+	await promptCloud(context, cli);
 };
 
 const handleMissingInstallation = async (context: vscode.ExtensionContext, installResult: InstallResult): Promise<void> => {
