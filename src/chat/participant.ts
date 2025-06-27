@@ -136,53 +136,7 @@ export class ChatParticipant {
 
         return `${header}\n${formattedResults}${footer}`;
     };
-
-    /**
-     * Search with fallback to example data for testing/development
-     * This method will try the real API first, then fall back to example data
-     */
-    public async searchDocsWithFallback(query: string): Promise<SearchResponse> {
-        const result = await this.searchDocs(query);
-
-        if (typeof result === 'string') {
-            // API call failed, return example data for testing
-            console.warn('API call failed, using example data:', result);
-            return {
-                query,
-                count: exampleSearchData.count,
-                data: exampleSearchData.data.map(item => ({
-                    ...item,
-                    title: item.title.replace('default arg', query) // Customize for the query
-                }))
-            };
-        }
-
-        return result;
-    }
 }
-
-// Example search result data for testing
-const exampleSearchData: SearchResponse = {
-    query: "default arg",
-    count: 57,
-    data: [
-        {
-            title: "34-https://docs.dagger.io/api/arguments/",
-            url: "https://docs.dagger.io/api/arguments/#default-values",
-            snippet: ""
-        },
-        {
-            title: "1-https://docs.dagger.io/api/arguments/",
-            url: "https://docs.dagger.io/api/arguments/",
-            snippet: "Dagger Functions, just like regular functions, can accept arguments. In addition to basic types (string, boolean, integer, arrays...), Dagger also defines powerful core types which Dagger Functions ca..."
-        },
-        {
-            title: "19-https://docs.dagger.io/api/default-paths/",
-            url: "https://docs.dagger.io/api/default-paths/#for-all-other-cases",
-            snippet: "Outside context directory; error\\r\\nIf the default path is an absolute path / (or /src), the context directory is the directory containing dagger.json (say, /my-module). The resolved path will then be /..."
-        }
-    ]
-};
 
 /**
  * Utility function to create a ChatParticipant and process search results
@@ -192,16 +146,6 @@ export const createChatParticipantWithResults = (searchData: SearchResponse): { 
     const participant = new ChatParticipant();
     const formattedResults = participant.processSearchResults(searchData);
     return { participant, formattedResults };
-};
-
-/**
- * Example usage with actual search results
- * This demonstrates how to use the search functionality with real data
- */
-export const demonstrateSearch = (): void => {
-    const { participant, formattedResults } = createChatParticipantWithResults(exampleSearchData);
-    console.log('Formatted search results:');
-    console.log(formattedResults);
 };
 
 // Example command registration (for integration with chat UI)
