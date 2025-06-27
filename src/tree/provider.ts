@@ -213,8 +213,20 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
                         return null; // Filter out invalid functions
                     }
                     
-                    // Truncate function name for display if it's too long
-                    const displayName = functionName.length > 30 ? functionName.substring(0, 27) + '...' : functionName;
+                    // Truncate function name for display if it's too long (smart truncation at word boundaries)
+                    const maxDisplayLength = 30;
+                    let displayName: string;
+                    if (functionName.length > maxDisplayLength) {
+                        // Try to truncate at a reasonable word boundary
+                        let truncateAt = maxDisplayLength;
+                        const dashIndex = functionName.lastIndexOf('-', maxDisplayLength);
+                        if (dashIndex > maxDisplayLength - 10) { // If dash is reasonably close to max length
+                            truncateAt = dashIndex;
+                        }
+                        displayName = functionName.substring(0, truncateAt) + '...';
+                    } else {
+                        displayName = functionName;
+                    }
 
                     const functionItem = new Item(
                         displayName,
