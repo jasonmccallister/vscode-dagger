@@ -134,7 +134,7 @@
       },
       {
         "command": "dagger.chat.ask",
-        "title": "Ask Dagger",
+        "title": "Ask Chat",
         "category": "Dagger",
         "shortTitle": "Ask"
       },

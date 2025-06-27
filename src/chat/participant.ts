@@ -131,23 +131,19 @@ export class ChatParticipant {
         const maxResults = 5;
         const topResults = results.data.slice(0, maxResults);
 
-        const header = `Found ${results.count} results for "${results.query}":\n`;
+        let output = `Found ${results.count} results for "${results.query}":\n\n`;
+        output += topResults.map((result) => {
+            const title = result.title.replace(/^\d+-/, '');
+            const url = result.url;
+            const snippet = result.snippet ? result.snippet.substring(0, 200) + (result.snippet.length > 200 ? '...' : '') : '';
+            return `- [${title}](${url})\n  ${snippet ? snippet : ''}`;
+        }).join('\n\n');
 
-        const formattedResults = topResults
-            .map((result, index) => {
-                const title = result.title.replace(/^\d+-/, ''); // Remove number prefix
-                const snippet = result.snippet ?
-                    `\n   ${result.snippet.substring(0, 150)}${result.snippet.length > 150 ? '...' : ''}` :
-                    '';
-                return `${index + 1}. **${title}**\n   ${result.url}${snippet}`;
-            })
-            .join('\n\n');
+        if (results.count > maxResults) {
+            output += `\n\n... and ${results.count - maxResults} more results`;
+        }
 
-        const footer = results.count > maxResults ?
-            `\n\n... and ${results.count - maxResults} more results` :
-            '';
-
-        return `${header}\n${formattedResults}${footer}`;
+        return output;
     };
 }
 
@@ -259,7 +255,10 @@ export const chatRequestHandler: vscode.ChatRequestHandler = async (
         // Try to explain the results if the model is available
         let explanation = '';
         if (request.model && typeof vscode.LanguageModelChatMessage !== 'undefined') {
-            const explainPrompt = `Explain these Dagger documentation search results to a user who asked: "${request.prompt}"\n\nResults:\n${participant.formatSearchResults(result)}`;
+            const explainPrompt = `Explain these Dagger documentation search results to a user who asked: "${request.prompt}"
+
+Results:
+${participant.formatSearchResults(result)}`;
             const messages = [
                 vscode.LanguageModelChatMessage.User(explainPrompt)
             ];
@@ -268,21 +267,27 @@ export const chatRequestHandler: vscode.ChatRequestHandler = async (
                 for await (const fragment of chatResponse.text) {
                     stream.markdown(fragment);
                 }
-                // Also provide links for reference
-                stream.markdown('\n**Relevant documentation:**');
-                for (const item of result.data.slice(0, 5)) {
-                    stream.markdown(`- [${item.title.replace(/^\d+-/, '')}](${item.url})`);
-                }
+                // Also provide links for reference as a structured list
+                let docList = '\n\n**Relevant documentation:**\n';
+                docList += result.data.slice(0, 5).map(item => {
+                    const title = item.title.replace(/^\d+-/, '');
+                    const snippet = item.snippet ? `\n> ${item.snippet.substring(0, 200)}${item.snippet.length > 200 ? '...' : ''}` : '';
+                    return `- [${title}](${item.url})${snippet}`;
+                }).join('\n');
+                stream.markdown(docList);
                 return;
             } catch (err) {
                 // If LLM fails, fall back to links
             }
         }
-        // If no model or explanation fails, just provide links
-        stream.markdown('Here are some relevant documentation pages that may help:');
-        for (const item of result.data.slice(0, 5)) {
-            stream.markdown(`- [${item.title.replace(/^\d+-/, '')}](${item.url})`);
-        }
+        // If no model or explanation fails, just provide links as a structured list
+        let docList = 'Here are some relevant documentation pages that may help:\n';
+        docList += result.data.slice(0, 5).map(item => {
+            const title = item.title.replace(/^\d+-/, '');
+            const snippet = item.snippet ? `\n> ${item.snippet.substring(0, 200)}${item.snippet.length > 200 ? '...' : ''}` : '';
+            return `- [${title}](${item.url})${snippet}`;
+        }).join('\n');
+        stream.markdown(docList);
         return;
     }
 
@@ -292,10 +297,13 @@ export const chatRequestHandler: vscode.ChatRequestHandler = async (
     } else {
         stream.markdown('Sorry, I could not find relevant documentation for your question.');
         if (result.data && result.data.length > 0) {
-            stream.markdown('Here are a few pages that might be helpful:');
-            for (const item of result.data.slice(0, 3)) {
-                stream.markdown(`- [${item.title.replace(/^\d+-/, '')}](${item.url})`);
-            }
+            let docList = 'Here are a few pages that might be helpful:\n';
+            docList += result.data.slice(0, 3).map(item => {
+                const title = item.title.replace(/^\d+-/, '');
+                const snippet = item.snippet ? `\n> ${item.snippet.substring(0, 200)}${item.snippet.length > 200 ? '...' : ''}` : '';
+                return `- [${title}](${item.url})${snippet}`;
+            }).join('\n');
+            stream.markdown(docList);
         }
     }
 };
