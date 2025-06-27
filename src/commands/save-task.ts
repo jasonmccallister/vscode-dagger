@@ -156,7 +156,7 @@ const collectArgumentsForTask = async (
  * @param command The command to execute
  * @param workspacePath The workspace path
  */
-const saveTaskToTasksJson = async (
+export const saveTaskToTasksJson = async (
     taskName: string,
     command: string,
     workspacePath: string

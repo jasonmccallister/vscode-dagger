@@ -185,6 +185,12 @@
           "default": false,
           "description": "Enable experimental features like chat participant and AI assistance",
           "scope": "window"
+        },
+        "dagger.saveTaskPromptDismissed": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the save task notification has been permanently dismissed",
+          "scope": "application"
         }
       }
     },

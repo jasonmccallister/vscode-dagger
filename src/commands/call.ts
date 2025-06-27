@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import Cli from '../dagger/dagger';
 import { initProjectCommand } from '../actions/init';
-import { collectAndRunFunction } from '../utils/function-helpers';
+import { collectAndRunFunction, showSaveTaskPrompt } from '../utils/function-helpers';
 import type { Item } from '../tree/provider';
 
 export const CALL_COMMAND = 'dagger.call';
@@ -111,7 +111,10 @@ export const registerCallCommand = (
                 }
 
                 // Use the shared helper to collect arguments and run the function
-                await collectAndRunFunction(selectedFunction, args);
+                const { success, argValues } = await collectAndRunFunction(selectedFunction, args);
+                if (success) {
+                    await showSaveTaskPrompt(selectedFunction, argValues, workspacePathForCli);
+                }
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error);
                 vscode.window.showErrorMessage(`Failed to get arguments for function '${selectedFunction}': ${errorMessage}`);

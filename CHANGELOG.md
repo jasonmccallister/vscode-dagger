@@ -36,6 +36,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
   - Automatic `.vscode/tasks.json` creation and management
   - Optional immediate task execution after creation
   - Integration with VS Code's built-in task system
+  - **Post-call Save Task Prompt**: After running a Dagger function, users are now prompted to save the call as a VS Code task. Options include Save, Not now, and Don't show again (with persistent dismissal in settings). Arguments from the last call are reused for task creation.
 
 #### Project Management
 - **Dagger Project Initialization**: Streamlined project setup workflow

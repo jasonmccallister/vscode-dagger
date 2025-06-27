@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { FunctionArgument } from '../dagger/dagger';
 import { executeInTerminal } from './terminal';
+import { saveTaskToTasksJson } from '../commands/save-task';
 
 interface ArgumentPick {
     readonly label: string;
@@ -91,12 +92,12 @@ export const buildCommandArgs = (functionName: string, argValues: Record<string,
  * Collects function argument values from the user and executes the Dagger function
  * @param functionName The name of the function to call
  * @param args The function arguments
- * @returns A promise that resolves to true if successful, false if cancelled
+ * @returns A promise that resolves to { success, argValues } where argValues are the used arguments
  */
 export const collectAndRunFunction = async (
     functionName: string,
     args: readonly FunctionArgument[],
-): Promise<boolean> => {
+): Promise<{ success: boolean, argValues: Record<string, string> }> => {
     // Separate required and optional arguments
     const requiredArgs = args.filter(arg => arg.required);
     const optionalArgs = args.filter(arg => !arg.required);
@@ -111,7 +112,7 @@ export const collectAndRunFunction = async (
     const { argValues, cancelled } = await collectArgumentValues(allSelectedArgs);
 
     if (cancelled) {
-        return false;
+        return { success: false, argValues: {} };
     }
 
     // Build and execute the command
@@ -119,5 +120,56 @@ export const collectAndRunFunction = async (
 
     executeInTerminal(commandArgs.join(' '));
 
-    return true;
+    return { success: true, argValues };
+};
+
+/**
+ * Shows a notification after a Dagger function call, prompting to save as a task
+ * @param functionName The name of the function called
+ * @param argValues The argument values used in the call
+ * @param workspacePath The workspace path
+ */
+export const showSaveTaskPrompt = async (
+    functionName: string,
+    argValues: Record<string, string>,
+    workspacePath: string
+): Promise<void> => {
+    const config = vscode.workspace.getConfiguration('dagger');
+    const dismissed = config.get<boolean>('saveTaskPromptDismissed', false);
+    if (dismissed) { return; }
+
+    const choice = await vscode.window.showInformationMessage(
+        `Would you like to save this Dagger function call as a VS Code task?`,
+        'Save',
+        'Not now',
+        "Don't show again"
+    );
+
+    if (choice === 'Save') {
+        // Ask for task name
+        const defaultTaskName = `dagger-${functionName}`;
+        const taskName = await vscode.window.showInputBox({
+            prompt: 'Enter a name for this VS Code task',
+            value: defaultTaskName,
+            validateInput: (input) => {
+                if (!input || input.trim() === '') {
+                    return 'Task name cannot be empty';
+                }
+                if (!/^[a-zA-Z0-9\-_\s]+$/.test(input)) {
+                    return 'Task name can only contain letters, numbers, spaces, hyphens, and underscores';
+                }
+                return undefined;
+            }
+        });
+        if (!taskName) { return; }
+        // Build the command
+        const commandArgs = buildCommandArgs(functionName, argValues);
+        const command = commandArgs.join(' ');
+        // Save the task using existing logic
+        await saveTaskToTasksJson(taskName.trim(), command, workspacePath);
+        vscode.window.showInformationMessage(`Task "${taskName.trim()}" saved! You can run it from the Run Task menu.`);
+    } else if (choice === "Don't show again") {
+        await config.update('saveTaskPromptDismissed', true, vscode.ConfigurationTarget.Global);
+    }
+    // 'Not now' does nothing (prompt will show again next time)
 };
