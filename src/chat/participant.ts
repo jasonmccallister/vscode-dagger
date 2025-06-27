@@ -255,25 +255,90 @@ export const registerChatCommand = (context: vscode.ExtensionContext): void => {
 };
 
 /**
- * Chat request handler for VS Code chat participant
- * Streams search results directly to the chat UI
+ * Conversational chat handler for Dagger documentation search
+ * Summarizes the user's question, calls the search API, and explains or provides links.
  */
 export const chatRequestHandler: vscode.ChatRequestHandler = async (
     request: vscode.ChatRequest,
     _context: vscode.ChatContext,
     stream: vscode.ChatResponseStream,
-    _token: vscode.CancellationToken
+    token: vscode.CancellationToken
 ) => {
-    const query = request.prompt.trim();
-    if (!query) {
-        stream.markdown('Please enter a search query.');
+    // 1. Summarize the user's question into a search query
+    let searchQuery = request.prompt.trim();
+    if (!searchQuery) {
+        stream.markdown('Please enter a question or topic to search.');
         return;
     }
+
+    // If a language model is available, use it to summarize the question
+    let summary = '';
+    if (request.model && typeof vscode.LanguageModelChatMessage !== 'undefined') {
+        const BASE_PROMPT = 'Summarize the following user question into a concise search query for Dagger documentation:';
+        const messages = [
+            vscode.LanguageModelChatMessage.User(BASE_PROMPT),
+            vscode.LanguageModelChatMessage.User(request.prompt)
+        ];
+        try {
+            const chatResponse = await request.model.sendRequest(messages, {}, token);
+            for await (const fragment of chatResponse.text) {
+                summary += fragment;
+            }
+            if (summary.trim()) {
+                searchQuery = summary.trim();
+            }
+        } catch (err) {
+            // If LLM fails, just use the original prompt
+            summary = '';
+        }
+    }
+
+    // 2. Call the search API with the summarized query
     const participant = new ChatParticipant();
-    const result = await participant.searchDocs(query);
+    const result = await participant.searchDocs(searchQuery);
+
+    // 3. If results are relevant, explain them; otherwise, provide links
+    if (typeof result !== 'string' && result.count > 0 && result.data.length > 0) {
+        // Try to explain the results if the model is available
+        let explanation = '';
+        if (request.model && typeof vscode.LanguageModelChatMessage !== 'undefined') {
+            const explainPrompt = `Explain these Dagger documentation search results to a user who asked: "${request.prompt}"\n\nResults:\n${participant.formatSearchResults(result)}`;
+            const messages = [
+                vscode.LanguageModelChatMessage.User(explainPrompt)
+            ];
+            try {
+                const chatResponse = await request.model.sendRequest(messages, {}, token);
+                for await (const fragment of chatResponse.text) {
+                    stream.markdown(fragment);
+                }
+                // Also provide links for reference
+                stream.markdown('\n**Relevant documentation:**');
+                for (const item of result.data.slice(0, 5)) {
+                    stream.markdown(`- [${item.title.replace(/^\d+-/, '')}](${item.url})`);
+                }
+                return;
+            } catch (err) {
+                // If LLM fails, fall back to links
+            }
+        }
+        // If no model or explanation fails, just provide links
+        stream.markdown('Here are some relevant documentation pages that may help:');
+        for (const item of result.data.slice(0, 5)) {
+            stream.markdown(`- [${item.title.replace(/^\d+-/, '')}](${item.url})`);
+        }
+        return;
+    }
+
+    // 4. Fallback: No results or error
     if (typeof result === 'string') {
         stream.markdown(result);
     } else {
-        stream.markdown(participant.formatSearchResults(result));
+        stream.markdown('Sorry, I could not find relevant documentation for your question.');
+        if (result.data && result.data.length > 0) {
+            stream.markdown('Here are a few pages that might be helpful:');
+            for (const item of result.data.slice(0, 3)) {
+                stream.markdown(`- [${item.title.replace(/^\d+-/, '')}](${item.url})`);
+            }
+        }
     }
 };
