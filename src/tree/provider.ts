@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import Cli, { FunctionArgument, FunctionInfo } from '../dagger/dagger';
+import { Cache, MapCache } from './cache';
 import { registerExpandCommand } from '../commands/expand';
 import { registerRefreshFunctionsCommand } from '../commands/refresh';
 import { registerSaveTaskFromTreeCommand } from '../commands/save-task-from-tree';
@@ -30,15 +31,7 @@ const TREE_VIEW_OPTIONS = {
     CAN_SELECT_MANY: false
 } as const;
 
-const COMMANDS = {
-    REFRESH: 'dagger.refresh',
-    VIEW_FUNCTIONS: 'dagger.viewFunctions'
-} as const;
 
-const MESSAGES = {
-    NO_FUNCTIONS: 'No functions available.',
-    FAILED_TO_LOAD: 'Failed to load functions'
-} as const;
 
 export class Item extends vscode.TreeItem {
     children?: Item[];
@@ -91,18 +84,17 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
     private cli: Cli;
     private workspacePath: string;
     private isLoading = false;
-    private functionArgumentsCache = new Map<string, FunctionArgument[]>();
+    private functionArgumentsCache: Cache<string, FunctionArgument[]>;
     private functionsCache: FunctionInfo[] | null = null;
     private lastRefreshTime = 0;
     private readonly cacheTimeout = 30000; // 30 seconds
 
-    constructor(cli: Cli, workspacePath: string) {
+    constructor(cli: Cli, workspacePath: string, functionArgumentsCache: Cache<string, FunctionArgument[]> = new MapCache<string, FunctionArgument[]>()) {
         this.cli = cli;
         this.workspacePath = workspacePath;
-        
+        this.functionArgumentsCache = functionArgumentsCache;
         // Show loading state immediately
         this.items = [new Item('🔄 Loading Dagger functions...', 'empty')];
-        
         // Load data asynchronously without blocking
         this.loadDataAsync();
     }
@@ -167,7 +159,7 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
             // Load functions with caching
             const now = Date.now();
             let functions: FunctionInfo[];
-            
+
             if (this.functionsCache && (now - this.lastRefreshTime) < this.cacheTimeout) {
                 functions = this.functionsCache;
             } else {
@@ -175,12 +167,12 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
                 this.functionsCache = functions;
                 this.lastRefreshTime = now;
             }
-            
+
             // Debug logging to understand the structure
             console.log('Functions returned from CLI:', JSON.stringify(functions, null, 2));
-            console.log('Function names and types:', functions.map(fn => ({ 
-                name: fn.name, 
-                type: typeof fn.name, 
+            console.log('Function names and types:', functions.map(fn => ({
+                name: fn.name,
+                type: typeof fn.name,
                 isString: typeof fn.name === 'string',
                 trimmed: typeof fn.name === 'string' ? fn.name.trim() : 'N/A'
             })));
@@ -214,7 +206,7 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
                         console.error('Invalid function name:', fn);
                         return null; // Filter out invalid functions
                     }
-                    
+
                     // Truncate function name for display if it's too long (smart truncation at word boundaries)
                     const maxDisplayLength = 30;
                     let displayName: string;
@@ -251,7 +243,7 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
                 .filter((item): item is Item => item !== null); // Filter out null items
 
             this.refresh();
-            
+
             // Start background preloading of arguments (don't await - let it run in background)
             this.preloadArgumentsInBackground().catch(error => {
                 console.warn('Background preloading failed:', error);
@@ -272,11 +264,11 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
         this.functionsCache = null;
         this.functionArgumentsCache.clear();
         this.lastRefreshTime = 0;
-        
+
         // Show loading state
         this.items = [new Item('🔄 Reloading Dagger functions...', 'empty')];
         this.refresh();
-        
+
         // Reload data
         await this.loadDataAsync();
     }
@@ -286,7 +278,6 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
      */
     clearArgumentsCache(): void {
         this.functionArgumentsCache.clear();
-        
         // Clear children from existing function items to force reload
         this.items.forEach(item => {
             if (item.type === 'function') {
@@ -305,7 +296,7 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
         }
 
         console.log('Starting background preload of function arguments...');
-        
+
         // Load arguments for all functions in parallel, but limit concurrency
         const batchSize = 3; // Limit concurrent CLI calls to avoid overwhelming the system
         const functionNames = this.functionsCache
@@ -321,7 +312,7 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
 
         for (let i = 0; i < functionNames.length; i += batchSize) {
             const batch = functionNames.slice(i, i + batchSize);
-            
+
             const promises = batch.map(async (functionName) => {
                 if (this.functionArgumentsCache.has(functionName)) {
                     return; // Already cached
@@ -337,7 +328,7 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
             });
 
             await Promise.all(promises);
-            
+
             // Small delay between batches to avoid overwhelming the CLI
             if (i + batchSize < functionNames.length) {
                 await new Promise(resolve => setTimeout(resolve, 100));
@@ -366,7 +357,7 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
 
     private async loadFunctionArguments(functionItem: Item): Promise<Item[]> {
         const functionName = functionItem.id;
-        
+
         // Validate function name
         if (!functionName || typeof functionName !== 'string' || !functionName.trim()) {
             console.error('Invalid function name for loading arguments:', functionName);
@@ -375,9 +366,9 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
             this.refresh();
             return [errorItem];
         }
-        
+
         const trimmedFunctionName = functionName.trim();
-        
+
         // Check cache first
         if (this.functionArgumentsCache.has(trimmedFunctionName)) {
             const args = this.functionArgumentsCache.get(trimmedFunctionName)!;
@@ -394,17 +385,17 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
 
             // Load arguments from CLI
             const args = await this.cli.getFunctionArguments(trimmedFunctionName, this.workspacePath);
-            
+
             // Cache the result
             this.functionArgumentsCache.set(trimmedFunctionName, args);
-            
+
             // Create argument items
             const children = this.createArgumentItems(args);
             functionItem.children = children;
-            
+
             // Refresh to show the loaded arguments
             this.refresh();
-            
+
             return children;
         } catch (error) {
             console.error(`Failed to get arguments for function ${trimmedFunctionName}:`, error);
@@ -426,7 +417,7 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
             const argLabel = `--${arg.name} (${arg.type})${arg.required ? ' [required]' : ''}`;
             return new Item(argLabel, 'argument');
         });
-        
+
         children.push(...argItems);
         return children;
     }
@@ -442,14 +433,24 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
     }
 }
 
-export const registerTreeView = (context: vscode.ExtensionContext, config: TreeViewConfig = {}): void => {
-    const {
-        workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '',
-        cli,
-        registerTreeCommands: registerCommands = true
-    } = config;
+export interface ExtendedTreeViewConfig extends TreeViewConfig {
+    functionArgumentsCache?: Cache<string, FunctionArgument[]>;
+}
 
-    const dataProvider = new DataProvider(cli!, workspacePath);
+export const registerTreeView = (
+    context: vscode.ExtensionContext,
+    config: ExtendedTreeViewConfig = {}
+): void => {
+    const workspacePath = config.workspacePath ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+    const cli = config.cli!;
+    const registerCommands = config.registerTreeCommands ?? true;
+    const functionArgumentsCache = config.functionArgumentsCache;
+
+    const dataProvider = new DataProvider(
+        cli,
+        workspacePath,
+        functionArgumentsCache
+    );
     globalDataProvider = dataProvider;
 
     const treeView = vscode.window.createTreeView(TREE_VIEW_ID, {
