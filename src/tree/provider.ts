@@ -272,30 +272,24 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
         }
         return undefined;
     }
-
-    static registerTreeView(context: vscode.ExtensionContext, config: TreeViewConfig): void {
-        const workspacePath = config.workspacePath ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
-        const cli = config.cli!;
-
-        const dataProvider = new DataProvider(cli, workspacePath);
-        globalDataProvider = dataProvider;
-
-        const treeView = vscode.window.createTreeView(TREE_VIEW_ID, {
-            treeDataProvider: dataProvider,
-            showCollapseAll: TREE_VIEW_OPTIONS.SHOW_COLLAPSE_ALL,
-            canSelectMany: TREE_VIEW_OPTIONS.CAN_SELECT_MANY
-        });
-        globalTreeView = treeView;
-
-        context.subscriptions.push(treeView);
-    }
-
-    static preloadTreeDataAsync(): void {
-        const dataProvider = getDataProvider();
-        if (dataProvider) {
-            dataProvider.reloadFunctions().catch(error => {
-                console.warn('Manual preload failed:', error);
-            });
-        }
-    }
 }
+
+export const registerTreeView = (
+    context: vscode.ExtensionContext,
+    config: TreeViewConfig
+): void => {
+    const workspacePath = config.workspacePath ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+    const cli = config.cli!;
+
+    const dataProvider = new DataProvider(cli, workspacePath);
+    globalDataProvider = dataProvider;
+
+    const treeView = vscode.window.createTreeView(TREE_VIEW_ID, {
+        treeDataProvider: dataProvider,
+        showCollapseAll: TREE_VIEW_OPTIONS.SHOW_COLLAPSE_ALL,
+        canSelectMany: TREE_VIEW_OPTIONS.CAN_SELECT_MANY
+    });
+    globalTreeView = treeView;
+
+    context.subscriptions.push(treeView);
+};
