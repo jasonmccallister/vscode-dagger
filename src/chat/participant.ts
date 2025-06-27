@@ -27,6 +27,7 @@ const REQUEST_TIMEOUT = 10000; // 10 seconds timeout
 export class ChatParticipant {
     public readonly name = '@dagger';
     public readonly description = 'Searches docs.dagger.io for information on developing Dagger modules.';
+    public readonly iconPath = vscode.extensions.getExtension('dagger')?.extensionPath + '/images/icon-white.png';
 
     async searchDocs(query: string): Promise<SearchResponse | string> {
         try {

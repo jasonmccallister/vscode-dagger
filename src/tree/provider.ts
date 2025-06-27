@@ -421,9 +421,6 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
         }
 
         const children: Item[] = [];
-        
-        // Add a separator 
-        children.push(new Item('─── Arguments ───', 'empty'));
 
         const argItems = args.map(arg => {
             const argLabel = `--${arg.name} (${arg.type})${arg.required ? ' [required]' : ''}`;
