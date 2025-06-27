@@ -133,10 +133,10 @@
         "shortTitle": "Shell"
       },
       {
-        "command": "dagger.chat.searchDocs",
-        "title": "Search docs",
+        "command": "dagger.chat.ask",
+        "title": "Ask Dagger",
         "category": "Dagger",
-        "shortTitle": "Search"
+        "shortTitle": "Ask"
       },
       {
         "command": "dagger.refresh",

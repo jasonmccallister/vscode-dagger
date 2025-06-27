@@ -21,13 +21,25 @@ interface SearchResponse {
 
 // Configuration constants
 const CONFIG_KEY = 'experimentalFeatures' as const;
-const COMMAND_ID = `${PREFIX}.chat.searchDocs` as const;
+const COMMAND_ID = `${PREFIX}.chat.ask` as const;
 const REQUEST_TIMEOUT = 10000; // 10 seconds timeout
 
 export class ChatParticipant {
     public readonly name = '@dagger';
     public readonly description = 'Searches docs.dagger.io for information on developing Dagger modules.';
-    public readonly iconPath = vscode.extensions.getExtension('dagger')?.extensionPath + '/images/icon-white.png';
+    public readonly sticky = true;
+    public readonly iconPath: string | vscode.ThemeIcon;
+
+    constructor() {
+        // Try to use the extension's icon-white.png, fallback to a VS Code codicon
+        const ext = vscode.extensions.getExtension('jasonmccallister.vscode-dagger');
+        if (ext) {
+            this.iconPath = vscode.Uri.joinPath(ext.extensionUri, 'images', 'icon-white.png').toString();
+        } else {
+            // Fallback to a VS Code codicon (e.g., 'source-control' for a fork)
+            this.iconPath = new vscode.ThemeIcon('source-control');
+        }
+    }
 
     async searchDocs(query: string): Promise<SearchResponse | string> {
         try {
@@ -219,7 +231,7 @@ export const chatRequestHandler: vscode.ChatRequestHandler = async (
     // If a language model is available, use it to summarize the question
     let summary = '';
     if (request.model && typeof vscode.LanguageModelChatMessage !== 'undefined') {
-        const BASE_PROMPT = 'Summarize the following user question into a concise search query for Dagger documentation:';
+        const BASE_PROMPT = 'Summarize the following user question into a concise search query for Dagger documentation (try to keep the query to two or three words):';
         const messages = [
             vscode.LanguageModelChatMessage.User(BASE_PROMPT),
             vscode.LanguageModelChatMessage.User(request.prompt)
