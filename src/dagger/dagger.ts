@@ -79,12 +79,11 @@ export default class Cli {
     public async runWithProgress(
         args: string[] = [],
         options: { timeout?: number; cwd?: string } = {},
-        progressTitle: string = 'Dagger: Running command',
         progressMessage?: string
     ): Promise<CommandResult> {
         return await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: progressTitle,
+            title: 'Dagger',
             cancellable: false
         }, async (progress) => {
             if (progressMessage) {

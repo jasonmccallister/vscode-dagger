@@ -67,7 +67,7 @@ export const registerInstallModuleCommand = (
                     for (const module of selectedModules) {
                         await vscode.window.withProgress({
                             location: vscode.ProgressLocation.Notification,
-                            title: `Installing module from ${module}`,
+                            title: 'Dagger',
                             cancellable: false
                         }, async (progress) => {
                             progress.report({ message: `Installing module from ${module}...` });
@@ -104,7 +104,7 @@ export const registerInstallModuleCommand = (
 
             await vscode.window.withProgress({
                 location: vscode.ProgressLocation.Notification,
-                title: 'Dagger: Installing module',
+                title: 'Dagger',
                 cancellable: false
             }, async (progress) => {
                 progress.report({ message: 'Running `dagger install`...' });

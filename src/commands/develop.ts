@@ -16,7 +16,7 @@ export const registerDevelopCommand = (
 
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: 'Dagger: Running develop',
+            title: 'Dagger',
             cancellable: false
         }, async (progress) => {
             progress.report({ message: 'Running `dagger develop`...' });
