@@ -6,6 +6,9 @@ const PREFIX = 'dagger' as const;
 const DEFAULT_BASE_URL = 'http://localhost:8888/.netlify/functions/search' as const;
 const baseUrl = process.env.DAGGER_CODE_SEARCH_BASE_URL ?? DEFAULT_BASE_URL;
 
+const BASE_PROMPT = `Summarize the following user question into a concise search query for Dagger documentation (try to keep the query to two or three words):
+Also, Dagger is about Dagger.io - not the dependency management tool from Google.`;
+
 // Types for search results
 interface SearchResultItem {
     readonly title: string;
@@ -157,56 +160,6 @@ export const createChatParticipantWithResults = (searchData: SearchResponse): { 
     return { participant, formattedResults };
 };
 
-// Example command registration (for integration with chat UI)
-export const registerChatCommand = (context: vscode.ExtensionContext): void => {
-    // Only register the legacy command for palette/manual invocation
-    const disposable = vscode.commands.registerCommand(COMMAND_ID, async () => {
-        // Check if experimental features are enabled
-        const config = vscode.workspace.getConfiguration('dagger');
-        const experimentalFeaturesEnabled = config.get<boolean>(CONFIG_KEY, false);
-
-        if (!experimentalFeaturesEnabled) {
-            const enableResponse = await vscode.window.showInformationMessage(
-                'This is an experimental feature. Would you like to enable experimental features?',
-                'Enable',
-                'Cancel'
-            );
-
-            if (enableResponse === 'Enable') {
-                await config.update(CONFIG_KEY, true, vscode.ConfigurationTarget.Global);
-                vscode.window.showInformationMessage('Experimental features enabled. Please reload the window for changes to take effect.');
-            }
-            return;
-        }
-
-        const query = await vscode.window.showInputBox({
-            prompt: 'Ask @dagger (docs.dagger.io):',
-            placeHolder: 'Enter your search query...'
-        });
-
-        if (!query?.trim()) {
-            return;
-        }
-
-        const participant = new ChatParticipant();
-        const result = await participant.searchDocs(query.trim());
-
-        // Handle both string (error messages) and SearchResponse (success) return types
-        let message: string;
-        if (typeof result === 'string') {
-            // Error message returned
-            message = result;
-        } else {
-            // SearchResponse object returned - format it for display
-            message = participant.formatSearchResults(result);
-        }
-
-        vscode.window.showInformationMessage(message);
-    });
-
-    context.subscriptions.push(disposable);
-};
-
 /**
  * Conversational chat handler for Dagger documentation search
  * Summarizes the user's question, calls the search API, and explains or provides links.
@@ -227,7 +180,6 @@ export const chatRequestHandler: vscode.ChatRequestHandler = async (
     // If a language model is available, use it to summarize the question
     let summary = '';
     if (request.model && typeof vscode.LanguageModelChatMessage !== 'undefined') {
-        const BASE_PROMPT = 'Summarize the following user question into a concise search query for Dagger documentation (try to keep the query to two or three words):';
         const messages = [
             vscode.LanguageModelChatMessage.User(BASE_PROMPT),
             vscode.LanguageModelChatMessage.User(request.prompt)

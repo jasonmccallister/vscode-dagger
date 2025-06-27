@@ -133,12 +133,6 @@
         "shortTitle": "Shell"
       },
       {
-        "command": "dagger.chat.ask",
-        "title": "Ask Chat",
-        "category": "Dagger",
-        "shortTitle": "Ask"
-      },
-      {
         "command": "dagger.refresh",
         "title": "Refresh Functions",
         "category": "Dagger",
