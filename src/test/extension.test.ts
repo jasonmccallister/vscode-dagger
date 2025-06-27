@@ -1,28 +1,34 @@
 import * as assert from 'assert';
+import * as vscode from 'vscode';
+// import * as myExtension from '../extension';
 
-// Basic test suite to verify testing setup
-describe('Basic Test Suite', () => {
-	it('should run a basic assertion test', () => {
-		assert.strictEqual(1 + 1, 2);
+describe('Extension Test Suite', () => {
+	before(() => {
+		vscode.window.showInformationMessage('Start all tests.');
 	});
 
-	it('should test array operations', () => {
-		const arr = [1, 2, 3];
-		assert.strictEqual(arr.length, 3);
-		assert.strictEqual(arr[0], 1);
+	it('should find expected values in array using indexOf', () => {
+		// Test negative cases - values not in array should return -1
+		const testArray = [1, 2, 3];
+		const expectedIndex = -1;
+		
+		assert.strictEqual(expectedIndex, testArray.indexOf(5));
+		assert.strictEqual(expectedIndex, testArray.indexOf(0));
 	});
-});
 
-// Only import VS Code when needed to avoid module loading issues
-describe('VS Code Integration', () => {
-	it('should have VS Code API available in extension context', async () => {
-		try {
-			const vscode = await import('vscode');
-			assert.ok(vscode, 'vscode API should be available');
-			assert.ok(vscode.window, 'vscode.window should be available');
-		} catch (error) {
-			// This might fail in some test environments, which is okay
-			console.log('VS Code API not available in this test context:', error);
-		}
+	it('should find expected values in array using indexOf (positive cases)', () => {
+		// Test positive cases - values in array should return correct index
+		const testArray = [1, 2, 3];
+		
+		assert.strictEqual(0, testArray.indexOf(1));
+		assert.strictEqual(1, testArray.indexOf(2));
+		assert.strictEqual(2, testArray.indexOf(3));
+	});
+
+	// Add a more comprehensive test for future extension functionality
+	it('should have vscode API available', () => {
+		assert.ok(vscode, 'vscode API should be available');
+		assert.ok(vscode.window, 'vscode.window should be available');
+		assert.ok(vscode.commands, 'vscode.commands should be available');
 	});
 });
