@@ -1,132 +1,47 @@
 import * as vscode from 'vscode';
-
-const PREFIX = 'dagger' as const;
-
-// Default search base URL - can be overridden via environment variable
-const DEFAULT_BASE_URL = 'http://localhost:8888/.netlify/functions/search' as const;
-const baseUrl = process.env.DAGGER_CODE_SEARCH_BASE_URL ?? DEFAULT_BASE_URL;
+import { searchDocs as defaultSearchDocs, SearchResponse as ISearchResponse } from './search';
 
 const BASE_PROMPT = `Summarize the following user question into a concise search query for Dagger documentation (try to keep the query to two or three words):
 Also, Dagger is about Dagger.io - not the dependency management tool from Google.`;
 
 // Types for search results
-interface SearchResultItem {
-    readonly title: string;
-    readonly url: string;
-    readonly snippet: string;
-}
-
-interface SearchResponse {
-    readonly query: string;
-    readonly count: number;
-    readonly data: readonly SearchResultItem[];
-}
-
-// Configuration constants
-const CONFIG_KEY = 'experimentalFeatures' as const;
-const COMMAND_ID = `${PREFIX}.chat.ask` as const;
-const REQUEST_TIMEOUT = 10000; // 10 seconds timeout
 
 export class ChatParticipant {
     public readonly name = '@dagger';
     public readonly description = 'Searches docs.dagger.io for information on developing Dagger modules.';
     public readonly sticky = true;
     public readonly iconPath: string | vscode.ThemeIcon;
+    private readonly _searchDocs: (query: string) => Promise<ISearchResponse | string>;
 
-    constructor() {
+    constructor(searchDocsDep: (query: string) => Promise<ISearchResponse | string> = defaultSearchDocs) {
+        this._searchDocs = searchDocsDep;
         // Try to use the extension's icon-white.png, fallback to a VS Code codicon
-        const ext = vscode.extensions.getExtension('jasonmccallister.vscode-dagger');
+        const ext = vscode.extensions.getExtension('vscode-dagger');
         if (ext) {
+            vscode.window.showInformationMessage(`Using extension icon for Dagger: ${ext.packageJSON.displayName || ext.packageJSON.name}`);
             this.iconPath = vscode.Uri.joinPath(ext.extensionUri, 'images', 'icon-white.png').toString();
         } else {
-            // Fallback to a VS Code codicon (e.g., 'source-control' for a fork)
+            vscode.window.showInformationMessage('Using default codicon for Dagger participant');
             this.iconPath = new vscode.ThemeIcon('source-control');
         }
     }
 
-    async searchDocs(query: string): Promise<SearchResponse | string> {
-        try {
-            const searchUrl = `${baseUrl}?q=${encodeURIComponent(query)}`;
-
-            // Create an AbortController for timeout handling
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
-            try {
-                // Make actual HTTP request to search API with timeout
-                const response = await fetch(searchUrl, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json',
-                    },
-                    signal: controller.signal
-                });
-
-                clearTimeout(timeoutId);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-
-                // Parse JSON response
-                const data = await response.json() as SearchResponse;
-
-                // Validate the response structure
-                if (!data || typeof data !== 'object') {
-                    throw new Error('Invalid response format - not a valid JSON object');
-                }
-
-                if (typeof data.query !== 'string' || typeof data.count !== 'number' || !Array.isArray(data.data)) {
-                    throw new Error('Invalid response structure - missing required fields (query, count, data)');
-                }
-
-                // Validate each search result item
-                const validatedData: SearchResultItem[] = data.data.filter((item): item is SearchResultItem => {
-                    return item &&
-                        typeof item.title === 'string' &&
-                        typeof item.url === 'string' &&
-                        typeof item.snippet === 'string';
-                });
-
-                // Return the validated search results
-                const validatedResponse: SearchResponse = {
-                    query: data.query,
-                    count: data.count,
-                    data: validatedData
-                };
-
-                return validatedResponse;
-
-            } catch (fetchError) {
-                clearTimeout(timeoutId);
-
-                if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-                    throw new Error('Request timeout - the search service is taking too long to respond');
-                }
-
-                throw fetchError;
-            }
-
-        } catch (error) {
-            console.error('Error searching docs:', error);
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-            return `Failed to search for "${query}": ${errorMessage}`;
-        }
+    public async searchDocs(query: string): Promise<ISearchResponse | string> {
+        return this._searchDocs(query);
     }
 
     /**
      * Processes search results from the API
      * This method can be used when you have actual search result data
      */
-    public processSearchResults = (searchData: SearchResponse): string => {
+    public processSearchResults = (searchData: ISearchResponse): string => {
         return this.formatSearchResults(searchData);
     };
 
     /**
      * Formats search results for display in VS Code
      */
-    public formatSearchResults = (results: SearchResponse): string => {
+    public formatSearchResults = (results: ISearchResponse): string => {
         if (results.count === 0) {
             return `No results found for "${results.query}".`;
         }
@@ -154,7 +69,7 @@ export class ChatParticipant {
  * Utility function to create a ChatParticipant and process search results
  * This can be used when you have search result data to display
  */
-export const createChatParticipantWithResults = (searchData: SearchResponse): { participant: ChatParticipant; formattedResults: string } => {
+export const createChatParticipantWithResults = (searchData: ISearchResponse): { participant: ChatParticipant; formattedResults: string } => {
     const participant = new ChatParticipant();
     const formattedResults = participant.processSearchResults(searchData);
     return { participant, formattedResults };
