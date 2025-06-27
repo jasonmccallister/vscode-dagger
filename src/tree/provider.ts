@@ -31,8 +31,6 @@ const TREE_VIEW_OPTIONS = {
     CAN_SELECT_MANY: false
 } as const;
 
-
-
 export class Item extends vscode.TreeItem {
     children?: Item[];
     readonly type: ItemType;
