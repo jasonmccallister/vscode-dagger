@@ -9,6 +9,7 @@ on:
 jobs:
   # Run type checking, linting, and compilation in parallel
   type-check:
+    name: "🔍 Type Check"
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -27,6 +28,7 @@ jobs:
       run: yarn run check-types
 
   lint:
+    name: "🔧 Lint Code"
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -45,6 +47,7 @@ jobs:
       run: yarn run lint
 
   compile:
+    name: "🏗️ Build Extension"
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -70,6 +73,7 @@ jobs:
 
   # Test jobs that depend on the validation jobs
   test:
+    name: "🧪 Test on ${{ matrix.os }}"
     needs: [type-check, lint, compile]
     strategy:
       matrix:
@@ -116,6 +120,7 @@ jobs:
       run: yarn test
 
   test-vscode-versions:
+    name: "🧪 Test VS Code ${{ matrix.vscode-version }}"
     needs: [type-check, lint, compile]
     strategy:
       matrix:
@@ -154,6 +159,7 @@ jobs:
 
   # Package job that runs after all tests pass
   package:
+    name: "📦 Package Extension"
     needs: [test, test-vscode-versions]
     runs-on: ubuntu-latest
     steps:
