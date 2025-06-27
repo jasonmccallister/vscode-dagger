@@ -44,7 +44,7 @@ export const findOrCreateTerminal = (extensionPath?: string): TerminalResult => 
     
     // Add icon if extension path is available
     if (extensionPath) {
-        terminalOptions.iconPath = vscode.Uri.file(path.join(extensionPath, 'images', 'dagger-white.png'));
+        terminalOptions.iconPath = vscode.Uri.file(path.join(extensionPath, 'images', 'icon-white.png'));
     }
     
     const newTerminal = vscode.window.createTerminal(terminalOptions);

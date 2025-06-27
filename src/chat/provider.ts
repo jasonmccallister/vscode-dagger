@@ -117,7 +117,7 @@ const createFollowupProvider = (): vscode.ChatFollowupProvider => ({
  * @param context The extension context
  */
 const setupParticipantIcon = (participant: vscode.ChatParticipant, context: vscode.ExtensionContext): void => {
-    const iconPath = path.join(context.extensionPath, 'images', 'dagger.png');
+    const iconPath = path.join(context.extensionPath, 'images', 'icon.png');
     participant.iconPath = {
         light: vscode.Uri.file(iconPath),
         dark: vscode.Uri.file(iconPath)

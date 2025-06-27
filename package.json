@@ -20,7 +20,7 @@
     "pipelines",
     "devops"
   ],
-  "icon": "images/dagger.png",
+  "icon": "images/icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/jasonmccallister/vscode-dagger"
@@ -193,7 +193,7 @@
         {
           "id": "daggerViewContainer",
           "title": "Dagger",
-          "icon": "images/dagger-white.png"
+          "icon": "images/icon-white.png"
         }
       ]
     },
@@ -202,7 +202,7 @@
         {
           "id": "daggerTreeView",
           "name": "Functions",
-          "icon": "images/dagger-white.png"
+          "icon": "images/icon-white.png"
         }
       ]
     },
