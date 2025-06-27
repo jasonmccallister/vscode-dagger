@@ -1,6 +1,6 @@
 # Dagger for VS Code
 
-The ultimate VS Code extension for [Dagger](https://dagger.io) developers. Streamline your containerized CI/CD workflows with powerful IDE integration, intelligent function management, and seamless cloud connectivity.
+The VS Code extension for [Dagger](https://dagger.io) developers. Streamline your containerized CI/CD workflows with powerful IDE integration and intelligent function management.
 
 [![Version](https://img.shields.io/visual-studio-marketplace/v/jasonmccallister.vscode-dagger)](https://marketplace.visualstudio.com/items?itemName=jasonmccallister.vscode-dagger)
 [![Downloads](https://img.shields.io/visual-studio-marketplace/d/jasonmccallister.vscode-dagger)](https://marketplace.visualstudio.com/items?itemName=jasonmccallister.vscode-dagger)
