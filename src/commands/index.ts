@@ -17,8 +17,8 @@ import { registerInstallModuleCommand } from './install-module';
 import { registerRefreshFunctionsCommand } from './refresh';
 import { registerViewFunctionsCommand } from './view-functions';
 import { registerExpandCommand } from './expand';
-import { registerCreateTaskCommand } from './save-task';
-import { registerCreateTaskFromTreeCommand } from './save-task-from-tree';
+import { registerSaveTaskCommand } from './save-task';
+import { registerSaveTaskFromTreeCommand } from './save-task-from-tree';
 
 // Export all command registration functions
 export { registerInstallCommand } from './install';
@@ -56,7 +56,7 @@ export const registerAllCommands = (
     registerShellCommand(context, cli, workspacePath);
     registerCallCommand(context, cli, workspacePath);
     registerInstallModuleCommand(context, cli);
-    registerCreateTaskCommand(context, cli, workspacePath);
+    registerSaveTaskCommand(context, cli, workspacePath);
 
     // Register tree view related commands
     registerViewFunctionsCommand(context);
@@ -68,8 +68,8 @@ export const registerTreeCommands = (
     refreshCallback: () => void
 ): void => {
     registerRefreshFunctionsCommand(context, refreshCallback);
-    registerCreateTaskFromTreeCommand(context);
-    
+    registerSaveTaskFromTreeCommand(context);
+
     // Register expand command with tree view access (after tree view is created)
     registerExpandCommand(context, getTreeView, getDataProvider);
 };
