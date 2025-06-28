@@ -1,14 +1,13 @@
 import * as vscode from 'vscode';
 import { searchDocs as defaultSearchDocs, SearchResponse as ISearchResponse } from './search';
+import { CHAT_PARTICIPANT_NAME, CHAT_PARTICIPANT_DESCRIPTION, CHAT_PARTICIPANT_ICON_DEFAULT, EXTENSION_ID, ICON_PATH_WHITE } from '../const';
 
-const BASE_PROMPT = `Summarize the following user question into a concise search query for Dagger documentation (try to keep the query to two or three words):
-Also, Dagger is about Dagger.io - not the dependency management tool from Google.`;
 
-// Types for search results
+const BASE_PROMPT = `Summarize the following user question into a concise search query for Dagger documentation (try to keep the query to two or three words):\nAlso, Dagger is about Dagger.io - not the dependency management tool from Google.`;
 
 export class ChatParticipant {
-    public readonly name = '@dagger';
-    public readonly description = 'Searches docs.dagger.io for information on developing Dagger modules.';
+    public readonly name = CHAT_PARTICIPANT_NAME;
+    public readonly description = CHAT_PARTICIPANT_DESCRIPTION;
     public readonly sticky = true;
     public readonly iconPath: string | vscode.ThemeIcon;
     private readonly _searchDocs: (query: string) => Promise<ISearchResponse | string>;
@@ -18,7 +17,7 @@ export class ChatParticipant {
         iconPath?: string | vscode.ThemeIcon
     ) {
         this._searchDocs = searchDocsDep;
-        this.iconPath = iconPath ?? new vscode.ThemeIcon('source-control');
+        this.iconPath = iconPath ?? new vscode.ThemeIcon(CHAT_PARTICIPANT_ICON_DEFAULT);
     }
 
     public async searchDocs(query: string): Promise<ISearchResponse | string> {
@@ -112,10 +111,10 @@ export const chatRequestHandler: vscode.ChatRequestHandler = async (
     }
 
     // 2. Get the extension and icon path, then call the search API with the summarized query
-    let iconPath: string | vscode.ThemeIcon = new vscode.ThemeIcon('source-control');
-    const ext = vscode.extensions.getExtension('jasonmccallister.vscode-dagger');
+    let iconPath: string | vscode.ThemeIcon = new vscode.ThemeIcon(CHAT_PARTICIPANT_ICON_DEFAULT);
+    const ext = vscode.extensions.getExtension(EXTENSION_ID);
     if (ext) {
-        iconPath = vscode.Uri.joinPath(ext.extensionUri, 'images', 'icon-white.png').toString();
+        iconPath = vscode.Uri.joinPath(ext.extensionUri, ICON_PATH_WHITE).toString();
     }
     const participant = new ChatParticipant(undefined, iconPath);
     const result = await participant.searchDocs(searchQuery);
