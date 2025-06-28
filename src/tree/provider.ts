@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import Cli from '../dagger/dagger';
+import { registerExpandCommand } from '../commands/expand';
 
 type ItemType = 'function' | 'argument' | 'empty' | 'action';
 
@@ -299,6 +300,10 @@ export const registerTreeView = (
             vscode.window.showErrorMessage('Failed to reload Dagger functions. Check the console for details');
         }
     });
+
+    // register the expand all command
+    registerExpandCommand(context, () => globalTreeView, () => globalDataProvider);
+
 
     context.subscriptions.push(treeView, refreshCommand);
 };

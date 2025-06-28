@@ -53,7 +53,7 @@
       },
       {
         "command": "dagger.develop",
-        "title": "Develop local modules",
+        "title": "Develop Local Modules",
         "category": "Dagger",
         "shortTitle": "Develop"
       },
@@ -85,7 +85,7 @@
       },
       {
         "command": "dagger.installModule",
-        "title": "Install a module",
+        "title": "Install a Module",
         "category": "Dagger",
         "shortTitle": "Install Module"
       },
@@ -103,25 +103,25 @@
       },
       {
         "command": "dagger.version",
-        "title": "Show version",
+        "title": "Show Version",
         "category": "Dagger",
         "shortTitle": "Version"
       },
       {
         "command": "dagger.update",
-        "title": "Check for updates",
+        "title": "Check for Updates",
         "category": "Dagger",
         "shortTitle": "Update"
       },
       {
         "command": "dagger.reset",
-        "title": "Reset preferences",
+        "title": "Reset Preferences",
         "category": "Dagger",
         "shortTitle": "Reset"
       },
       {
         "command": "dagger.shell",
-        "title": "Open a shell",
+        "title": "Open a Shell",
         "category": "Dagger",
         "shortTitle": "Shell"
       },
