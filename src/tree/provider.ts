@@ -286,5 +286,19 @@ export const registerTreeView = (
     });
     globalTreeView = treeView;
 
-    context.subscriptions.push(treeView);
+    // register the refresh command here so we can access the tree view and data provider in the callback
+    const refreshCommand = vscode.commands.registerCommand('dagger.refresh', async () => {
+        if (!globalDataProvider) {
+            vscode.window.showErrorMessage('Dagger tree view is not initialized.');
+            return;
+        }
+        try {
+            globalDataProvider.reloadFunctions();
+        } catch (error) {
+            console.error('Failed to reload Dagger functions:', error);
+            vscode.window.showErrorMessage('Failed to reload Dagger functions. Check the console for details');
+        }
+    });
+
+    context.subscriptions.push(treeView, refreshCommand);
 };
