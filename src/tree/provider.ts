@@ -77,7 +77,6 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
     private items: Item[] = [];
     private cli: Cli;
     private workspacePath: string;
-    private isLoading = false;
 
     constructor(cli: Cli, workspacePath: string) {
         this.cli = cli;
@@ -85,21 +84,9 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
         // Show loading state immediately
         this.items = [new Item('🔄 Loading Dagger functions...', 'empty')];
         // Load data asynchronously without blocking
-        this.loadDataAsync();
+        this.loadData();
     }
 
-    private async loadDataAsync(): Promise<void> {
-        if (this.isLoading) {
-            return;
-        }
-        this.isLoading = true;
-
-        try {
-            await this.loadData();
-        } finally {
-            this.isLoading = false;
-        }
-    }
 
     private async loadData(): Promise<void> {
         try {
@@ -199,7 +186,7 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
         this.refresh();
 
         // Reload data asynchronously
-        await this.loadDataAsync();
+        await this.loadData();
     }
 
     refresh(): void {
@@ -231,11 +218,15 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
             console.error('Invalid function name for loading arguments:', functionName);
             const errorItem = new Item('❌ Invalid function name', 'empty');
             functionItem.children = [errorItem];
-            this.refresh();
             return [errorItem];
         }
 
         const trimmedFunctionName = functionName.trim();
+
+        // Check if arguments are already loaded
+        if (functionItem.children && functionItem.children.length > 0) {
+            return functionItem.children;
+        }
 
         try {
             // Show loading state
