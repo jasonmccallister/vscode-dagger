@@ -18,8 +18,8 @@ interface TerminalResult {
 /**
  * Executes a command in the Dagger terminal
  */
-export const executeInTerminal = async (command: string, extensionPath: string): Promise<void> => {
-    runCommandAsTask(command, extensionPath);
+export const executeInTerminal = async (command: string): Promise<void> => {
+    runCommandAsTask(command);
 };
 
 /**
@@ -54,29 +54,16 @@ const findOrCreateTerminal = (extensionPath: string): TerminalResult => {
 };
 
 
-
-/**
- * Run a command in the terminal
- * @deprecated
- */
-const runInTerminal = async (command: string, extensionPath: string): Promise<void> => {
-    const { terminal } = findOrCreateTerminal(extensionPath);
-
-    // Send the command to the terminal
-    terminal.sendText(command);
-
-    // Show the terminal
-    terminal.show();
-};
-
 /**
  * Runs a command as a task using the same terminal/task window name (e.g., "Dagger")
  */
-const runCommandAsTask = async (command: string, extensionPath?: string): Promise<void> => {
+const runCommandAsTask = async (command: string): Promise<void> => {
+    // Read user setting for running function calls in background
+    const config = vscode.workspace.getConfiguration('dagger');
+    const runInBackground = config.get<boolean>('functionCalls.runInBackground', true);
+
     const taskDefinition: vscode.TaskDefinition = {
         type: 'shell',
-        label: TERMINAL_CONFIG.NAME,
-        name: TERMINAL_CONFIG.NAME,
     };
 
     const taskExecution = new vscode.ShellExecution(command);
@@ -89,10 +76,19 @@ const runCommandAsTask = async (command: string, extensionPath?: string): Promis
         taskExecution
     );
 
-    // Add icon if extension path is available
-    if (extensionPath) {
-        task.definition.iconPath = vscode.Uri.file(path.join(extensionPath, 'images', 'icon-white.png'));
-    }
+    task.presentationOptions = {
+        reveal: runInBackground ? vscode.TaskRevealKind.Silent : vscode.TaskRevealKind.Always,
+        panel: vscode.TaskPanelKind.Shared,
+        showReuseMessage: false,
+        clear: false
+    };
+    task.detail = command;
+    task.isBackground = runInBackground;
 
-    vscode.tasks.executeTask(task);
+    vscode.tasks.executeTask(task).then(() => {
+        vscode.window.showInformationMessage(`Command executed: ${command}`);
+    }, (error) => {
+        console.error(`Failed to execute command in terminal: ${command}`, error);
+        vscode.window.showErrorMessage(`Failed to execute command: ${error.message}`);
+    });
 };

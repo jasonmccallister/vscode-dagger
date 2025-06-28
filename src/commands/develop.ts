@@ -6,7 +6,7 @@ import { executeInTerminal } from '../utils/terminal';
 export const registerDevelopCommand = (
     context: vscode.ExtensionContext,
     cli: Cli,
-    workspacePath: string
+    _workspacePath: string
 ): void => {
     const disposable = vscode.commands.registerCommand('dagger.develop', async () => {
         if (!(await cli.isDaggerProject())) {
@@ -21,7 +21,7 @@ export const registerDevelopCommand = (
         }, async (progress) => {
             progress.report({ message: 'Running `dagger develop`...' });
 
-            executeInTerminal('dagger develop', workspacePath);
+            executeInTerminal('dagger develop');
         });
     });
 

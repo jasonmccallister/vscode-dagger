@@ -119,7 +119,7 @@ export const collectAndRunFunction = async (
     // Build and execute the command
     const commandArgs = buildCommandArgs(functionName, argValues);
 
-    executeInTerminal(commandArgs.join(' '), context.extensionPath);
+    executeInTerminal(commandArgs.join(' '));
 
     return { success: true, argValues };
 };

@@ -186,6 +186,13 @@
           "description": "Whether the save task notification has been permanently dismissed",
           "scope": "application"
         }
+        ,
+        "dagger.functionCalls.runInBackground": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run Dagger function calls in the background unless there is an error.",
+          "scope": "window"
+        }
       }
     },
     "viewsContainers": {
