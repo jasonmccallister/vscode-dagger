@@ -10,23 +10,24 @@ The VS Code extension for [Dagger](https://dagger.io). Built for developers who 
 
 ### IDE Integration
 
-- ** 🌲 Functions Explorer:** Browse and execute Dagger functions directly in VS Code. View arguments and details in a tree view.
-- ** ⚡ Function Execution:** Run Dagger functions with validated arguments. Output is shown in the integrated terminal.
-- ** 📝 Save as VS Code Tasks:** Convert function calls into reusable tasks. Automatically updates `.vscode/tasks.json`.
+- 🌲 **Functions Explorer:** Browse and execute Dagger functions directly in VS Code. View arguments and details in a tree view.
+- ⚡ **Function Execution:** Run Dagger functions with validated arguments. Output is shown in the integrated terminal.
+- 📝 **Save as VS Code Tasks:** Convert function calls into reusable tasks. Automatically updates `.vscode/tasks.json`.
 
 <video src="https://github.com/user-attachments/assets/a840ea0e-d7f2-451b-bca4-adba985b31c4"></video>
 
 ### 🤖 AI-Powered Documentation
-Ask questions about Dagger docs directly in VS Code with Copilot using `@dagger`.
+Ask questions about Dagger docs directly in VS Code using [Github Copilot chat using](https://docs.github.com/en/copilot/how-tos/chat/asking-github-copilot-questions-in-your-ide) `@dagger`.
+
+<video src="https://github.com/user-attachments/assets/a840ea0e-d7f2-451b-bca4-adba985b31c4"></video>
+
+### Development Workflow
+
+- 🏗️ **Project Initialization:** Initialize new Dagger projects or work with existing ones. Includes an interactive setup prompt.
+- 🛠️ **Development Workflow:* Use `dagger develop`, install modules, and run commands with proper environment setup from the IDE.
 
 ### ⚙️ CLI Management
 Install, update, or uninstall the Dagger CLI with one click. Supports macOS, Linux, and Windows.
-
-### 🏗️ Project Initialization
-Start new Dagger projects or work with existing ones. Includes an interactive setup wizard.
-
-### 🛠️ Development Workflow
-Use `dagger develop`, manage modules, and run commands with proper environment setup in the IDE.
 
 ## Getting Started
 
