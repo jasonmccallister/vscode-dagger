@@ -1,27 +1,34 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { EXTENSION_NAME, ICON_PATH_WHITE } from '../const';
+const COMMAND = 'dagger shell';
 
 export const registerShellCommand = (
     context: vscode.ExtensionContext,
     workspacePath: string
 ): void => {
     const disposable = vscode.commands.registerCommand('dagger.shell', async () => {
-        // open a terminal with the command `dagger shell`
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: 'Dagger',
+            title: EXTENSION_NAME,
             cancellable: false
         }, async (progress) => {
-            progress.report({ message: 'Opening Dagger shell...' });
+            progress.report({ message: `Opening ${EXTENSION_NAME} shell...` });
 
-            // Execute the command in the terminal
-            const terminal = vscode.window.createTerminal({
-                name: 'Dagger',
-                iconPath: vscode.Uri.file(path.join(context.extensionPath, 'images', 'icon-white.png')),
+            const existingTerminal = vscode.window.terminals.find(t => t.name === EXTENSION_NAME);
+            if (existingTerminal) {
+                existingTerminal.show();
+                existingTerminal.sendText(COMMAND);
+                return;
+            }
+
+            const newTerminal = vscode.window.createTerminal({
+                name: EXTENSION_NAME,
+                iconPath: vscode.Uri.file(path.join(context.extensionPath, ICON_PATH_WHITE)),
                 cwd: workspacePath
             });
-            terminal.show();
-            terminal.sendText('dagger shell');
+            newTerminal.show();
+            newTerminal.sendText(COMMAND);
         });
     });
 

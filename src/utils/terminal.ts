@@ -61,12 +61,10 @@ const runCommandAsTask = async (command: string): Promise<void> => {
     // Read user setting for running function calls in background
     const config = vscode.workspace.getConfiguration('dagger');
     const runInBackground = config.get<boolean>('functionCalls.runInBackground', true);
-
+    const taskExecution = new vscode.ShellExecution(command);
     const taskDefinition: vscode.TaskDefinition = {
         type: 'shell',
     };
-
-    const taskExecution = new vscode.ShellExecution(command);
 
     const task = new vscode.Task(
         taskDefinition,
@@ -94,9 +92,13 @@ const runCommandAsTask = async (command: string): Promise<void> => {
                 const daggerTerminal = vscode.window.terminals.find(t => t.name === TERMINAL_CONFIG.NAME);
                 if (daggerTerminal) {
                     daggerTerminal.show();
-                } else {
-                    vscode.window.showWarningMessage('Dagger terminal not found.');
+                    return;
                 }
+                const newTerminal = vscode.window.createTerminal({
+                    name: TERMINAL_CONFIG.NAME,
+                });
+                newTerminal.show();
+                newTerminal.sendText(command);
             }
         });
     }, (error) => {
