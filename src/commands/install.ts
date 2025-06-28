@@ -4,7 +4,7 @@ import * as os from 'os';
 import { exec } from 'child_process';
 
 export const registerInstallCommand = (context: vscode.ExtensionContext): void => {
-    const installCommand = vscode.commands.registerCommand('dagger.install', async () => {
+    const installCommand = vscode.commands.registerCommand('dagger.install', async (installationMethod?: string) => {
         try {
             const result = await checkInstallation(os.platform());
 
@@ -13,59 +13,86 @@ export const registerInstallCommand = (context: vscode.ExtensionContext): void =
                 return;
             }
 
-            await handleInstallation(result);
+            await handleInstallation(result, installationMethod);
         } catch (error) {
             vscode.window.showErrorMessage(`Failed to check installation: ${error}`);
         }
     });
 
     context.subscriptions.push(installCommand);
+
+    // Listen for configuration changes to trigger activation
+    vscode.workspace.onDidChangeConfiguration((event) => {
+        if (event.affectsConfiguration('dagger.installMethod')) {
+            vscode.window.showInformationMessage('Dagger CLI installed. Activating extension...');
+            activateExtension();
+        }
+    });
 };
 
-const handleInstallation = async (result: InstallResult): Promise<void> => {
+const handleInstallation = async (result: InstallResult, installationMethod?: string): Promise<void> => {
     const config = vscode.workspace.getConfiguration('dagger');
 
-    // Determine available installation methods
-    const installMethods: string[] = [];
-    const installLabels: string[] = [];
+    let command: string;
+    let methodLabel: string;
 
-    if (result.hasHomebrew && (result.platform === 'darwin' || result.platform === 'linux')) {
-        installMethods.push('brew');
-        installLabels.push('Install using Homebrew (recommended)');
-    }
-
-    // Always add curl as an option
-    installMethods.push('curl');
-    installLabels.push('Install using curl script');
-
-    if (installMethods.length === 0) {
-        vscode.window.showErrorMessage('No suitable installation method found for your platform.');
-        return;
-    }
-
-    // Show installation options to user
-    const selectedMethod = await vscode.window.showQuickPick(
-        installLabels.map((label, index) => ({
-            label,
-            value: installMethods[index]
-        })),
-        {
-            placeHolder: 'Dagger is not installed. Please select an installation method:',
-            canPickMany: false
+    if (installationMethod) {
+        switch (installationMethod) {
+            case 'brew':
+                command = 'brew install dagger/tap/dagger';
+                methodLabel = 'Homebrew';
+                break;
+            case 'curl':
+                command = 'curl -fsSL https://raw.githubusercontent.com/dagger/dagger/main/install.sh | bash';
+                methodLabel = 'curl script';
+                break;
+            default:
+                vscode.window.showErrorMessage('Unknown installation method provided.');
+                return;
         }
-    );
+    } else {
+        // Determine available installation methods
+        const installMethods: string[] = [];
+        const installLabels: string[] = [];
 
-    if (!selectedMethod) {
-        return; // User cancelled
+        if (result.hasHomebrew && (result.platform === 'darwin' || result.platform === 'linux')) {
+            installMethods.push('brew');
+            installLabels.push('Install using Homebrew (recommended)');
+        }
+
+        // Always add curl as an option
+        installMethods.push('curl');
+        installLabels.push('Install using curl script');
+
+        if (installMethods.length === 0) {
+            vscode.window.showErrorMessage('No suitable installation method found for your platform.');
+            return;
+        }
+
+        // Show installation options to user
+        const selectedMethod = await vscode.window.showQuickPick(
+            installLabels.map((label, index) => ({
+                label,
+                value: installMethods[index]
+            })),
+            {
+                placeHolder: 'Dagger is not installed. Please select an installation method:',
+                canPickMany: false
+            }
+        );
+
+        if (!selectedMethod) {
+            return; // User cancelled
+        }
+
+        installationMethod = selectedMethod.value;
     }
 
     // Save the selected method to configuration
-    await config.update('installMethod', selectedMethod.value, vscode.ConfigurationTarget.Global);
+    await config.update('installMethod', installationMethod, vscode.ConfigurationTarget.Global);
 
     // Show instructions based on selected method
-    let command: string;
-    let methodLabel: string;
-    switch (selectedMethod.value) {
+    switch (installationMethod) {
         case 'brew':
             command = 'brew install dagger/tap/dagger';
             methodLabel = 'Homebrew';
@@ -97,10 +124,15 @@ const handleInstallation = async (result: InstallResult): Promise<void> => {
                         }
                     });
                 });
-                vscode.window.showInformationMessage('Container Use installed successfully!');
+                vscode.window.showInformationMessage('Dagger installed successfully!');
             } catch (err: any) {
                 vscode.window.showErrorMessage(`Installation failed: ${err}`);
             }
         }
     );
+};
+
+const activateExtension = (): void => {
+    // Logic to activate the extension features
+    vscode.commands.executeCommand('dagger.activate');
 };

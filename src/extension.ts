@@ -58,7 +58,7 @@ const activateExtension = async (context: vscode.ExtensionContext): Promise<void
 
 	// (install command already registered in activate function)
 	registerUpdateCommand(context, cli);
-	registerUninstallCommand(context, cli);
+	registerUninstallCommand(context);
 	registerVersionCommand(context, cli);
 	registerInitCommand(context, cli);
 	registerDevelopCommand(context, cli, workspacePath);
@@ -86,32 +86,22 @@ const handleMissingInstallation = async (context: vscode.ExtensionContext, insta
 	registerTreeView(context, { cli, workspacePath, registerTreeCommands: false });
 
 	// Determine available installation methods for the prompt
-	const installMethods: string[] = [];
+	const installButtons: { title: string; command: string; method?: string }[] = [];
 	if (installResult.hasHomebrew && (installResult.platform === 'darwin' || installResult.platform === 'linux')) {
-		installMethods.push('Homebrew (recommended)');
+		installButtons.push({ title: 'Homebrew (recommended)', command: 'dagger.install', method: 'brew' });
 	}
-	installMethods.push('curl script');
+	installButtons.push({ title: 'Curl script', command: 'dagger.install', method: 'curl' });
 
-	const methodText = installMethods.length > 1
-		? `Available installation methods: ${installMethods.join(', ')}`
-		: `Installation method: ${installMethods[0]}`;
-
-	// Show installation prompt
-	const action = await vscode.window.showWarningMessage(
-		`Dagger is not installed or not properly configured. ${methodText}`,
-		'Install Now',
-		'Install Later',
-		'Learn More'
+	// Show installation prompt with buttons
+	const selectedButton = await vscode.window.showInformationMessage(
+		'Dagger is not installed or not properly configured. Please select an installation method:',
+		...installButtons.map(button => button.title)
 	);
 
-	switch (action) {
-		case 'Install Now':
-			// Trigger the install command
-			await vscode.commands.executeCommand('dagger.install');
-			break;
-		case 'Learn More':
-			vscode.env.openExternal(vscode.Uri.parse('https://github.com/dagger/dagger'));
-			break;
-		// 'Install Later' or no selection just continues without action
+	const selectedOption = installButtons.find(button => button.title === selectedButton);
+	if (selectedOption) {
+		await vscode.commands.executeCommand(selectedOption.command, selectedOption.method);
+	} else {
+		vscode.window.showWarningMessage('Installation was not started. You can install Dagger later using the install command.');
 	}
 };

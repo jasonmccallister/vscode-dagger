@@ -1,70 +1,84 @@
 import * as vscode from 'vscode';
 import { exec } from 'child_process';
-import { promisify } from 'util';
-import Cli from '../dagger/dagger';
 
-const execAsync = promisify(exec);
+export const registerUninstallCommand = (context: vscode.ExtensionContext): void => {
+    const uninstallCommand = vscode.commands.registerCommand('dagger.uninstall', async () => {
+        const config = vscode.workspace.getConfiguration('dagger');
+        const installMethod = config.get<string>('installMethod');
 
-const UNINSTALL_COMMANDS = {
-    BREW: 'brew uninstall dagger/tap/dagger',
-    CURL: 'type dagger >/dev/null 2>&1 && rm -rf $(dirname $(which dagger)) || true'
-} as const;
-
-type UninstallChoice = 'Uninstall' | 'Cancel';
-type InstallMethod = 'brew' | 'curl';
-
-/**
- * Executes the uninstall command based on the install method
- * @param installMethod The method used to install Dagger
- */
-const executeUninstallCommand = async (installMethod: InstallMethod): Promise<void> => {
-    return vscode.window.withProgress({ 
-        title: 'Dagger', 
-        location: vscode.ProgressLocation.Notification 
-    }, async (progress) => {
-        progress.report({ message: 'Uninstalling...' });
-
-        const command = installMethod === 'brew' ? UNINSTALL_COMMANDS.BREW : UNINSTALL_COMMANDS.CURL;
-        
-        try {
-            await execAsync(command);
-            vscode.window.showInformationMessage('Dagger has been uninstalled successfully.');
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            vscode.window.showErrorMessage(`Dagger uninstallation failed: ${errorMessage}`);
-        }
-    });
-};
-
-export const registerUninstallCommand = (
-    context: vscode.ExtensionContext,
-    cli: Cli
-): void => {
-    const disposable = vscode.commands.registerCommand('dagger.uninstall', async () => {
-        if (!await cli.isInstalled()) {
-            vscode.window.showInformationMessage('Dagger is not installed. No action taken.');
+        if (!installMethod) {
+            vscode.window.showErrorMessage('No installation method found in settings. Unable to proceed with uninstallation.');
             return;
         }
 
-        const response = await vscode.window.showInformationMessage(
+        const confirmUninstall = await vscode.window.showWarningMessage(
             'Are you sure you want to uninstall Dagger?',
             { modal: true },
-            'Uninstall',
-            'Cancel'
-        ) as UninstallChoice | undefined;
+            'Yes'
+        );
 
-        if (response === 'Uninstall') {
-            try {
-                const config = vscode.workspace.getConfiguration('dagger');
-                const installedMethod: InstallMethod = config.get('installMethod', 'curl');
-                
-                await executeUninstallCommand(installedMethod);
-            } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : String(error);
-                vscode.window.showErrorMessage(`Failed to uninstall Dagger: ${errorMessage}`);
-            }
+        if (confirmUninstall !== 'Yes') {
+            return; // User cancelled
+        }
+
+        try {
+            await handleUninstallation(installMethod);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to uninstall Dagger: ${error}`);
         }
     });
 
-    context.subscriptions.push(disposable);
+    context.subscriptions.push(uninstallCommand);
+};
+
+const handleUninstallation = async (installMethod: string): Promise<void> => {
+    let command: string;
+    let methodLabel: string;
+
+    switch (installMethod) {
+        case 'brew':
+            command = 'brew uninstall dagger/tap/dagger';
+            methodLabel = 'Homebrew';
+            break;
+        case 'curl':
+            command = 'rm -rf ~/.dagger';
+            methodLabel = 'curl script';
+            break;
+        default:
+            vscode.window.showErrorMessage('Unknown installation method found in settings. Unable to proceed with uninstallation.');
+            return;
+    }
+
+    await vscode.window.withProgress(
+        {
+            location: vscode.ProgressLocation.Notification,
+            title: 'Dagger',
+            cancellable: true
+        },
+        async (progress) => {
+            progress.report({ message: `Uninstalling using ${methodLabel}...` });
+            try {
+                await new Promise<void>((resolve, reject) => {
+                    exec(command, (error: any, _stdout: string, stderr: string) => {
+                        if (error) {
+                            reject(stderr || error.message);
+                        } else {
+                            resolve();
+                        }
+                    });
+                });
+                vscode.window.showInformationMessage('Dagger uninstalled successfully!');
+
+                // Deregister the extension after uninstallation
+                deactivateExtension();
+            } catch (err: any) {
+                vscode.window.showErrorMessage(`Uninstallation failed: ${err}`);
+            }
+        }
+    );
+};
+
+const deactivateExtension = (): void => {
+    // Logic to deactivate the extension features
+    vscode.commands.executeCommand('dagger.deactivate');
 };
