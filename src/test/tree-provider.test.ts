@@ -33,12 +33,15 @@ describe('Tree Provider Function Name Validation', () => {
         const children = dataProvider.getChildren();
         assert.ok(Array.isArray(children), 'getChildren should return an array');
         assert.strictEqual(children.length, 3);
-        
+
         const items = children as Item[];
+        // The label may be truncated if the function name is long, so check for that
         assert.strictEqual(items[0].label, 'valid-function');
         assert.strictEqual(items[0].id, 'valid-function');
         assert.strictEqual(items[1].label, 'another-function');
         assert.strictEqual(items[1].id, 'another-function');
+        assert.strictEqual(items[2].label, 'function_with_underscores');
+        assert.strictEqual(items[2].id, 'function_with_underscores');
     });
 
     it('should handle invalid function names gracefully', async () => {
@@ -57,7 +60,7 @@ describe('Tree Provider Function Name Validation', () => {
         const children = dataProvider.getChildren();
         assert.ok(Array.isArray(children), 'getChildren should return an array');
         const items = children as Item[];
-        
+
         // Should filter out invalid names and handle the valid one
         assert.strictEqual(items.length, 1);
         assert.strictEqual(items[0].label, 'valid-function');
@@ -66,9 +69,9 @@ describe('Tree Provider Function Name Validation', () => {
 
     it('should handle function name truncation', async () => {
         const longNameFunction: FunctionInfo[] = [
-            { 
-                name: 'this-is-a-very-long-function-name-that-should-be-truncated', 
-                description: 'A function with a very long name' 
+            {
+                name: 'this-is-a-very-long-function-name-that-should-be-truncated',
+                description: 'A function with a very long name'
             }
         ];
 
@@ -82,10 +85,10 @@ describe('Tree Provider Function Name Validation', () => {
         assert.ok(Array.isArray(children), 'getChildren should return an array');
         const items = children as Item[];
         assert.strictEqual(items.length, 1);
-        
-        // Display name should be truncated
-        assert.strictEqual(items[0].label, 'this-is-a-very-long-function...');
-        
+
+        // Display name should be truncated if longer than 30 chars
+        const expectedLabel = 'this-is-a-very-long-function...';
+        assert.strictEqual(items[0].label, expectedLabel);
         // But ID should be the full name
         assert.strictEqual(items[0].id, 'this-is-a-very-long-function-name-that-should-be-truncated');
     });

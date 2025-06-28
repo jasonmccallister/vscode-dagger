@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import Cli, { FunctionArgument, FunctionInfo } from '../dagger/dagger';
+import Cli from '../dagger/dagger';
 
 type ItemType = 'function' | 'argument' | 'empty' | 'action';
 
