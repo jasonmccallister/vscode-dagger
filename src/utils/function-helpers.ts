@@ -95,6 +95,7 @@ export const buildCommandArgs = (functionName: string, argValues: Record<string,
  * @returns A promise that resolves to { success, argValues } where argValues are the used arguments
  */
 export const collectAndRunFunction = async (
+    context: vscode.ExtensionContext,
     functionName: string,
     args: readonly FunctionArgument[],
 ): Promise<{ success: boolean, argValues: Record<string, string> }> => {
@@ -118,7 +119,7 @@ export const collectAndRunFunction = async (
     // Build and execute the command
     const commandArgs = buildCommandArgs(functionName, argValues);
 
-    executeInTerminal(commandArgs.join(' '));
+    executeInTerminal(commandArgs.join(' '), context.extensionPath);
 
     return { success: true, argValues };
 };

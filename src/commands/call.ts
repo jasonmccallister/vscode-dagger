@@ -111,7 +111,7 @@ export const registerCallCommand = (
                 }
 
                 // Use the shared helper to collect arguments and run the function
-                const { success, argValues } = await collectAndRunFunction(selectedFunction, args);
+                const { success, argValues } = await collectAndRunFunction(context, selectedFunction, args);
                 if (success) {
                     await showSaveTaskPrompt(selectedFunction, argValues, workspacePathForCli);
                 }
