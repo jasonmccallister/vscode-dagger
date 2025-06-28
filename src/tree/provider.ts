@@ -218,6 +218,7 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
             console.error('Invalid function name for loading arguments:', functionName);
             const errorItem = new Item('❌ Invalid function name', 'empty');
             functionItem.children = [errorItem];
+            this.refresh();
             return [errorItem];
         }
 
@@ -240,18 +241,16 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
             // Create argument items
             const children = args.map(arg => new Item(`--${arg.name} (${arg.type})${arg.required ? ' [required]' : ''}`, 'argument'));
             functionItem.children = children;
-
-            // Refresh to show the loaded arguments
-            this.refresh();
-
-            return children;
         } catch (error) {
             console.error(`Failed to get arguments for function ${trimmedFunctionName}:`, error);
             const errorItem = new Item('❌ Failed to load arguments', 'empty');
             functionItem.children = [errorItem];
+        } finally {
+            // Ensure the loading notice is cleared
             this.refresh();
-            return [errorItem];
         }
+
+        return functionItem.children;
     }
 
     getParent(element: Item): Item | undefined {
