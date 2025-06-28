@@ -14,7 +14,7 @@ export const registerInstallCommand = (context: vscode.ExtensionContext): void =
                 return;
             }
 
-            await handleInstallation(result, installationMethod);
+            await handleInstallation(result, installationMethod, context);
         } catch (error) {
             vscode.window.showErrorMessage(`Failed to check installation: ${error}`);
         }
@@ -23,7 +23,7 @@ export const registerInstallCommand = (context: vscode.ExtensionContext): void =
     context.subscriptions.push(installCommand);
 };
 
-const handleInstallation = async (result: InstallResult, installationMethod?: string): Promise<void> => {
+const handleInstallation = async (result: InstallResult, installationMethod?: string, context?: vscode.ExtensionContext): Promise<void> => {
     const config = vscode.workspace.getConfiguration('dagger');
 
     let command: string;
@@ -86,50 +86,74 @@ const handleInstallation = async (result: InstallResult, installationMethod?: st
 
     // Show instructions based on selected method
     switch (installationMethod) {
-        case 'brew':
+        case 'brew': {
             command = INSTALL_COMMAND_HOMEBREW;
             methodLabel = 'Homebrew';
+            await vscode.window.withProgress(
+                {
+                    location: vscode.ProgressLocation.Notification,
+                    title: 'Dagger',
+                    cancellable: true
+                },
+                async (progress, cancellationToken) => {
+                    progress.report({ message: `Installing using ${methodLabel}...` });
+                    let childProcess: import('child_process').ChildProcess | undefined;
+                    try {
+                        await new Promise<void>((resolve, reject) => {
+                            childProcess = exec(command, (error: any, _stdout: string, stderr: string) => {
+                                if (error) {
+                                    reject(stderr || error.message);
+                                } else {
+                                    resolve();
+                                }
+                            });
+                            if (cancellationToken) {
+                                cancellationToken.onCancellationRequested(() => {
+                                    if (childProcess && !childProcess.killed) {
+                                        childProcess.kill();
+                                    }
+                                    reject('Installation cancelled by user.');
+                                });
+                            }
+                        });
+                        vscode.window.showInformationMessage(
+                            `Dagger installed successfully! Please reload the window to activate the extension.`,
+                            'Reload'
+                        ).then((selection) => {
+                            if (selection === 'Reload') {
+                                vscode.commands.executeCommand('workbench.action.reloadWindow');
+                            }
+                        });
+                    } catch (err: any) {
+                        if (err === 'Installation cancelled by user.') {
+                            vscode.window.showWarningMessage('Dagger installation was cancelled.');
+                        } else {
+                            vscode.window.showErrorMessage(`Installation failed: ${err}`);
+                        }
+                    }
+                }
+            );
             break;
-        case 'curl':
-            command = INSTALL_COMMAND_CURL;
-            methodLabel = 'curl script';
+        }
+        case 'curl': {
+            // Open a new terminal with the Dagger icon and prefill the sudo install command, but do not run it
+            if (!context) {
+                vscode.window.showErrorMessage('Unable to open terminal with icon: internal context unavailable. Please contact the extension author.');
+                break;
+            }
+            const terminal = vscode.window.createTerminal({
+                name: 'Dagger',
+                iconPath: {
+                    light: vscode.Uri.joinPath(context.extensionUri, 'images', 'icon.png'),
+                    dark: vscode.Uri.joinPath(context.extensionUri, 'images', 'icon-white.png')
+                }
+            });
+            terminal.show();
+            terminal.sendText(`${INSTALL_COMMAND_CURL}`, false);
             break;
+        }
         default:
             vscode.window.showErrorMessage('Unknown installation method selected.');
             return;
     }
-
-    await vscode.window.withProgress(
-        {
-            location: vscode.ProgressLocation.Notification,
-            title: 'Dagger',
-            cancellable: true
-        },
-        async (progress) => {
-            progress.report({ message: `Installing using ${methodLabel}...` });
-            try {
-                await new Promise<void>((resolve, reject) => {
-                    exec(command, (error: any, _stdout: string, stderr: string) => {
-                        if (error) {
-                            reject(stderr || error.message);
-                        } else {
-                            resolve();
-                        }
-                    });
-                });
-
-                // prompt the user to reload the the window to activate the extension
-                vscode.window.showInformationMessage(
-                    `Dagger installed successfully! Please reload the window to activate the extension.`,
-                    'Reload'
-                ).then((selection) => {
-                    if (selection === 'Reload') {
-                        vscode.commands.executeCommand('workbench.action.reloadWindow');
-                    }
-                });
-            } catch (err: any) {
-                vscode.window.showErrorMessage(`Installation failed: ${err}`);
-            }
-        }
-    );
 };

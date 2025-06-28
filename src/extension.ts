@@ -89,7 +89,7 @@ const handleMissingInstallation = async (context: vscode.ExtensionContext, insta
 	if (installResult.hasHomebrew && (installResult.platform === 'darwin' || installResult.platform === 'linux')) {
 		installButtons.push({ title: 'Homebrew (recommended)', command: 'dagger.install', method: 'brew' });
 	}
-	installButtons.push({ title: 'Curl script', command: `${EXTENSION_NAME}.install`, method: 'curl' });
+	installButtons.push({ title: 'Curl script', command: `dagger.install`, method: 'curl' });
 
 	// Show installation prompt with buttons
 	const selectedButton = await vscode.window.showInformationMessage(
