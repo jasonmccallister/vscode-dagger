@@ -16,12 +16,8 @@ These features make Dagger usage powerful and easy to use in VS Code:
 - **Function Execution:** Run Dagger functions with validated arguments. Output is shown in the integrated terminal.
 - **Save as VS Code Tasks:** Convert function calls into reusable tasks. Automatically updates `.vscode/tasks.json`.
 
-<p align="center">
-  <b>Watch: Function Explorer, Execution, and Save as Tasks in Action</b><br>
-  <em>This video demonstrates all three features working together.</em><br>
-  <!-- Replace the src URL with your actual video link -->
-  <!-- embed the video here -->
-</p>
+<b>Watch: Function Explorer, Execution, and Save as Tasks in Action</b><br>
+<video src="https://github.com/user-attachments/assets/a840ea0e-d7f2-451b-bca4-adba985b31c4"></video>
 
 ### 🤖 AI-Powered Documentation
 Ask questions about Dagger docs directly in VS Code with Copilot using `@dagger`.
