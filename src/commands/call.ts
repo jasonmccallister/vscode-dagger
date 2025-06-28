@@ -110,6 +110,9 @@ export const registerCallCommand = (
                     return;
                 }
 
+                // show prompting for input progress
+                progress.report({ message: `Collecting input for function '${selectedFunction}'...` });
+
                 // Use the shared helper to collect arguments and run the function
                 const { success, argValues } = await collectAndRunFunction(context, selectedFunction, args);
                 if (success) {

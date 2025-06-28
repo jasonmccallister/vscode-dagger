@@ -86,7 +86,19 @@ const runCommandAsTask = async (command: string): Promise<void> => {
     task.isBackground = runInBackground;
 
     vscode.tasks.executeTask(task).then(() => {
-        vscode.window.showInformationMessage(`Command executed: ${command}`);
+        vscode.window.showInformationMessage(
+            `Command executed: ${command}`,
+            'View Output'
+        ).then(selection => {
+            if (selection === 'View Output') {
+                const daggerTerminal = vscode.window.terminals.find(t => t.name === TERMINAL_CONFIG.NAME);
+                if (daggerTerminal) {
+                    daggerTerminal.show();
+                } else {
+                    vscode.window.showWarningMessage('Dagger terminal not found.');
+                }
+            }
+        });
     }, (error) => {
         console.error(`Failed to execute command in terminal: ${command}`, error);
         vscode.window.showErrorMessage(`Failed to execute command: ${error.message}`);

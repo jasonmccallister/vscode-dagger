@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import path from 'path/win32';
+import * as path from 'path';
 
 export const registerShellCommand = (
     context: vscode.ExtensionContext,

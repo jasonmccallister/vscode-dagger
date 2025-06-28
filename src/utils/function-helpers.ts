@@ -80,9 +80,13 @@ export const selectOptionalArguments = async (optionalArgs: readonly FunctionArg
 export const buildCommandArgs = (functionName: string, argValues: Record<string, string>): readonly string[] => {
     const commandArgs = ['dagger', 'call', functionName];
 
-    // Add all collected arguments to the command array
+    // Add all collected arguments to the command array, quoting values with spaces
     Object.entries(argValues).forEach(([name, value]) => {
-        commandArgs.push(`--${name}`, value);
+        // Quote the value if it contains spaces or special shell characters
+        const safeValue = /[\s"'\\$`]/.test(value)
+            ? `"${value.replace(/(["\\$`])/g, '\\$1')}"`
+            : value;
+        commandArgs.push(`--${name}`, safeValue);
     });
 
     return commandArgs;
@@ -95,7 +99,7 @@ export const buildCommandArgs = (functionName: string, argValues: Record<string,
  * @returns A promise that resolves to { success, argValues } where argValues are the used arguments
  */
 export const collectAndRunFunction = async (
-    context: vscode.ExtensionContext,
+    _context: vscode.ExtensionContext,
     functionName: string,
     args: readonly FunctionArgument[],
 ): Promise<{ success: boolean, argValues: Record<string, string> }> => {
