@@ -47,7 +47,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	}
 }
 
-export const activateExtension = async (context: vscode.ExtensionContext): Promise<void> => {
+const activateExtension = async (context: vscode.ExtensionContext): Promise<void> => {
 	// Create CLI instance and get workspace path
 	const cli = new Cli();
 	const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';

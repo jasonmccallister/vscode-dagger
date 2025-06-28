@@ -2,8 +2,7 @@ import * as vscode from 'vscode';
 import { checkInstallation, InstallResult } from '../utils/installation';
 import * as os from 'os';
 import { exec } from 'child_process';
-import { activateExtension } from '../extension';
-import { EXTENSION_ID, INSTALL_COMMAND_CURL, INSTALL_COMMAND_HOMEBREW } from '../const';
+import { INSTALL_COMMAND_CURL, INSTALL_COMMAND_HOMEBREW } from '../const';
 
 export const registerInstallCommand = (context: vscode.ExtensionContext): void => {
     const installCommand = vscode.commands.registerCommand('dagger.install', async (installationMethod?: string) => {
@@ -15,7 +14,7 @@ export const registerInstallCommand = (context: vscode.ExtensionContext): void =
                 return;
             }
 
-            await handleInstallation(context, result, installationMethod);
+            await handleInstallation(result, installationMethod);
         } catch (error) {
             vscode.window.showErrorMessage(`Failed to check installation: ${error}`);
         }
@@ -24,7 +23,7 @@ export const registerInstallCommand = (context: vscode.ExtensionContext): void =
     context.subscriptions.push(installCommand);
 };
 
-const handleInstallation = async (context: vscode.ExtensionContext, result: InstallResult, installationMethod?: string): Promise<void> => {
+const handleInstallation = async (result: InstallResult, installationMethod?: string): Promise<void> => {
     const config = vscode.workspace.getConfiguration('dagger');
 
     let command: string;
@@ -118,8 +117,16 @@ const handleInstallation = async (context: vscode.ExtensionContext, result: Inst
                         }
                     });
                 });
-                vscode.window.showInformationMessage('Dagger installed successfully! Activating extension...');
-                await activateExtension(context);
+
+                // prompt the user to reload the the window to activate the extension
+                vscode.window.showInformationMessage(
+                    `Dagger installed successfully! Please reload the window to activate the extension.`,
+                    'Reload'
+                ).then((selection) => {
+                    if (selection === 'Reload') {
+                        vscode.commands.executeCommand('workbench.action.reloadWindow');
+                    }
+                });
             } catch (err: any) {
                 vscode.window.showErrorMessage(`Installation failed: ${err}`);
             }
