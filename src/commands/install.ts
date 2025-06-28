@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import { checkInstallation, InstallResult } from '../utils/installation';
 import * as os from 'os';
 import { exec } from 'child_process';
+import { activateExtension } from '../extension';
+import { EXTENSION_ID, INSTALL_COMMAND_CURL, INSTALL_COMMAND_HOMEBREW } from '../const';
 
 export const registerInstallCommand = (context: vscode.ExtensionContext): void => {
     const installCommand = vscode.commands.registerCommand('dagger.install', async (installationMethod?: string) => {
@@ -13,24 +15,16 @@ export const registerInstallCommand = (context: vscode.ExtensionContext): void =
                 return;
             }
 
-            await handleInstallation(result, installationMethod);
+            await handleInstallation(context, result, installationMethod);
         } catch (error) {
             vscode.window.showErrorMessage(`Failed to check installation: ${error}`);
         }
     });
 
     context.subscriptions.push(installCommand);
-
-    // Listen for configuration changes to trigger activation
-    vscode.workspace.onDidChangeConfiguration((event) => {
-        if (event.affectsConfiguration('dagger.installMethod')) {
-            vscode.window.showInformationMessage('Dagger CLI installed. Activating extension...');
-            activateExtension();
-        }
-    });
 };
 
-const handleInstallation = async (result: InstallResult, installationMethod?: string): Promise<void> => {
+const handleInstallation = async (context: vscode.ExtensionContext, result: InstallResult, installationMethod?: string): Promise<void> => {
     const config = vscode.workspace.getConfiguration('dagger');
 
     let command: string;
@@ -39,11 +33,11 @@ const handleInstallation = async (result: InstallResult, installationMethod?: st
     if (installationMethod) {
         switch (installationMethod) {
             case 'brew':
-                command = 'brew install dagger/tap/dagger';
+                command = INSTALL_COMMAND_HOMEBREW;
                 methodLabel = 'Homebrew';
                 break;
             case 'curl':
-                command = 'curl -fsSL https://raw.githubusercontent.com/dagger/dagger/main/install.sh | bash';
+                command = INSTALL_COMMAND_CURL;
                 methodLabel = 'curl script';
                 break;
             default:
@@ -94,11 +88,11 @@ const handleInstallation = async (result: InstallResult, installationMethod?: st
     // Show instructions based on selected method
     switch (installationMethod) {
         case 'brew':
-            command = 'brew install dagger/tap/dagger';
+            command = INSTALL_COMMAND_HOMEBREW;
             methodLabel = 'Homebrew';
             break;
         case 'curl':
-            command = 'curl -fsSL https://raw.githubusercontent.com/dagger/dagger/main/install.sh | bash';
+            command = INSTALL_COMMAND_CURL;
             methodLabel = 'curl script';
             break;
         default:
@@ -124,15 +118,11 @@ const handleInstallation = async (result: InstallResult, installationMethod?: st
                         }
                     });
                 });
-                vscode.window.showInformationMessage('Dagger installed successfully!');
+                vscode.window.showInformationMessage('Dagger installed successfully! Activating extension...');
+                await activateExtension(context);
             } catch (err: any) {
                 vscode.window.showErrorMessage(`Installation failed: ${err}`);
             }
         }
     );
-};
-
-const activateExtension = (): void => {
-    // Logic to activate the extension features
-    vscode.commands.executeCommand('dagger.activate');
 };

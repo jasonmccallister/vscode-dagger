@@ -18,6 +18,7 @@ import { registerUninstallCommand } from './commands/uninstall';
 import { registerUpdateCommand } from './commands/update';
 import { registerVersionCommand } from './commands/version';
 import { chatRequestHandler } from './chat/participant';
+import { CHAT_PARTICIPANT_ID, EXTENSION_NAME } from './const';
 
 export async function activate(context: vscode.ExtensionContext) {
 	try {
@@ -26,7 +27,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		// Register chat participant for chat UI
 		if ('chat' in vscode && typeof vscode.chat.createChatParticipant === 'function') {
-			vscode.chat.createChatParticipant('dagger', chatRequestHandler);
+			vscode.chat.createChatParticipant(CHAT_PARTICIPANT_ID, chatRequestHandler);
 		}
 
 		// Check installation status before setting up other commands and views
@@ -46,7 +47,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	}
 }
 
-const activateExtension = async (context: vscode.ExtensionContext): Promise<void> => {
+export const activateExtension = async (context: vscode.ExtensionContext): Promise<void> => {
 	// Create CLI instance and get workspace path
 	const cli = new Cli();
 	const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
@@ -74,7 +75,7 @@ const activateExtension = async (context: vscode.ExtensionContext): Promise<void
 	registerTreeView(context, { cli, workspacePath, registerTreeCommands: true });
 
 	// Show cloud setup notification if appropriate
-	await promptCloud(context, cli);
+	promptCloud(context, cli);
 };
 
 const handleMissingInstallation = async (context: vscode.ExtensionContext, installResult: InstallResult): Promise<void> => {
@@ -88,11 +89,11 @@ const handleMissingInstallation = async (context: vscode.ExtensionContext, insta
 	if (installResult.hasHomebrew && (installResult.platform === 'darwin' || installResult.platform === 'linux')) {
 		installButtons.push({ title: 'Homebrew (recommended)', command: 'dagger.install', method: 'brew' });
 	}
-	installButtons.push({ title: 'Curl script', command: 'dagger.install', method: 'curl' });
+	installButtons.push({ title: 'Curl script', command: `${EXTENSION_NAME}.install`, method: 'curl' });
 
 	// Show installation prompt with buttons
 	const selectedButton = await vscode.window.showInformationMessage(
-		'Dagger is not installed or not properly configured. Please select an installation method:',
+		`${EXTENSION_NAME} is not installed or not properly configured. Please select an installation method:`,
 		...installButtons.map(button => button.title)
 	);
 
@@ -100,6 +101,6 @@ const handleMissingInstallation = async (context: vscode.ExtensionContext, insta
 	if (selectedOption) {
 		await vscode.commands.executeCommand(selectedOption.command, selectedOption.method);
 	} else {
-		vscode.window.showWarningMessage("Install skipped, you can install using `Dagger: Install CLI`.");
+		vscode.window.showWarningMessage(`Install skipped, you can install using \`${EXTENSION_NAME}: Install CLI\`.`);
 	}
 };
