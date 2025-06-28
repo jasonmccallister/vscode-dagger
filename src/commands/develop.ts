@@ -14,15 +14,7 @@ export const registerDevelopCommand = (
             return;
         }
 
-        await vscode.window.withProgress({
-            location: vscode.ProgressLocation.Notification,
-            title: 'Dagger',
-            cancellable: false
-        }, async (progress) => {
-            progress.report({ message: 'Running `dagger develop`...' });
-
-            executeInTerminal('dagger develop');
-        });
+        executeInTerminal('dagger develop');
     });
 
     context.subscriptions.push(disposable);
