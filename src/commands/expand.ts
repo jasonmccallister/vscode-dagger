@@ -28,14 +28,16 @@ export const registerExpandCommand = (
             // Get all top-level items from the data provider
             const topLevelItems = await dataProvider.getChildren(); // No element = top level items
 
-            // Expand each top-level item and its children (up to 3 levels as per VS Code limitation)
-            for (const item of topLevelItems) {
-                await treeView.reveal(item, {
-                    select: false,
-                    focus: false,
-                    expand: 3
-                });
-            }
+            // Expand all top-level items concurrently for better performance
+            await Promise.all(
+                topLevelItems.map((item: any) =>
+                    treeView.reveal(item, {
+                        select: false,
+                        focus: false,
+                        expand: 3
+                    })
+                )
+            );
         } catch (error) {
             console.error('Failed to expand tree items:', error);
             vscode.window.showErrorMessage('Failed to expand tree items');
