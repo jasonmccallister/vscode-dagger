@@ -8,14 +8,20 @@ The VS Code extension for [Dagger](https://dagger.io). Built for developers who 
 
 ## Features
 
-### 🌲 Functions Explorer
-Browse and execute Dagger functions directly in VS Code. View arguments and details in a tree view.
+### 🌲 Function Explorer, ⚡ Execution, and 📝 Save as Tasks
 
-### ⚡ Function Execution
-Run Dagger functions with validated arguments. Output is shown in the integrated terminal.
+These features make Dagger usage powerful and easy to use in VS Code:
 
-### 📝 Save as VS Code Tasks
-Convert function calls into reusable tasks. Automatically updates `.vscode/tasks.json`.
+- **Functions Explorer:** Browse and execute Dagger functions directly in VS Code. View arguments and details in a tree view.
+- **Function Execution:** Run Dagger functions with validated arguments. Output is shown in the integrated terminal.
+- **Save as VS Code Tasks:** Convert function calls into reusable tasks. Automatically updates `.vscode/tasks.json`.
+
+<p align="center">
+  <b>Watch: Function Explorer, Execution, and Save as Tasks in Action</b><br>
+  <em>This video demonstrates all three features working together.</em><br>
+  <!-- Replace the src URL with your actual video link -->
+  <!-- embed the video here -->
+</p>
 
 ### 🤖 AI-Powered Documentation
 Ask questions about Dagger docs directly in VS Code with Copilot using `@dagger`.
