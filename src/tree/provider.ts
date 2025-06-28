@@ -156,7 +156,12 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
                 const functionItem = new Item(
                     functionName,
                     'function',
-                    vscode.TreeItemCollapsibleState.Collapsed
+                    vscode.TreeItemCollapsibleState.Collapsed,
+                    {
+                        command: 'dagger.saveTask',
+                        title: 'Save as VS Code Task',
+                        arguments: [functionName]
+                    }
                 );
 
                 // Store the original function name for command execution

@@ -72,13 +72,6 @@
         "shortTitle": "Save Task"
       },
       {
-        "command": "dagger.saveTaskFromTree",
-        "title": "Save as Task",
-        "icon": "$(save)",
-        "category": "Dagger",
-        "shortTitle": "Save Task"
-      },
-      {
         "command": "dagger.functions",
         "title": "View Functions",
         "category": "Dagger",
@@ -228,7 +221,7 @@
       ],
       "view/item/context": [
         {
-          "command": "dagger.saveTaskFromTree",
+          "command": "dagger.saveTask",
           "when": "view == daggerTreeView && viewItem == function",
           "group": "inline@1"
         },

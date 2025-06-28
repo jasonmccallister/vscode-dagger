@@ -262,10 +262,38 @@ export const registerSaveTaskCommand = (
     cli: Cli,
     workspacePath: string
 ): void => {
-    const disposable = vscode.commands.registerCommand(SAVE_TASK_COMMAND, async (functionName?: string) => {
+
+    const disposable = vscode.commands.registerCommand(SAVE_TASK_COMMAND, async (func?: string | vscode.TreeItem) => {
+        let functionName: string | undefined;
+
+        // Support both string and TreeItem
+        if (typeof func === 'string') {
+            functionName = func;
+        } else if (func && typeof func === 'object' && 'label' in func) {
+            functionName = typeof func.label === 'string' ? func.label : undefined;
+        }
+
+        // If functionName is not set, prompt the user to pick one
         if (!functionName) {
-            vscode.window.showErrorMessage('No function specified for task saving');
-            return;
+            const functions = await cli.functionsList(workspacePath);
+            if (!functions || functions.length === 0) {
+                vscode.window.showErrorMessage('No functions found in this Dagger project.');
+                return;
+            }
+            const pick = await vscode.window.showQuickPick(
+                functions.map(fn => ({
+                    label: fn.name,
+                    description: fn.description || '',
+                })),
+                {
+                    placeHolder: 'Select a function to save as a task',
+                    ignoreFocusOut: true,
+                }
+            );
+            if (!pick) {
+                return; // User cancelled
+            }
+            functionName = pick.label;
         }
 
         try {
@@ -277,7 +305,7 @@ export const registerSaveTaskCommand = (
                 progress.report({ message: 'Getting function arguments...' });
 
                 // Get function arguments
-                const args = await cli.getFunctionArguments(functionName, workspacePath);
+                const args = await cli.getFunctionArguments(functionName!, workspacePath);
                 if (!args) {
                     vscode.window.showErrorMessage(`Failed to get arguments for function '${functionName}'`);
                     return;
@@ -290,7 +318,7 @@ export const registerSaveTaskCommand = (
                 progress.report({ message: 'Collecting argument values...' });
 
                 // Collect arguments and build task
-                const result = await collectArgumentsForTask(functionName, args);
+                const result = await collectArgumentsForTask(functionName!, args);
                 if (result.cancelled) {
                     return;
                 }
