@@ -78,8 +78,6 @@ const activateExtension = async (context: vscode.ExtensionContext): Promise<void
 };
 
 const handleMissingInstallation = async (context: vscode.ExtensionContext, installResult: InstallResult): Promise<void> => {
-	// Install command already registered in activate function
-
 	// Still register tree view to show installation status
 	const cli = new Cli();
 	const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
@@ -102,6 +100,6 @@ const handleMissingInstallation = async (context: vscode.ExtensionContext, insta
 	if (selectedOption) {
 		await vscode.commands.executeCommand(selectedOption.command, selectedOption.method);
 	} else {
-		vscode.window.showWarningMessage('Installation was not started. You can install Dagger later using the install command.');
+		vscode.window.showWarningMessage("Install skipped, you can install using `Dagger: Install CLI`.");
 	}
 };
