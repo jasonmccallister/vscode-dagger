@@ -178,8 +178,7 @@
           "default": false,
           "description": "Whether the save task notification has been permanently dismissed",
           "scope": "application"
-        }
-        ,
+        },
         "dagger.functionCalls.runInBackground": {
           "type": "boolean",
           "default": false,
@@ -254,6 +253,7 @@
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
+    "@types/proxyquire": "^1.3.31",
     "@types/sinon": "^17.0.4",
     "@types/vscode": "^1.101.0",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
@@ -266,6 +266,7 @@
     "glob": "^11.0.3",
     "npm-run-all": "^4.1.5",
     "ovsx": "^0.10.0",
+    "proxyquire": "^2.1.3",
     "sinon": "^21.0.0",
     "typescript": "^5.8.3"
   }
