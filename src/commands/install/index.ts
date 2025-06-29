@@ -3,6 +3,7 @@ import * as os from 'os';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
+const COMMAND = 'dagger.install';
 const execAsync = promisify(exec);
 const INSTALL_COMMAND_CURL = 'curl -fsSL https://raw.githubusercontent.com/dagger/dagger/main/install.sh | bash';
 const INSTALL_COMMAND_HOMEBREW = 'brew install dagger/tap/dagger';
@@ -15,7 +16,7 @@ interface InstallResult {
 }
 
 export const registerInstallCommand = (context: vscode.ExtensionContext): void => {
-    const installCommand = vscode.commands.registerCommand('dagger.install', async (installationMethod?: string) => {
+    const installCommand = vscode.commands.registerCommand(COMMAND, async (installationMethod?: string) => {
         try {
             const result = await checkInstallation(os.platform());
 

@@ -9,6 +9,8 @@ interface SdkOption {
 type DevelopChoice = 'Yes' | 'No';
 type FunctionsChoice = 'Yes' | 'No';
 
+export const COMMAND = 'dagger.init';
+
 const SDK_OPTIONS: readonly SdkOption[] = [
     { label: 'Go', value: 'go' },
     { label: 'TypeScript', value: 'typescript' },
@@ -21,7 +23,7 @@ export const registerInitCommand = (
     context: vscode.ExtensionContext,
     cli: Cli
 ): void => {
-    const disposable = vscode.commands.registerCommand('dagger.init', async () => {
+    const disposable = vscode.commands.registerCommand(COMMAND, async () => {
         // Check if this workspace is already a Dagger project
         if (await cli.isDaggerProject()) {
             await handleExistingProject(cli);

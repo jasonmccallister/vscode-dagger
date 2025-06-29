@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import Cli from '../dagger/dagger';
 import { registerExpandCommand } from '../commands/expand';
+import { COMMAND as INIT_COMMAND } from '../commands/init';
+import { COMMAND as REFRESH_COMMAND } from '../commands/refresh';
 
 type ItemType = 'function' | 'argument' | 'empty' | 'action';
 
@@ -14,6 +16,7 @@ interface TreeViewConfig {
 let globalTreeView: vscode.TreeView<Item> | undefined;
 let globalDataProvider: DataProvider | undefined;
 
+const COMMAND = 'dagger.refresh';
 export const getTreeView = (): vscode.TreeView<Item> | undefined => globalTreeView;
 export const getDataProvider = (): DataProvider | undefined => globalDataProvider;
 
@@ -22,7 +25,6 @@ const TREE_VIEW_ID = 'daggerTreeView';
 const FUNCTION_ICON_NAME = 'symbol-function';
 const ARGUMENT_ICON_NAME = 'symbol-parameter';
 const ACTION_ICON_NAME = 'arrow-right';
-
 const TREE_VIEW_OPTIONS = {
     SHOW_COLLAPSE_ALL: true,
     CAN_SELECT_MANY: false
@@ -123,7 +125,7 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
                         'action',
                         vscode.TreeItemCollapsibleState.None,
                         {
-                            command: 'dagger.init',
+                            command: INIT_COMMAND,
                             title: 'Initialize Dagger Project'
                         }
                     )
@@ -288,7 +290,7 @@ export const registerTreeView = (
     globalTreeView = treeView;
 
     // register the refresh command here so we can access the tree view and data provider in the callback
-    const refreshCommand = vscode.commands.registerCommand('dagger.refresh', async () => {
+    const refreshCommand = vscode.commands.registerCommand(REFRESH_COMMAND, async () => {
         if (!globalDataProvider) {
             vscode.window.showErrorMessage('Dagger tree view is not initialized.');
             return;

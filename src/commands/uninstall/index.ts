@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
 import { exec } from 'child_process';
 
+const COMMAND = 'dagger.uninstall';
+
 export const registerUninstallCommand = (context: vscode.ExtensionContext): void => {
-    const uninstallCommand = vscode.commands.registerCommand('dagger.uninstall', async () => {
+    const uninstallCommand = vscode.commands.registerCommand(COMMAND, async () => {
         const config = vscode.workspace.getConfiguration('dagger');
         const installMethod = config.get<string>('installMethod');
 
@@ -68,17 +70,10 @@ const handleUninstallation = async (installMethod: string): Promise<void> => {
                     });
                 });
                 vscode.window.showInformationMessage('Dagger uninstalled successfully!');
-
-                // Deregister the extension after uninstallation
-                deactivateExtension();
+                // TODO(jasonmccallister): do we need to reload the window or reset settings?
             } catch (err: any) {
                 vscode.window.showErrorMessage(`Uninstallation failed: ${err}`);
             }
         }
     );
-};
-
-const deactivateExtension = (): void => {
-    // Logic to deactivate the extension features
-    vscode.commands.executeCommand('dagger.deactivate');
 };
