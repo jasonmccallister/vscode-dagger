@@ -16,9 +16,7 @@ interface TreeViewConfig {
 let globalTreeView: vscode.TreeView<Item> | undefined;
 let globalDataProvider: DataProvider | undefined;
 
-const COMMAND = 'dagger.refresh';
-export const getTreeView = (): vscode.TreeView<Item> | undefined => globalTreeView;
-export const getDataProvider = (): DataProvider | undefined => globalDataProvider;
+
 
 // Constants to eliminate magic strings and numbers
 const TREE_VIEW_ID = 'daggerTreeView';
@@ -30,7 +28,45 @@ const TREE_VIEW_OPTIONS = {
     CAN_SELECT_MANY: false
 } as const;
 
-export class Item extends vscode.TreeItem {
+export const registerTreeView = (
+    context: vscode.ExtensionContext,
+    config: TreeViewConfig
+): void => {
+    const workspacePath = config.workspacePath ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+    const cli = config.cli!;
+
+    const dataProvider = new DataProvider(cli, workspacePath);
+    globalDataProvider = dataProvider;
+
+    const treeView = vscode.window.createTreeView(TREE_VIEW_ID, {
+        treeDataProvider: dataProvider,
+        showCollapseAll: TREE_VIEW_OPTIONS.SHOW_COLLAPSE_ALL,
+        canSelectMany: TREE_VIEW_OPTIONS.CAN_SELECT_MANY
+    });
+    globalTreeView = treeView;
+
+    // register the refresh command here so we can access the tree view and data provider in the callback
+    const refreshCommand = vscode.commands.registerCommand(REFRESH_COMMAND, async () => {
+        if (!globalDataProvider) {
+            vscode.window.showErrorMessage('Dagger tree view is not initialized.');
+            return;
+        }
+        try {
+            globalDataProvider.reloadFunctions();
+        } catch (error) {
+            console.error('Failed to reload Dagger functions:', error);
+            vscode.window.showErrorMessage('Failed to reload Dagger functions. Check the console for details');
+        }
+    });
+
+    // register the expand all command
+    registerExpandCommand(context, () => globalTreeView, () => globalDataProvider);
+
+
+    context.subscriptions.push(treeView, refreshCommand);
+};
+
+class Item extends vscode.TreeItem {
     children?: Item[];
     readonly type: ItemType;
 
@@ -73,7 +109,7 @@ export class Item extends vscode.TreeItem {
     }
 }
 
-export class DataProvider implements vscode.TreeDataProvider<Item> {
+class DataProvider implements vscode.TreeDataProvider<Item> {
     private _onDidChangeTreeData: vscode.EventEmitter<Item | Item[] | void | null | undefined> = new vscode.EventEmitter<Item | Item[] | void | null | undefined>();
     readonly onDidChangeTreeData: vscode.Event<Item | Item[] | void | null | undefined> = this._onDidChangeTreeData.event;
 
@@ -271,41 +307,3 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
         return undefined;
     }
 }
-
-export const registerTreeView = (
-    context: vscode.ExtensionContext,
-    config: TreeViewConfig
-): void => {
-    const workspacePath = config.workspacePath ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
-    const cli = config.cli!;
-
-    const dataProvider = new DataProvider(cli, workspacePath);
-    globalDataProvider = dataProvider;
-
-    const treeView = vscode.window.createTreeView(TREE_VIEW_ID, {
-        treeDataProvider: dataProvider,
-        showCollapseAll: TREE_VIEW_OPTIONS.SHOW_COLLAPSE_ALL,
-        canSelectMany: TREE_VIEW_OPTIONS.CAN_SELECT_MANY
-    });
-    globalTreeView = treeView;
-
-    // register the refresh command here so we can access the tree view and data provider in the callback
-    const refreshCommand = vscode.commands.registerCommand(REFRESH_COMMAND, async () => {
-        if (!globalDataProvider) {
-            vscode.window.showErrorMessage('Dagger tree view is not initialized.');
-            return;
-        }
-        try {
-            globalDataProvider.reloadFunctions();
-        } catch (error) {
-            console.error('Failed to reload Dagger functions:', error);
-            vscode.window.showErrorMessage('Failed to reload Dagger functions. Check the console for details');
-        }
-    });
-
-    // register the expand all command
-    registerExpandCommand(context, () => globalTreeView, () => globalDataProvider);
-
-
-    context.subscriptions.push(treeView, refreshCommand);
-};
