@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import Cli from '../../dagger/dagger';
+import Cli from '../../dagger';
 import { initProjectCommand } from '../../actions/init';
 import { executeInTerminal } from '../../utils/terminal';
 

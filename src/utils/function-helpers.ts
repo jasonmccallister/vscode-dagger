@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { FunctionArgument } from '../dagger/dagger';
+import { FunctionArgument } from '../dagger';
 import { executeInTerminal } from './terminal';
 import { saveTaskToTasksJson } from '../commands/save-task';
 

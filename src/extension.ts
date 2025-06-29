@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { registerTreeView } from './tree/provider';
 import { checkInstallation, InstallResult } from './utils/installation';
 import { promptCloud } from './actions/cloud';
-import Cli from './dagger/dagger';
+import Cli from './dagger';
 import * as os from 'os';
 import { registerCallCommand } from './commands/call';
 import { registerCloudCommand } from './commands/cloud';

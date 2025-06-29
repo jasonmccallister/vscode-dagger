@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import Cli, { FunctionArgument } from '../../dagger/dagger';
+import Cli, { FunctionArgument } from '../../dagger';
 
 export const COMMAND = 'dagger.saveTask';
 

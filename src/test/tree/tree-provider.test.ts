@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import { describe, it, beforeEach } from 'mocha';
 import { DataProvider, Item } from '../../tree/provider';
-import Cli, { FunctionInfo } from '../../dagger/dagger';
+import Cli, { FunctionInfo } from '../../dagger';
 import sinon from 'sinon';
 
 describe('Tree Provider', () => {

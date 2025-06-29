@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import Cli from '../../dagger/dagger';
+import Cli from '../../dagger';
 
 type CloudResponse = 'Visit dagger.cloud' | 'Open Settings' | 'Test Connection' | 'Cancel';
 

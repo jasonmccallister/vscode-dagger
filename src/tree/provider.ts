@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import Cli from '../dagger/dagger';
+import Cli from '../dagger';
 import { registerExpandCommand } from '../commands/expand';
 import { COMMAND as INIT_COMMAND } from '../commands/init';
 import { COMMAND as REFRESH_COMMAND } from '../commands/refresh';

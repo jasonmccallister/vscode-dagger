@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import Cli from '../../dagger/dagger';
+import Cli from '../../dagger';
 import { exec } from 'child_process';
 import * as https from 'https';
 import { checkInstallation } from '../../utils/installation';
