@@ -1,8 +1,18 @@
 import * as vscode from 'vscode';
-import { checkInstallation, InstallResult } from '../utils/installation';
 import * as os from 'os';
 import { exec } from 'child_process';
-import { INSTALL_COMMAND_CURL, INSTALL_COMMAND_HOMEBREW } from '../const';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
+const INSTALL_COMMAND_CURL = 'curl -fsSL https://raw.githubusercontent.com/dagger/dagger/main/install.sh | bash';
+const INSTALL_COMMAND_HOMEBREW = 'brew install dagger/tap/dagger';
+
+interface InstallResult {
+    isInstalled: boolean;
+    hasCorrectBinary: boolean;
+    hasHomebrew?: boolean;
+    platform: string;
+}
 
 export const registerInstallCommand = (context: vscode.ExtensionContext): void => {
     const installCommand = vscode.commands.registerCommand('dagger.install', async (installationMethod?: string) => {
@@ -156,4 +166,34 @@ const handleInstallation = async (result: InstallResult, installationMethod?: st
             vscode.window.showErrorMessage('Unknown installation method selected.');
             return;
     }
+};
+
+const checkInstallation = async (platform: string): Promise<InstallResult> => {
+    // Check if binary exists 
+    let hasCorrectBinary = false;
+    try {
+        const { stdout } = await execAsync('dagger version', { timeout: 5000 });
+        hasCorrectBinary = stdout.includes('dagger');
+    } catch (error) {
+        // dagger binary doesn't exist or failed to execute
+        hasCorrectBinary = false;
+    }
+
+    // Check if Homebrew is installed (for macOS/Linux)
+    let hasHomebrew: boolean | undefined;
+    if (platform === 'darwin' || platform === 'linux') {
+        try {
+            await execAsync('brew --version');
+            hasHomebrew = true;
+        } catch (error) {
+            hasHomebrew = false;
+        }
+    }
+
+    return {
+        isInstalled: hasCorrectBinary,
+        hasCorrectBinary,
+        hasHomebrew,
+        platform
+    };
 };
