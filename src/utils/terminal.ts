@@ -85,7 +85,7 @@ const runCommandAsTask = async (command: string): Promise<void> => {
 
     vscode.tasks.executeTask(task).then(() => {
         vscode.window.showInformationMessage(
-            `Command executed: ${command}`,
+            `${command}`,
             'View Output'
         ).then(selection => {
             if (selection === 'View Output') {
