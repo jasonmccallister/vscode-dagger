@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
 
-export const EXPAND_ALL_COMMAND = 'dagger.expand';
+export const COMMAND = 'dagger.expand';
 
 export const registerExpandCommand = (
     context: vscode.ExtensionContext,
     getTreeView: () => vscode.TreeView<any> | undefined,
     getDataProvider: () => any
 ): void => {
-    const disposable = vscode.commands.registerCommand(EXPAND_ALL_COMMAND, async () => {
+    const disposable = vscode.commands.registerCommand(COMMAND, async () => {
         const treeView = getTreeView();
         const dataProvider = getDataProvider();
 

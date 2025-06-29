@@ -1,13 +1,15 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { EXTENSION_NAME, ICON_PATH_WHITE } from '../const';
-const COMMAND = 'dagger shell';
+import { EXTENSION_NAME, ICON_PATH_WHITE } from '../../const';
+
+const COMMAND = 'dagger.shell';
+const shellCommand = 'dagger shell';
 
 export const registerShellCommand = (
     context: vscode.ExtensionContext,
     workspacePath: string
 ): void => {
-    const disposable = vscode.commands.registerCommand('dagger.shell', async () => {
+    const disposable = vscode.commands.registerCommand(COMMAND, async () => {
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
             title: EXTENSION_NAME,
@@ -18,7 +20,7 @@ export const registerShellCommand = (
             const existingTerminal = vscode.window.terminals.find(t => t.name === EXTENSION_NAME);
             if (existingTerminal) {
                 existingTerminal.show();
-                existingTerminal.sendText(COMMAND);
+                existingTerminal.sendText(shellCommand);
                 return;
             }
 
@@ -28,7 +30,7 @@ export const registerShellCommand = (
                 cwd: workspacePath
             });
             newTerminal.show();
-            newTerminal.sendText(COMMAND);
+            newTerminal.sendText(shellCommand);
         });
     });
 

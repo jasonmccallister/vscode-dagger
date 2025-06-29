@@ -1,66 +1,22 @@
 import * as vscode from 'vscode';
-import Cli from '../dagger/dagger';
-import { initProjectCommand } from '../actions/init';
-import { collectAndRunFunction, showSaveTaskPrompt } from '../utils/function-helpers';
-import type { Item } from '../tree/provider';
+import Cli from '../../dagger/dagger';
+import { initProjectCommand } from '../../actions/init';
+import { collectAndRunFunction, showSaveTaskPrompt } from '../../utils/function-helpers';
+import type { Item } from '../../tree/provider';
 
-export const CALL_COMMAND = 'dagger.call';
+const COMMAND = 'dagger.call';
 
 interface FunctionQuickPickItem {
     readonly label: string;
     readonly description: string;
 }
 
-/**
- * Gets the workspace path, falling back to current working directory
- * @param workspace The initial workspace path
- * @returns The resolved workspace path
- */
-const getWorkspacePath = (workspace: string): string => {
-    if (workspace) {
-        return workspace;
-    }
-
-    console.log('No workspace path set. Using current workspace or cwd.');
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-
-    return workspaceFolders && workspaceFolders.length > 0
-        ? workspaceFolders[0].uri.fsPath
-        : process.cwd();
-};
-
-/**
- * Loads functions and shows quick pick for selection
- * @param cli The Dagger CLI instance
- * @param workspacePath The workspace path
- * @returns The selected function name or undefined if cancelled
- */
-const selectFunction = async (cli: Cli, workspacePath: string): Promise<string | undefined> => {
-    const functions = await cli.functionsList(workspacePath);
-
-    if (functions.length === 0) {
-        vscode.window.showInformationMessage('No Dagger functions found in this project.');
-        return undefined;
-    }
-
-    const functionItems: readonly FunctionQuickPickItem[] = functions.map(fn => ({
-        label: fn.name,
-        description: fn.description ?? ''
-    }));
-
-    const pick = await vscode.window.showQuickPick(functionItems, {
-        placeHolder: 'Select a function to call'
-    });
-
-    return pick?.label;
-};
-
 export const registerCallCommand = (
     context: vscode.ExtensionContext,
     cli: Cli,
     workspacePath: string
 ): void => {
-    const disposable = vscode.commands.registerCommand(CALL_COMMAND, async (preSelectedFunctionOrItem?: string | Item) => {
+    const disposable = vscode.commands.registerCommand(COMMAND, async (preSelectedFunctionOrItem?: string | Item) => {
         if (!(await cli.isDaggerProject())) { return initProjectCommand(); }
 
         const workspacePathForCli = getWorkspacePath(workspacePath);
@@ -129,3 +85,49 @@ export const registerCallCommand = (
 
     context.subscriptions.push(disposable);
 };
+
+/**
+ * Gets the workspace path, falling back to current working directory
+ * @param workspace The initial workspace path
+ * @returns The resolved workspace path
+ */
+const getWorkspacePath = (workspace: string): string => {
+    if (workspace) {
+        return workspace;
+    }
+
+    console.log('No workspace path set. Using current workspace or cwd.');
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+
+    return workspaceFolders && workspaceFolders.length > 0
+        ? workspaceFolders[0].uri.fsPath
+        : process.cwd();
+};
+
+/**
+ * Loads functions and shows quick pick for selection
+ * @param cli The Dagger CLI instance
+ * @param workspacePath The workspace path
+ * @returns The selected function name or undefined if cancelled
+ */
+const selectFunction = async (cli: Cli, workspacePath: string): Promise<string | undefined> => {
+    const functions = await cli.functionsList(workspacePath);
+
+    if (functions.length === 0) {
+        vscode.window.showInformationMessage('No Dagger functions found in this project.');
+        return undefined;
+    }
+
+    const functionItems: readonly FunctionQuickPickItem[] = functions.map(fn => ({
+        label: fn.name,
+        description: fn.description ?? ''
+    }));
+
+    const pick = await vscode.window.showQuickPick(functionItems, {
+        placeHolder: 'Select a function to call'
+    });
+
+    return pick?.label;
+};
+
+

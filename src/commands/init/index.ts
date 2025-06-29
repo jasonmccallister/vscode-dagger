@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import Cli from '../dagger/dagger';
+import Cli from '../../dagger/dagger';
 
 interface SdkOption {
     readonly label: string;
@@ -17,14 +17,41 @@ const SDK_OPTIONS: readonly SdkOption[] = [
     { label: 'Java', value: 'java' },
 ] as const;
 
+export const registerInitCommand = (
+    context: vscode.ExtensionContext,
+    cli: Cli
+): void => {
+    const disposable = vscode.commands.registerCommand('dagger.init', async () => {
+        // Check if this workspace is already a Dagger project
+        if (await cli.isDaggerProject()) {
+            await handleExistingProject(cli);
+            return;
+        }
+
+        // Select SDK for new project
+        const sdkChoice = await vscode.window.showQuickPick(SDK_OPTIONS, {
+            placeHolder: 'Select the SDK to use'
+        });
+
+        if (!sdkChoice) {
+            // User cancelled the selection
+            return;
+        }
+
+        await initializeProject(cli, sdkChoice);
+    });
+
+    context.subscriptions.push(disposable);
+};
+
 /**
  * Gets the current workspace directory
  * @returns The workspace directory path
  */
 const getWorkspaceDirectory = (): string => {
     const workspaceFolders = vscode.workspace.workspaceFolders;
-    return workspaceFolders && workspaceFolders.length > 0 
-        ? workspaceFolders[0].uri.fsPath 
+    return workspaceFolders && workspaceFolders.length > 0
+        ? workspaceFolders[0].uri.fsPath
         : process.cwd();
 };
 
@@ -58,7 +85,7 @@ const initializeProject = async (cli: Cli, sdk: SdkOption): Promise<void> => {
     try {
         const cwd = getWorkspaceDirectory();
         const result = await cli.run(['init', '--sdk', sdk.value], { cwd });
-        
+
         if (!result.success) {
             vscode.window.showErrorMessage(`Failed to initialize Dagger project: ${result.stderr}`);
             return;
@@ -81,29 +108,3 @@ const initializeProject = async (cli: Cli, sdk: SdkOption): Promise<void> => {
     }
 };
 
-export const registerInitCommand = (
-    context: vscode.ExtensionContext,
-    cli: Cli
-): void => {
-    const disposable = vscode.commands.registerCommand('dagger.init', async () => {
-        // Check if this workspace is already a Dagger project
-        if (await cli.isDaggerProject()) {
-            await handleExistingProject(cli);
-            return;
-        }
-
-        // Select SDK for new project
-        const sdkChoice = await vscode.window.showQuickPick(SDK_OPTIONS, { 
-            placeHolder: 'Select the SDK to use' 
-        });
-
-        if (!sdkChoice) {
-            // User cancelled the selection
-            return;
-        }
-
-        await initializeProject(cli, sdkChoice);
-    });
-
-    context.subscriptions.push(disposable);
-};

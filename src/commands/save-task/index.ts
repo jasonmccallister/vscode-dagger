@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import Cli, { FunctionArgument } from '../dagger/dagger';
+import Cli, { FunctionArgument } from '../../dagger/dagger';
+
+export const COMMAND = 'dagger.saveTask';
 
 interface ArgumentPick {
     readonly label: string;
@@ -12,6 +14,98 @@ interface CollectArgumentsResult {
     readonly argValues: Record<string, string>;
     readonly cancelled: boolean;
 }
+
+export const registerSaveTaskCommand = (
+    context: vscode.ExtensionContext,
+    cli: Cli,
+    workspacePath: string
+): void => {
+    const disposable = vscode.commands.registerCommand(COMMAND, async (func?: string | vscode.TreeItem) => {
+        let functionName: string | undefined;
+
+        // Support both string and TreeItem
+        if (typeof func === 'string') {
+            functionName = func;
+        } else if (func && typeof func === 'object' && 'label' in func) {
+            functionName = typeof func.label === 'string' ? func.label : undefined;
+        }
+
+        // If functionName is not set, prompt the user to pick one
+        if (!functionName) {
+            const functions = await cli.functionsList(workspacePath);
+            if (!functions || functions.length === 0) {
+                vscode.window.showErrorMessage('No functions found in this Dagger project.');
+                return;
+            }
+            const pick = await vscode.window.showQuickPick(
+                functions.map(fn => ({
+                    label: fn.name,
+                    description: fn.description || '',
+                })),
+                {
+                    placeHolder: 'Select a function to save as a task',
+                    ignoreFocusOut: true,
+                }
+            );
+            if (!pick) {
+                return; // User cancelled
+            }
+            functionName = pick.label;
+        }
+
+        try {
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: 'Dagger',
+                cancellable: true
+            }, async (progress, token) => {
+                progress.report({ message: 'Getting function arguments...' });
+
+                // Get function arguments
+                const args = await cli.getFunctionArguments(functionName!, workspacePath);
+                if (!args) {
+                    vscode.window.showErrorMessage(`Failed to get arguments for function '${functionName}'`);
+                    return;
+                }
+
+                if (token.isCancellationRequested) {
+                    return;
+                }
+
+                progress.report({ message: 'Collecting argument values...' });
+
+                // Collect arguments and build task
+                const result = await collectArgumentsForTask(functionName!, args);
+                if (result.cancelled) {
+                    return;
+                }
+
+                if (token.isCancellationRequested) {
+                    return;
+                }
+
+                progress.report({ message: 'Saving task...' });
+
+                // Save the task
+                await saveTaskToTasksJson(result.taskName, result.command, workspacePath);
+
+                progress.report({ message: 'Task saved successfully' });
+
+                // Ask if user wants to run the task
+                const shouldRun = await askToRunTask(result.taskName);
+                if (shouldRun) {
+                    await runTask(result.taskName);
+                }
+            });
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            vscode.window.showErrorMessage(`Failed to save task: ${errorMessage}`);
+            console.error('Error saving task:', error);
+        }
+    });
+
+    context.subscriptions.push(disposable);
+};
 
 /**
  * Collects argument values from user input
@@ -87,7 +181,7 @@ const buildCommandArgs = (functionName: string, argValues: Record<string, string
     return commandArgs;
 };
 
-export const SAVE_TASK_COMMAND = 'dagger.saveTask';
+
 
 interface TaskCreationResult {
     readonly taskName: string;
@@ -249,7 +343,7 @@ const askToRunTask = async (taskName: string): Promise<boolean> => {
 const runTask = async (taskName: string): Promise<void> => {
     const tasks = await vscode.tasks.fetchTasks();
     const task = tasks.find(t => t.name === taskName);
-    
+
     if (task) {
         await vscode.tasks.executeTask(task);
     } else {
@@ -257,95 +351,4 @@ const runTask = async (taskName: string): Promise<void> => {
     }
 };
 
-export const registerSaveTaskCommand = (
-    context: vscode.ExtensionContext,
-    cli: Cli,
-    workspacePath: string
-): void => {
 
-    const disposable = vscode.commands.registerCommand(SAVE_TASK_COMMAND, async (func?: string | vscode.TreeItem) => {
-        let functionName: string | undefined;
-
-        // Support both string and TreeItem
-        if (typeof func === 'string') {
-            functionName = func;
-        } else if (func && typeof func === 'object' && 'label' in func) {
-            functionName = typeof func.label === 'string' ? func.label : undefined;
-        }
-
-        // If functionName is not set, prompt the user to pick one
-        if (!functionName) {
-            const functions = await cli.functionsList(workspacePath);
-            if (!functions || functions.length === 0) {
-                vscode.window.showErrorMessage('No functions found in this Dagger project.');
-                return;
-            }
-            const pick = await vscode.window.showQuickPick(
-                functions.map(fn => ({
-                    label: fn.name,
-                    description: fn.description || '',
-                })),
-                {
-                    placeHolder: 'Select a function to save as a task',
-                    ignoreFocusOut: true,
-                }
-            );
-            if (!pick) {
-                return; // User cancelled
-            }
-            functionName = pick.label;
-        }
-
-        try {
-            await vscode.window.withProgress({
-                location: vscode.ProgressLocation.Notification,
-                title: 'Dagger',
-                cancellable: true
-            }, async (progress, token) => {
-                progress.report({ message: 'Getting function arguments...' });
-
-                // Get function arguments
-                const args = await cli.getFunctionArguments(functionName!, workspacePath);
-                if (!args) {
-                    vscode.window.showErrorMessage(`Failed to get arguments for function '${functionName}'`);
-                    return;
-                }
-
-                if (token.isCancellationRequested) {
-                    return;
-                }
-
-                progress.report({ message: 'Collecting argument values...' });
-
-                // Collect arguments and build task
-                const result = await collectArgumentsForTask(functionName!, args);
-                if (result.cancelled) {
-                    return;
-                }
-
-                if (token.isCancellationRequested) {
-                    return;
-                }
-
-                progress.report({ message: 'Saving task...' });
-
-                // Save the task
-                await saveTaskToTasksJson(result.taskName, result.command, workspacePath);
-
-                progress.report({ message: 'Task saved successfully' });
-
-                // Ask if user wants to run the task
-                const shouldRun = await askToRunTask(result.taskName);
-                if (shouldRun) {
-                    await runTask(result.taskName);
-                }
-            });
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            vscode.window.showErrorMessage(`Failed to save task: ${errorMessage}`);
-            console.error('Error saving task:', error);
-        }
-    });
-
-    context.subscriptions.push(disposable);
-};
