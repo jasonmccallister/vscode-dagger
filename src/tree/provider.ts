@@ -17,7 +17,6 @@ let globalTreeView: vscode.TreeView<Item> | undefined;
 let globalDataProvider: DataProvider | undefined;
 
 
-
 // Constants to eliminate magic strings and numbers
 const TREE_VIEW_ID = 'daggerTreeView';
 const FUNCTION_ICON_NAME = 'symbol-function';
@@ -66,7 +65,7 @@ export const registerTreeView = (
     context.subscriptions.push(treeView, refreshCommand);
 };
 
-class Item extends vscode.TreeItem {
+export class Item extends vscode.TreeItem {
     children?: Item[];
     readonly type: ItemType;
 
@@ -109,7 +108,7 @@ class Item extends vscode.TreeItem {
     }
 }
 
-class DataProvider implements vscode.TreeDataProvider<Item> {
+export class DataProvider implements vscode.TreeDataProvider<Item> {
     private _onDidChangeTreeData: vscode.EventEmitter<Item | Item[] | void | null | undefined> = new vscode.EventEmitter<Item | Item[] | void | null | undefined>();
     readonly onDidChangeTreeData: vscode.Event<Item | Item[] | void | null | undefined> = this._onDidChangeTreeData.event;
 
