@@ -32,7 +32,8 @@
   "license": "MIT",
   "activationEvents": [
     "workspaceContains:**dagger.json",
-    "onChatParticipant:dagger"
+    "onChatParticipant:dagger",
+    "onTerminalProfile:dagger.terminal-profile"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -138,6 +139,17 @@
         "icon": "$(expand-all)"
       }
     ],
+    "terminal": {
+      "profiles": [
+        {
+          "id": "dagger.terminal-profile",
+          "title": "Dagger Shell",
+          "name": "Dagger Shell",
+          "icon": "images/icon-white.png",
+          "isTransient": true
+        }
+      ]
+    },
     "configuration": {
       "title": "Dagger",
       "properties": {
