@@ -35,4 +35,12 @@ export const registerShellCommand = (
     });
 
     context.subscriptions.push(disposable);
+
+    // Show Dagger Shell terminal when opened (including from profile quick pick)
+    const showDaggerShellTerminal = vscode.window.onDidOpenTerminal((terminal) => {
+        if (terminal.name === EXTENSION_NAME) {
+            terminal.show();
+        }
+    });
+    context.subscriptions.push(showDaggerShellTerminal);
 };

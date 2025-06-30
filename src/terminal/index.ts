@@ -10,7 +10,11 @@ import * as path from 'path';
  * @param context - The extension context provided by VS Code.
  */
 export const registerTerminalProvider = (context: vscode.ExtensionContext) => {
-    const iconPath = vscode.Uri.file(context.asAbsolutePath('images/icon-white.png'));
+    const iconFile = context.asAbsolutePath('images/icon-white.png');
+    const iconPath = {
+        light: vscode.Uri.file(iconFile),
+        dark: vscode.Uri.file(iconFile)
+    };
 
     let daggerPath = '';
     try {
