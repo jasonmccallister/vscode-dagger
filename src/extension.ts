@@ -6,6 +6,7 @@ import * as os from 'os';
 import { chatRequestHandler } from './chat/participant';
 import { CHAT_PARTICIPANT_ID, EXTENSION_NAME } from './const';
 import CommandManager from './commands';
+import { registerTerminalProvider } from './terminal';
 
 export async function activate(context: vscode.ExtensionContext) {
 	try {
@@ -34,6 +35,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		// Dagger is properly installed, proceed with full activation
 		commandManager.register(true);
+
+		// register the terminal profile provider
+		registerTerminalProvider(context);
 	} catch (error) {
 		vscode.window.showErrorMessage(`Failed to activate Dagger extension: ${error}`);
 		// Install command already registered above
