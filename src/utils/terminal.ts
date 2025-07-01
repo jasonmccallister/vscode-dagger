@@ -11,57 +11,10 @@ const TERMINAL_CONFIG = {
     EXIT_COMMAND: 'exit'
 } as const;
 
-interface TerminalResult {
-    terminal: vscode.Terminal;
-    isNewlyCreated: boolean;
-}
-
 /**
  * Executes a command in the Dagger terminal
  */
 export const executeInTerminal = async (command: string): Promise<void> => {
-    runCommandAsTask(command);
-};
-
-/**
- * Finds an existing terminal or creates a new one
- * Returns both the terminal and whether it was newly created
- */
-const findOrCreateTerminal = (extensionPath: string): TerminalResult => {
-    // Look for existing terminal
-    const existingTerminal = vscode.window.terminals.find(
-        terminal => terminal.name === TERMINAL_CONFIG.NAME
-    );
-
-    if (existingTerminal) {
-        return { terminal: existingTerminal, isNewlyCreated: false };
-    }
-
-    // Create new terminal if none exists
-    const terminalOptions: vscode.TerminalOptions = {
-        name: TERMINAL_CONFIG.NAME,
-        shellPath: undefined, // Use default shell
-        shellArgs: undefined
-    };
-
-    // Add icon if extension path is available
-    if (extensionPath) {
-        terminalOptions.iconPath = {
-            light: vscode.Uri.file(path.join(extensionPath, ICON_PATH_BLACK)),
-            dark: vscode.Uri.file(path.join(extensionPath, ICON_PATH_WHITE))
-        };
-    }
-
-    const newTerminal = vscode.window.createTerminal(terminalOptions);
-
-    return { terminal: newTerminal, isNewlyCreated: true };
-};
-
-
-/**
- * Runs a command as a task using the same terminal/task window name (e.g., "Dagger")
- */
-const runCommandAsTask = async (command: string): Promise<void> => {
     // Read user setting for running function calls in background
     const config = vscode.workspace.getConfiguration('dagger');
     const runInBackground = config.get<boolean>('functionCalls.runInBackground', true);
@@ -98,11 +51,11 @@ const runCommandAsTask = async (command: string): Promise<void> => {
                     daggerTerminal.show();
                     return;
                 }
-                
+
                 // Get extension path for icons
                 const extension = vscode.extensions.getExtension('jasonmccallister.vscode-dagger');
                 const extensionPath = extension?.extensionPath;
-                
+
                 const newTerminal = vscode.window.createTerminal({
                     name: TERMINAL_CONFIG.NAME,
                     iconPath: extensionPath ? {
