@@ -70,6 +70,13 @@ export default class Cli {
         }
     }
 
+    /**
+     * Gets the list of functions available in the Dagger module for the given workspace path.
+     * @param workspacePath The path to the Dagger project directory
+     * @returns A Promise that resolves to an array of FunctionInfo objects
+     * @description Retrieves all functions from the Dagger module and converts GraphQL type names
+     * to user-friendly type names (e.g., OBJECT_STRING -> string, OBJECT_BOOLEAN -> boolean)
+     */
     public async functionsList(workspacePath: string): Promise<FunctionInfo[]> {
         const id = await this.queryDirectoryId(workspacePath);
         if (!id) {
@@ -97,7 +104,7 @@ export default class Cli {
 
                             return {
                                 name: this.camelCaseToKebabCase(arg.name),
-                                type: arg.typeDef.kind,
+                                type: this.getFriendlyTypeName(arg.typeDef.kind),
                                 required: isRequired
                             };
                         })
@@ -309,6 +316,69 @@ export default class Cli {
         } catch (error: any) {
             console.error(`Error getting arguments for function ${functionName}:`, error);
             throw new Error(`Failed to get arguments for function '${functionName}': ${error.message}`);
+        }
+    }
+
+    /**
+     * Converts GraphQL type names to friendly type names.
+     * @param graphQLType The GraphQL type name (e.g., OBJECT_STRING, OBJECT_BOOLEAN)
+     * @returns A friendly type name (e.g., string, boolean, object)
+     * @private
+     */
+    private getFriendlyTypeName(graphQLType: string): string {
+        // Handle null or undefined
+        if (!graphQLType) {
+            return 'unknown';
+        }
+
+        // Handle common GraphQL type prefixes
+        if (graphQLType.startsWith('OBJECT_')) {
+            const typeWithoutPrefix = graphQLType.substring(7).toLowerCase();
+            
+            // Map specific type names
+            switch (typeWithoutPrefix) {
+                case 'string':
+                    return 'string';
+                case 'int':
+                case 'integer':
+                    return 'number';
+                case 'float':
+                case 'double':
+                    return 'number';
+                case 'boolean':
+                    return 'boolean';
+                case 'object':
+                    return 'object';
+                case 'array':
+                    return 'array';
+                case 'list':
+                    return 'array';
+                case 'map':
+                    return 'object';
+                case 'void':
+                case 'nil':
+                case 'null':
+                    return 'null';
+                default:
+                    return typeWithoutPrefix;
+            }
+        }
+        
+        // Handle GraphQL scalar types
+        switch (graphQLType.toUpperCase()) {
+            case 'STRING':
+                return 'string';
+            case 'INT':
+            case 'INTEGER':
+            case 'FLOAT':
+                return 'number';
+            case 'BOOLEAN':
+                return 'boolean';
+            case 'ID':
+                return 'string';
+            default:
+                // If we can't map it, just lowercase the original type
+                return graphQLType.toLowerCase();
         }
     }
 }
