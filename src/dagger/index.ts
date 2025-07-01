@@ -117,18 +117,6 @@ export default class Cli {
     }
 
     /**
-     * @param str The string to convert from camelCase to kebab-case
-     * @description Converts a camelCase string to kebab-case by inserting hyphens before uppercase letters
-     * and converting the entire string to lowercase.
-     * @returns The kebab-case version of the input string
-     */
-    private camelCaseToKebabCase(str: string): string {
-        return str.replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-            .replace(/([A-Z])([A-Z][a-z])/g, '$1-$2')
-            .toLowerCase();
-    }
-
-    /**
      * Validates if the Dagger command is available in the system
      */
     public async isInstalled(): Promise<boolean> {
@@ -161,7 +149,7 @@ export default class Cli {
      * @throws Error if the query fails or the directory ID is not found
      * @returns The directory ID as a string, or undefined if not found
      */
-    async queryDirectoryId(workspacePath: string): Promise<string | undefined> {
+    public async queryDirectoryId(workspacePath: string): Promise<string | undefined> {
         const query = `
             query($path: String!) {
                 host {
@@ -185,7 +173,7 @@ export default class Cli {
      * @throws Error if the query fails or the module objects are not found
      * @description Queries the Dagger CLI to get the list of functions for the given module
      */
-    async queryModuleFunctions(directoryId: string, workspacePath: string): Promise<ModuleObject[]> {
+    public async queryModuleFunctions(directoryId: string, workspacePath: string): Promise<ModuleObject[]> {
         const query = `
             query($id: DirectoryID!) {
               loadDirectoryFromID(id: $id) {
@@ -216,6 +204,63 @@ export default class Cli {
         // Return the objects array directly, filtering out any null or undefined entries
         return result?.loadDirectoryFromID?.asModule?.objects
             ?.filter(Boolean) ?? [];
+    }
+
+    /*
+    * Sets the workspace path for the CLI commands
+    * @param workspacePath The path to the workspace directory
+    * @throws Error if the workspace path is invalid or does not exist
+    */
+    public setWorkspacePath(workspacePath: string) {
+        if (!workspacePath || !fs.existsSync(workspacePath)) {
+            throw new Error(`Invalid workspace path: ${workspacePath}`);
+        }
+
+        this.workspacePath = workspacePath;
+    }
+
+    /**
+     * Gets the arguments for a specific function by name from the current project.
+     * @param functionName The name of the function to get arguments for (in kebab-case)
+     * @param workspacePath The path to the workspace directory (optional if workspacePath is already set)
+     * @returns A Promise that resolves to an array of function arguments or undefined if not found
+     */
+    public async getFunctionArgsByName(
+        functionName: string,
+        workspacePath?: string
+    ): Promise<FunctionArgument[] | undefined> {
+        try {
+            const path = workspacePath || this.workspacePath;
+            if (!path) {
+                throw new Error('Workspace path is not set. Please provide a workspace path.');
+            }
+
+            // Get all functions from the module
+            const functions = await this.functionsList(path);
+
+            // Find the function with the matching name
+            const targetFunction = functions.find(
+                fn => fn.name.toLowerCase() === functionName.toLowerCase()
+            );
+
+            // Return the arguments if found, undefined otherwise
+            return targetFunction?.args;
+        } catch (error: any) {
+            console.error(`Error getting arguments for function ${functionName}:`, error);
+            throw new Error(`Failed to get arguments for function '${functionName}': ${error.message}`);
+        }
+    }
+
+    /**
+     * @param str The string to convert from camelCase to kebab-case
+     * @description Converts a camelCase string to kebab-case by inserting hyphens before uppercase letters
+     * and converting the entire string to lowercase.
+     * @returns The kebab-case version of the input string
+     */
+    private camelCaseToKebabCase(str: string): string {
+        return str.replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+            .replace(/([A-Z])([A-Z][a-z])/g, '$1-$2')
+            .toLowerCase();
     }
 
     /**
@@ -271,51 +316,6 @@ export default class Cli {
             console.error('Variables:', varJson);
             console.error('Working directory:', path);
             throw new Error(`Failed to execute GraphQL query: ${error.message || error}`);
-        }
-    }
-
-    /*
-    * Sets the workspace path for the CLI commands
-    * @param workspacePath The path to the workspace directory
-    * @throws Error if the workspace path is invalid or does not exist
-    */
-    public setWorkspacePath(workspacePath: string) {
-        if (!workspacePath || !fs.existsSync(workspacePath)) {
-            throw new Error(`Invalid workspace path: ${workspacePath}`);
-        }
-
-        this.workspacePath = workspacePath;
-    }
-
-    /**
-     * Gets the arguments for a specific function by name from the current project.
-     * @param functionName The name of the function to get arguments for (in kebab-case)
-     * @param workspacePath The path to the workspace directory (optional if workspacePath is already set)
-     * @returns A Promise that resolves to an array of function arguments or undefined if not found
-     */
-    public async getFunctionArgsByName(
-        functionName: string,
-        workspacePath?: string
-    ): Promise<FunctionArgument[] | undefined> {
-        try {
-            const path = workspacePath || this.workspacePath;
-            if (!path) {
-                throw new Error('Workspace path is not set. Please provide a workspace path.');
-            }
-
-            // Get all functions from the module
-            const functions = await this.functionsList(path);
-
-            // Find the function with the matching name
-            const targetFunction = functions.find(
-                fn => fn.name.toLowerCase() === functionName.toLowerCase()
-            );
-
-            // Return the arguments if found, undefined otherwise
-            return targetFunction?.args;
-        } catch (error: any) {
-            console.error(`Error getting arguments for function ${functionName}:`, error);
-            throw new Error(`Failed to get arguments for function '${functionName}': ${error.message}`);
         }
     }
 
