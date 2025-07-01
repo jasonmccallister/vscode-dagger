@@ -109,10 +109,45 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
         this.loadData();
     }
 
-
     private async loadData(): Promise<void> {
+        // Create a cancellation token source to allow cancellation
+        const cancellationTokenSource = new vscode.CancellationTokenSource();
+
+        // Set up a timeout to show a progress notification if loading takes > 2 seconds
+        let progressResolve: (() => void) | undefined;
+        const loadingTimeout = setTimeout(() => {
+            const progressPromise = new Promise<void>((resolve) => {
+                progressResolve = resolve;
+            });
+
+            // Use a cancellable progress notification
+            vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: 'Dagger',
+                cancellable: true
+            }, async (progress, token) => {
+                progress.report({ message: 'Loading Dagger functions...' });
+
+                // Set up cancellation handling
+                token.onCancellationRequested(() => {
+                    cancellationTokenSource.cancel();
+                    progressResolve?.();
+
+                    // Show cancelled state in the tree view
+                    this.items = [new Item('⚠️ Function loading cancelled', 'empty')];
+                    this.refresh();
+                });
+
+                return progressPromise;
+            });
+        }, 2000);
+
         try {
             // Check if Dagger is installed and workspace is a Dagger project
+            if (cancellationTokenSource.token.isCancellationRequested) {
+                return;
+            }
+
             if (!await this.cli.isInstalled()) {
                 this.items = [
                     new Item(
@@ -130,6 +165,10 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
                     )
                 ];
                 this.refresh();
+                return;
+            }
+
+            if (cancellationTokenSource.token.isCancellationRequested) {
                 return;
             }
 
@@ -153,7 +192,15 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
                 return;
             }
 
+            if (cancellationTokenSource.token.isCancellationRequested) {
+                return;
+            }
+
             const functions = await this.cli.functionsList(this.workspacePath);
+
+            if (cancellationTokenSource.token.isCancellationRequested) {
+                return;
+            }
 
             if (functions.length === 0) {
                 this.items = [
@@ -170,6 +217,10 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
                     )
                 ];
                 this.refresh();
+                return;
+            }
+
+            if (cancellationTokenSource.token.isCancellationRequested) {
                 return;
             }
 
@@ -198,9 +249,9 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
 
                 // Pre-load function arguments as children
                 if (fn.args && fn.args.length > 0) {
-                    functionItem.children = fn.args.map(arg => 
+                    functionItem.children = fn.args.map(arg =>
                         new Item(
-                            `--${arg.name} (${arg.type})${arg.required ? ' [required]' : ''}`, 
+                            `--${arg.name} (${arg.type})${arg.required ? ' [required]' : ''}`,
                             'argument'
                         )
                     );
@@ -213,9 +264,19 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
 
             this.refresh();
         } catch (error) {
-            console.error('Failed to load Dagger functions:', error);
-            this.items = [new Item('Failed to load functions', 'empty')];
-            this.refresh();
+            // Only show error if not cancelled
+            if (!cancellationTokenSource.token.isCancellationRequested) {
+                console.error('Failed to load Dagger functions:', error);
+                this.items = [new Item('Failed to load functions', 'empty')];
+                this.refresh();
+            }
+        } finally {
+            // Clean up the timeout and resolve the progress promise if it exists
+            clearTimeout(loadingTimeout);
+            if (progressResolve) {
+                progressResolve();
+            }
+            cancellationTokenSource.dispose();
         }
     }
 
@@ -224,8 +285,51 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
         this.items = [new Item('Reloading Dagger functions...', 'empty')];
         this.refresh();
 
-        // Reload data asynchronously
-        await this.loadData();
+        // Create a cancellation token source to allow cancellation
+        const cancellationTokenSource = new vscode.CancellationTokenSource();
+
+        // Set up a timeout to show a progress notification if loading takes > 2 seconds
+        let progressResolve: (() => void) | undefined;
+        const loadingTimeout = setTimeout(() => {
+            const progressPromise = new Promise<void>((resolve) => {
+                progressResolve = resolve;
+            });
+
+            vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: 'Dagger',
+                cancellable: true
+            }, async (progress, token) => {
+                progress.report({ message: 'Reloading Dagger functions...' });
+
+                // Set up cancellation handling
+                token.onCancellationRequested(() => {
+                    cancellationTokenSource.cancel();
+                    progressResolve?.();
+
+                    // Show cancelled state in the tree view
+                    this.items = [new Item('⚠️ Function reload cancelled', 'empty')];
+                    this.refresh();
+                });
+
+                return progressPromise;
+            });
+        }, 2000);
+
+        try {
+            // Check if already cancelled
+            if (!cancellationTokenSource.token.isCancellationRequested) {
+                // Reload data asynchronously
+                await this.loadData();
+            }
+        } finally {
+            // Clean up the timeout and resolve the progress promise if it exists
+            clearTimeout(loadingTimeout);
+            if (progressResolve) {
+                progressResolve();
+            }
+            cancellationTokenSource.dispose();
+        }
     }
 
     refresh(): void {
