@@ -11,11 +11,6 @@ interface TreeViewConfig {
     registerTreeCommands?: boolean; // Flag to control command registration
 }
 
-// Global references to tree view and data provider for expand all functionality
-let globalTreeView: vscode.TreeView<Item> | undefined;
-let globalDataProvider: DataProvider | undefined;
-
-
 // Constants to eliminate magic strings and numbers
 const TREE_VIEW_ID = 'daggerTreeView';
 const FUNCTION_ICON_NAME = 'symbol-function';
@@ -34,29 +29,22 @@ export const registerTreeView = (
     const cli = config.cli!;
 
     const dataProvider = new DataProvider(cli, workspacePath);
-    globalDataProvider = dataProvider;
 
     const treeView = vscode.window.createTreeView(TREE_VIEW_ID, {
         treeDataProvider: dataProvider,
         showCollapseAll: TREE_VIEW_OPTIONS.SHOW_COLLAPSE_ALL,
         canSelectMany: TREE_VIEW_OPTIONS.CAN_SELECT_MANY
     });
-    globalTreeView = treeView;
 
     // register the refresh command here so we can access the tree view and data provider in the callback
     const refreshCommand = vscode.commands.registerCommand(REFRESH_COMMAND, async () => {
-        if (!globalDataProvider) {
-            vscode.window.showErrorMessage('Dagger tree view is not initialized.');
-            return;
-        }
         try {
-            globalDataProvider.reloadFunctions();
+            dataProvider.reloadFunctions();
         } catch (error) {
             console.error('Failed to reload Dagger functions:', error);
             vscode.window.showErrorMessage('Failed to reload Dagger functions. Check the console for details');
         }
     });
-
 
     context.subscriptions.push(treeView, refreshCommand);
 };

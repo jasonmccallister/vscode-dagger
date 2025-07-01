@@ -46,12 +46,6 @@
     ],
     "commands": [
       {
-        "command": "dagger.temp",
-        "title": "Temp",
-        "category": "Dagger",
-        "shortTitle": "Temp"
-      },
-      {
         "command": "dagger.init",
         "title": "Initialize Project",
         "category": "Dagger",
