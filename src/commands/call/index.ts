@@ -60,7 +60,7 @@ export const registerCallCommand = (
 
             // get the selected function arguments - use the CLI workspace path consistently
             try {
-                const args = await cli.getFunctionArguments(selectedFunction, workspacePathForCli);
+                const args = await cli.getFunctionArgsByName(selectedFunction, workspacePathForCli);
                 if (!args) {
                     vscode.window.showErrorMessage(`Failed to get arguments for function '${selectedFunction}' - no arguments returned`);
                     return;

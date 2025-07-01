@@ -1,8 +1,7 @@
 import * as assert from 'assert';
 import { describe, it, beforeEach } from 'mocha';
-import { DataProvider, Item } from '../../tree/provider';
+import { DataProvider } from '../../tree/provider';
 import Cli, { FunctionInfo } from '../../dagger';
-import sinon from 'sinon';
 
 describe('Tree Provider', () => {
     let mockCli: Partial<Cli>;
@@ -13,7 +12,7 @@ describe('Tree Provider', () => {
             isInstalled: async () => true,
             isDaggerProject: async () => true,
             functionsList: async () => [],
-            getFunctionArguments: async () => []
+            getFunctionArgsByName: async () => []
         };
     });
 
@@ -26,13 +25,13 @@ describe('Tree Provider', () => {
         mockCli.functionsList = async () => testFunctions;
         mockCli.isInstalled = async () => true;
         mockCli.isDaggerProject = async () => true;
-        
+
         // Act
         dataProvider = new DataProvider(mockCli as Cli, '');
         // Wait for async loadData to finish
         await new Promise(resolve => setTimeout(resolve, 10));
         const children = await dataProvider.getChildren();
-        
+
         // Assert
         assert.strictEqual(children.length, 2);
         assert.strictEqual(children[0].label, 'testFunc1');

@@ -10,9 +10,11 @@ import { registerTerminalProvider } from './terminal';
 
 export async function activate(context: vscode.ExtensionContext) {
 	try {
+		const cli = new Cli();
+
 		const commandManager = new CommandManager({
 			context,
-			cli: new Cli(),
+			cli: cli,
 			workspacePath: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '',
 		});
 

@@ -70,31 +70,6 @@ export default class Cli {
         }
     }
 
-    /**
-     * Runs a Dagger command with a VS Code progress window
-     * @param args Arguments to pass to the command
-     * @param options Options for running the command, such as timeout and working directory
-     * @param progressTitle Title for the progress window
-     * @param progressMessage Optional message to show during execution
-     * @returns A Promise that resolves to a CommandResult
-     */
-    public async runWithProgress(
-        args: string[] = [],
-        options: { timeout?: number; cwd?: string } = {},
-        progressMessage?: string
-    ): Promise<CommandResult> {
-        return await vscode.window.withProgress({
-            location: vscode.ProgressLocation.Notification,
-            title: 'Dagger',
-            cancellable: false
-        }, async (progress) => {
-            if (progressMessage) {
-                progress.report({ message: progressMessage });
-            }
-            return await this.run(args, options);
-        });
-    }
-
     public async functionsList(workspacePath: string): Promise<FunctionInfo[]> {
         const id = await this.queryDirectoryId(workspacePath);
         if (!id) {
@@ -116,10 +91,10 @@ export default class Cli {
                         args: func.args.map(arg => {
                             // Primary method: Use the optional property if available
                             // Fallback: Check description for [required] if optional property is not set
-                            const isRequired = arg.typeDef.optional === undefined 
+                            const isRequired = arg.typeDef.optional === undefined
                                 ? arg.description?.includes('[required]') || false
                                 : !arg.typeDef.optional;
-                                
+
                             return {
                                 name: this.camelCaseToKebabCase(arg.name),
                                 type: arg.typeDef.kind,
@@ -134,6 +109,12 @@ export default class Cli {
         return functions;
     }
 
+    /**
+     * @param str The string to convert from camelCase to kebab-case
+     * @description Converts a camelCase string to kebab-case by inserting hyphens before uppercase letters
+     * and converting the entire string to lowercase.
+     * @returns The kebab-case version of the input string
+     */
     private camelCaseToKebabCase(str: string): string {
         return str.replace(/([a-z0-9])([A-Z])/g, '$1-$2')
             .replace(/([A-Z])([A-Z][a-z])/g, '$1-$2')
@@ -148,6 +129,10 @@ export default class Cli {
         return result.stdout !== '' && result.stdout.includes('dagger');
     }
 
+    /**
+     * Checks if the current workspace is a Dagger project by looking for dagger.json
+     * @returns A Promise that resolves to true if dagger.json exists, false otherwise
+     */
     public async isDaggerProject(): Promise<boolean> {
         const projectRoot = this.workspacePath ??
             vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ??
@@ -158,26 +143,6 @@ export default class Cli {
             return stats.isFile();
         } catch {
             return false; // If dagger.json file does not exist, return false
-        }
-    }
-
-    /**
-     * Retrieves the list of functions available in the Dagger module for the given workspace path.
-     * @param workspacePath The path to the Dagger project directory
-     * @returns A Promise that resolves to an array of FunctionInfo objects
-     */
-    public async getFunctions(workspacePath: string): Promise<ModuleObject[]> {
-        try {
-            const id = await this.queryDirectoryId(workspacePath);
-            if (!id) {
-                throw new Error(`No directory ID found for workspace path: ${workspacePath}`);
-            }
-
-            const objects = await this.queryModuleFunctions(id, workspacePath);
-            return objects.filter(obj => obj.asObject !== undefined);
-        } catch (error: any) {
-            console.error(`Error getting functions: ${error.message}`);
-            throw error;
         }
     }
 
@@ -205,6 +170,14 @@ export default class Cli {
         return result?.host?.directory?.id;
     }
 
+    /**
+     * Queries the Dagger CLI to get the list of functions for the given module.
+     * @param directoryId The ID of the directory to query
+     * @param workspacePath The path to the Dagger project directory
+     * @returns A Promise that resolves to an array of ModuleObjects, each containing function details
+     * @throws Error if the query fails or the module objects are not found
+     * @description Queries the Dagger CLI to get the list of functions for the given module
+     */
     async queryModuleFunctions(directoryId: string, workspacePath: string): Promise<ModuleObject[]> {
         const query = `
             query($id: DirectoryID!) {
@@ -305,6 +278,38 @@ export default class Cli {
         }
 
         this.workspacePath = workspacePath;
+    }
+
+    /**
+     * Gets the arguments for a specific function by name from the current project.
+     * @param functionName The name of the function to get arguments for (in kebab-case)
+     * @param workspacePath The path to the workspace directory (optional if workspacePath is already set)
+     * @returns A Promise that resolves to an array of function arguments or undefined if not found
+     */
+    public async getFunctionArgsByName(
+        functionName: string,
+        workspacePath?: string
+    ): Promise<FunctionArgument[] | undefined> {
+        try {
+            const path = workspacePath || this.workspacePath;
+            if (!path) {
+                throw new Error('Workspace path is not set. Please provide a workspace path.');
+            }
+
+            // Get all functions from the module
+            const functions = await this.functionsList(path);
+
+            // Find the function with the matching name
+            const targetFunction = functions.find(
+                fn => fn.name.toLowerCase() === functionName.toLowerCase()
+            );
+
+            // Return the arguments if found, undefined otherwise
+            return targetFunction?.args;
+        } catch (error: any) {
+            console.error(`Error getting arguments for function ${functionName}:`, error);
+            throw new Error(`Failed to get arguments for function '${functionName}': ${error.message}`);
+        }
     }
 }
 
