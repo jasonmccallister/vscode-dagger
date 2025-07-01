@@ -1,8 +1,6 @@
 import * as vscode from 'vscode';
 import { execFileSync } from 'child_process';
-import * as path from 'path';
 import { ICON_PATH_BLACK, ICON_PATH_WHITE } from '../const';
-
 
 /**
  * Registers a terminal profile provider for Dagger.
