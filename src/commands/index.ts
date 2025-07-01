@@ -34,18 +34,18 @@ export default class CommandManager {
         }
 
         // Register all commands
-        registerUpdateCommand(this.options.context, this.options.cli);
-        registerUninstallCommand(this.options.context);
-        registerVersionCommand(this.options.context, this.options.cli);
-        registerInitCommand(this.options.context, this.options.cli);
-        registerDevelopCommand(this.options.context, this.options.cli, this.options.workspacePath);
-        registerCloudCommand(this.options.context, this.options.cli);
-        registerFunctionsCommand(this.options.context);
-        registerResetCommand(this.options.context);
-        registerShellCommand(this.options.context, this.options.workspacePath);
         registerCallCommand(this.options.context, this.options.cli, this.options.workspacePath);
+        registerCloudCommand(this.options.context, this.options.cli);
+        registerDevelopCommand(this.options.context, this.options.cli, this.options.workspacePath);
+        registerFunctionsCommand(this.options.context);
+        registerInitCommand(this.options.context, this.options.cli);
         registerInstallModuleCommand(this.options.context, this.options.cli);
+        registerResetCommand(this.options.context);
         registerSaveTaskCommand(this.options.context, this.options.cli, this.options.workspacePath);
+        registerShellCommand(this.options.context, this.options.workspacePath);
+        registerUninstallCommand(this.options.context);
+        registerUpdateCommand(this.options.context, this.options.cli);
+        registerVersionCommand(this.options.context, this.options.cli);
 
         // Register tree view for environments with CLI and workspace path
         registerTreeView(this.options.context, { cli: this.options.cli, workspacePath: this.options.workspacePath, registerTreeCommands: true });

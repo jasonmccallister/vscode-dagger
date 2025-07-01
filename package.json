@@ -166,12 +166,6 @@
           "description": "Whether the Dagger Cloud setup notification has been permanently dismissed",
           "scope": "application"
         },
-        "dagger.autoExecute": {
-          "type": "boolean",
-          "default": true,
-          "description": "Whether to automatically execute commands in the terminal when using Dagger",
-          "scope": "window"
-        },
         "dagger.experimentalFeatures": {
           "type": "boolean",
           "default": false,
@@ -181,7 +175,7 @@
         "dagger.saveTaskPromptDismissed": {
           "type": "boolean",
           "default": false,
-          "description": "Whether the save task notification has been permanently dismissed",
+          "description": "Whether the save task notificaxtion has been permanently dismissed",
           "scope": "application"
         },
         "dagger.functionCalls.runInBackground": {
