@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import Cli from '../dagger';
-import { registerExpandCommand } from '../commands/expand';
 import { COMMAND as INIT_COMMAND } from '../commands/init';
 import { COMMAND as REFRESH_COMMAND } from '../commands/refresh';
 
@@ -57,9 +56,6 @@ export const registerTreeView = (
             vscode.window.showErrorMessage('Failed to reload Dagger functions. Check the console for details');
         }
     });
-
-    // register the expand all command
-    registerExpandCommand(context, () => globalTreeView, () => globalDataProvider);
 
 
     context.subscriptions.push(treeView, refreshCommand);
@@ -237,7 +233,7 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
 
     async reloadFunctions(): Promise<void> {
         // Show loading state
-        this.items = [new Item('🔄 Reloading Dagger functions...', 'empty')];
+        this.items = [new Item('Reloading Dagger functions...', 'empty')];
         this.refresh();
 
         // Reload data asynchronously
