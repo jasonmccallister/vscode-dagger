@@ -32,8 +32,7 @@
   "license": "MIT",
   "activationEvents": [
     "workspaceContains:**dagger.json",
-    "onChatParticipant:dagger",
-    "onTerminalProfile:dagger.terminal-profile"
+    "onChatParticipant:dagger"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -46,6 +45,12 @@
       }
     ],
     "commands": [
+      {
+        "command": "dagger.temp",
+        "title": "Temp",
+        "category": "Dagger",
+        "shortTitle": "Temp"
+      },
       {
         "command": "dagger.init",
         "title": "Initialize Project",

@@ -212,6 +212,18 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
                 }
                 functionItem.tooltip = tooltip;
 
+                // Pre-load function arguments as children
+                if (fn.args && fn.args.length > 0) {
+                    functionItem.children = fn.args.map(arg => 
+                        new Item(
+                            `--${arg.name} (${arg.type})${arg.required ? ' [required]' : ''}`, 
+                            'argument'
+                        )
+                    );
+                } else {
+                    functionItem.children = [new Item('No arguments', 'empty')];
+                }
+
                 return functionItem;
             });
 
@@ -245,55 +257,8 @@ export class DataProvider implements vscode.TreeDataProvider<Item> {
             return this.items;
         }
 
-        // Lazy load function arguments when function is expanded
-        if (element.type === 'function' && element.id) {
-            return this.loadFunctionArguments(element);
-        }
-
+        // Return the pre-loaded children if available
         return element.children ?? [];
-    }
-
-    private async loadFunctionArguments(functionItem: Item): Promise<Item[]> {
-        const functionName = functionItem.id;
-
-        // Validate function name
-        if (!functionName || typeof functionName !== 'string' || !functionName.trim()) {
-            console.error('Invalid function name for loading arguments:', functionName);
-            const errorItem = new Item('❌ Invalid function name', 'empty');
-            functionItem.children = [errorItem];
-            this.refresh();
-            return [errorItem];
-        }
-
-        const trimmedFunctionName = functionName.trim();
-
-        // Check if arguments are already loaded
-        if (functionItem.children && functionItem.children.length > 0) {
-            return functionItem.children;
-        }
-
-        try {
-            // Show loading state
-            const loadingItem = new Item('🔄 Loading arguments...', 'empty');
-            functionItem.children = [loadingItem];
-            this.refresh();
-
-            // Load arguments from CLI
-            const args = await this.cli.getFunctionArguments(trimmedFunctionName, this.workspacePath);
-
-            // Create argument items
-            const children = args.map(arg => new Item(`--${arg.name} (${arg.type})${arg.required ? ' [required]' : ''}`, 'argument'));
-            functionItem.children = children;
-        } catch (error) {
-            console.error(`Failed to get arguments for function ${trimmedFunctionName}:`, error);
-            const errorItem = new Item('❌ Failed to load arguments', 'empty');
-            functionItem.children = [errorItem];
-        } finally {
-            // Ensure the loading notice is cleared
-            this.refresh();
-        }
-
-        return functionItem.children;
     }
 
     getParent(element: Item): Item | undefined {

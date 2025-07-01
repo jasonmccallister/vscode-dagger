@@ -2,6 +2,7 @@ import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { DirectoryIdResult, ModuleObject, ModuleResult } from './types';
 
 export interface CommandResult {
     readonly stdout: string;
@@ -13,6 +14,7 @@ export interface CommandResult {
 export interface FunctionInfo {
     readonly name: string;
     readonly description?: string;
+    readonly args?: FunctionArgument[];
 }
 
 export interface FunctionArgument {
@@ -93,55 +95,49 @@ export default class Cli {
         });
     }
 
-    public async functionsList(targetPath: string): Promise<FunctionInfo[]> {
-        const result = await this.run(['functions'], { cwd: targetPath });
-        if (!result.success) {
-            throw new Error(`Failed to list functions: ${result.stderr}`);
-        }
-
-        if (!result.stdout) {
+    public async functionsList(workspacePath: string): Promise<FunctionInfo[]> {
+        const id = await this.queryDirectoryId(workspacePath);
+        if (!id) {
             return [];
         }
 
-        console.log('Raw dagger functions output:', result.stdout);
-
-        const lines = result.stdout.split('\n').map(line => line.trim());
-        const headerIdx = lines.findIndex(line => 
-            line.toLowerCase().includes('name') && line.toLowerCase().includes('description')
-        );
-        
-        if (headerIdx === -1) {
-            console.log('No header found in functions output. Lines:', lines);
+        const objects = await this.queryModuleFunctions(id, workspacePath);
+        if (!objects || objects.length === 0) {
             return [];
         }
 
-        const functions = lines.slice(headerIdx + 1)
-            .filter(line => line && !/^[-▶]/.test(line))
-            .map(line => {
-                // Split by 2+ spaces
-                const [name, ...descParts] = line.split(/\s{2,}/);
-                const trimmedName = name.trim();
-                
-                // Debug logging
-                console.log(`Parsing function line: "${line}"`);
-                console.log(`Extracted name: "${trimmedName}", type: ${typeof trimmedName}`);
-                
-                // Additional validation
-                if (!trimmedName || typeof trimmedName !== 'string') {
-                    console.warn(`Invalid function name extracted from line: "${line}"`);
-                    return null;
+        const functions: FunctionInfo[] = [];
+        for (const obj of objects) {
+            if (obj.asObject) {
+                for (const func of obj.asObject.functions) {
+                    functions.push({
+                        name: this.camelCaseToKebabCase(func.name),
+                        description: func.description,
+                        args: func.args.map(arg => {
+                            // Primary method: Use the optional property if available
+                            // Fallback: Check description for [required] if optional property is not set
+                            const isRequired = arg.typeDef.optional === undefined 
+                                ? arg.description?.includes('[required]') || false
+                                : !arg.typeDef.optional;
+                                
+                            return {
+                                name: this.camelCaseToKebabCase(arg.name),
+                                type: arg.typeDef.kind,
+                                required: isRequired
+                            };
+                        })
+                    });
                 }
-                
-                const functionInfo: FunctionInfo = { 
-                    name: trimmedName, 
-                    description: descParts.join(' ').trim() || undefined 
-                };
-                
-                return functionInfo;
-            })
-            .filter((fn): fn is FunctionInfo => fn !== null);
+            }
+        }
 
         return functions;
+    }
+
+    private camelCaseToKebabCase(str: string): string {
+        return str.replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+            .replace(/([A-Z])([A-Z][a-z])/g, '$1-$2')
+            .toLowerCase();
     }
 
     /**
@@ -153,8 +149,8 @@ export default class Cli {
     }
 
     public async isDaggerProject(): Promise<boolean> {
-        const projectRoot = this.workspacePath ?? 
-            vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? 
+        const projectRoot = this.workspacePath ??
+            vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ??
             process.cwd();
 
         try {
@@ -166,39 +162,136 @@ export default class Cli {
     }
 
     /**
-     * Gets the arguments for a given Dagger function by parsing the output of `dagger call <function-name> -h`
+     * Retrieves the list of functions available in the Dagger module for the given workspace path.
+     * @param workspacePath The path to the Dagger project directory
+     * @returns A Promise that resolves to an array of FunctionInfo objects
      */
-    public async getFunctionArguments(name: string, targetPath: string): Promise<FunctionArgument[]> {
-        const result = await this.run(['call', name, '-h'], { cwd: targetPath });
-        if (!result.success) {
-            throw new Error(`Failed to get arguments for function '${name}': ${result.stderr}`);
-        }
-
-        const lines = result.stdout.split('\n').map(line => line.trim());
-        const argsStart = lines.findIndex(line => line.includes('\x1b[1mARGUMENTS\x1b'));
-        if (argsStart === -1) {
-            return [];
-        }
-
-        const args: FunctionArgument[] = [];
-        for (let i = argsStart + 1; i < lines.length; i++) {
-            const line = lines[i];
-            console.log(`Parsing line: ${line}`);
-            // Stop at next section (all uppercase, min 2 chars) or empty line
-            if (!line || (/^[A-Z][A-Z0-9 \-]+$/.test(line) && line.length > 2)) {
-                break;
+    public async getFunctions(workspacePath: string): Promise<ModuleObject[]> {
+        try {
+            const id = await this.queryDirectoryId(workspacePath);
+            if (!id) {
+                throw new Error(`No directory ID found for workspace path: ${workspacePath}`);
             }
-            // Match: --arg-name [type]   [required] or --arg-name type   [required]
-            const match = line.match(/^--([a-zA-Z0-9-_]+)\s+(\[?[a-zA-Z0-9-_]+\]?)(?:\s+\[required\])?/);
-            if (match) {
-                args.push({
-                    name: match[1],
-                    type: match[2].replace(/\[|\]/g, ''),
-                    required: /\[required\]/.test(line)
+
+            const objects = await this.queryModuleFunctions(id, workspacePath);
+            return objects.filter(obj => obj.asObject !== undefined);
+        } catch (error: any) {
+            console.error(`Error getting functions: ${error.message}`);
+            throw error;
+        }
+    }
+
+    /**
+     * Queries the Dagger CLI to get the directory ID for the given workspace path.
+     * 
+     * @param workspacePath The path to the Dagger project directory
+     * @description Queries the Dagger CLI to get the directory ID for the given workspace path
+     * @throws Error if the query fails or the directory ID is not found
+     * @returns The directory ID as a string, or undefined if not found
+     */
+    async queryDirectoryId(workspacePath: string): Promise<string | undefined> {
+        const query = `
+            query($path: String!) {
+                host {
+                    directory(path: $path) {
+                        id
+                    }
+                }
+            }
+        `;
+
+        const result = (await this.query(query, { path: workspacePath }, workspacePath)) as DirectoryIdResult;
+
+        return result?.host?.directory?.id;
+    }
+
+    async queryModuleFunctions(directoryId: string, workspacePath: string): Promise<ModuleObject[]> {
+        const query = `
+            query($id: DirectoryID!) {
+              loadDirectoryFromID(id: $id) {
+                asModule {
+                  name
+                  objects {
+                    asObject {
+                      name
+                      functions {
+                        name
+                        description
+                        args {
+                          name
+                          description
+                          typeDef {
+                            kind
+                            optional
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          `;
+        const result = (await this.query(query, { id: directoryId }, workspacePath)) as ModuleResult;
+        // Return the objects array directly, filtering out any null or undefined entries
+        return result?.loadDirectoryFromID?.asModule?.objects
+            ?.filter(Boolean) ?? [];
+    }
+
+    /**
+     * Executes a GraphQL query using the Dagger CLI with input variables and returns the parsed result.
+     * @param query The GraphQL query string
+     * @param variables The input variables as an object
+     * @param options Optional run options
+     */
+    private async query(
+        query: string,
+        variables: Record<string, unknown> = {},
+        path: string,
+    ): Promise<unknown> {
+        const varJson = JSON.stringify(variables);
+        try {
+            const child = require('child_process').spawn(
+                this.command,
+                ['query', '--var-json', varJson],
+                {
+                    cwd: path,
+                    env: process.env,
+                    stdio: ['pipe', 'pipe', 'pipe']
+                }
+            );
+
+            let stdout = '';
+            let stderr = '';
+
+            child.stdout.on('data', (data: Buffer) => {
+                stdout += data.toString();
+            });
+            child.stderr.on('data', (data: Buffer) => {
+                stderr += data.toString();
+            });
+
+            child.stdin.write(query);
+            child.stdin.end();
+
+            await new Promise((resolve, reject) => {
+                child.on('close', (code: number) => {
+                    if (code !== 0) {
+                        reject(new Error(stderr || `Dagger exited with code ${code}`));
+                    } else {
+                        resolve(undefined);
+                    }
                 });
-            }
+            });
+
+            return JSON.parse(stdout);
+        } catch (error: any) {
+            console.error('Error executing GraphQL query:', error);
+            console.error('Query:', query);
+            console.error('Variables:', varJson);
+            console.error('Working directory:', path);
+            throw new Error(`Failed to execute GraphQL query: ${error.message || error}`);
         }
-        return args;
     }
 
     /*
