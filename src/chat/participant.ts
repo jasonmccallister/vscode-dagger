@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { searchDocs as defaultSearchDocs, SearchResponse as ISearchResponse } from './search';
-import { CHAT_PARTICIPANT_NAME, CHAT_PARTICIPANT_DESCRIPTION, CHAT_PARTICIPANT_ICON_DEFAULT, EXTENSION_ID, ICON_PATH_WHITE } from '../const';
+import { CHAT_PARTICIPANT_NAME, CHAT_PARTICIPANT_DESCRIPTION, CHAT_PARTICIPANT_ICON_DEFAULT, EXTENSION_ID, ICON_PATH_WHITE, ICON_PATH_BLACK } from '../const';
 
 
 const BASE_PROMPT = `Summarize the following user question into a concise search query for Dagger documentation (try to keep the query to two or three words):\nAlso, Dagger is about Dagger.io - not the dependency management tool from Google.`;
@@ -9,12 +9,12 @@ export class ChatParticipant {
     public readonly name = CHAT_PARTICIPANT_NAME;
     public readonly description = CHAT_PARTICIPANT_DESCRIPTION;
     public readonly sticky = true;
-    public readonly iconPath: string | vscode.ThemeIcon;
+    public readonly iconPath: string | vscode.ThemeIcon | { light: vscode.Uri; dark: vscode.Uri };
     private readonly _searchDocs: (query: string) => Promise<ISearchResponse | string>;
 
     constructor(
         searchDocsDep: (query: string) => Promise<ISearchResponse | string> = defaultSearchDocs,
-        iconPath?: string | vscode.ThemeIcon
+        iconPath?: string | vscode.ThemeIcon | { light: vscode.Uri; dark: vscode.Uri }
     ) {
         this._searchDocs = searchDocsDep;
         this.iconPath = iconPath ?? new vscode.ThemeIcon(CHAT_PARTICIPANT_ICON_DEFAULT);
@@ -111,10 +111,14 @@ export const chatRequestHandler: vscode.ChatRequestHandler = async (
     }
 
     // 2. Get the extension and icon path, then call the search API with the summarized query
-    let iconPath: string | vscode.ThemeIcon = new vscode.ThemeIcon(CHAT_PARTICIPANT_ICON_DEFAULT);
+    let iconPath: string | vscode.ThemeIcon | vscode.Uri | { light: vscode.Uri; dark: vscode.Uri } = new vscode.ThemeIcon(CHAT_PARTICIPANT_ICON_DEFAULT);
     const ext = vscode.extensions.getExtension(EXTENSION_ID);
     if (ext) {
-        iconPath = vscode.Uri.joinPath(ext.extensionUri, ICON_PATH_WHITE).toString();
+        // Use theme-aware icon with light/dark variations
+        iconPath = {
+            light: vscode.Uri.joinPath(ext.extensionUri, ICON_PATH_BLACK),
+            dark: vscode.Uri.joinPath(ext.extensionUri, ICON_PATH_WHITE)
+        };
     }
     const participant = new ChatParticipant(undefined, iconPath);
     const result = await participant.searchDocs(searchQuery);

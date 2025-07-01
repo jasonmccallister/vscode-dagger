@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { EXTENSION_NAME, ICON_PATH_WHITE } from '../../const';
+import { EXTENSION_NAME, ICON_PATH_BLACK, ICON_PATH_WHITE } from '../../const';
 
 const COMMAND = 'dagger.shell';
 const shellCommand = 'dagger shell';
@@ -26,7 +26,10 @@ export const registerShellCommand = (
 
             const newTerminal = vscode.window.createTerminal({
                 name: EXTENSION_NAME,
-                iconPath: vscode.Uri.file(path.join(context.extensionPath, ICON_PATH_WHITE)),
+                iconPath: {
+                    light: vscode.Uri.file(path.join(context.extensionPath, ICON_PATH_BLACK)),
+                    dark: vscode.Uri.file(path.join(context.extensionPath, ICON_PATH_WHITE))
+                },
                 cwd: workspacePath
             });
             newTerminal.show();

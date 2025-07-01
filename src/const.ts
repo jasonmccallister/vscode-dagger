@@ -10,6 +10,7 @@ export const EXTENSION_ID = 'vscode-dagger';
 // Icon paths (relative to extension root)
 export const ICON_PATH = 'images/icon.png';
 export const ICON_PATH_WHITE = 'images/icon-white.png';
+export const ICON_PATH_BLACK = 'images/icon-black.png';
 
 // Install commands
 export const INSTALL_COMMAND_HOMEBREW = 'brew install dagger/tap/dagger';

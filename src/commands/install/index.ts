@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as os from 'os';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { ICON_PATH_BLACK, ICON_PATH_WHITE } from '../../const';
 
 const COMMAND = 'dagger.install';
 const execAsync = promisify(exec);
@@ -155,8 +156,8 @@ const handleInstallation = async (result: InstallResult, installationMethod?: st
             const terminal = vscode.window.createTerminal({
                 name: 'Dagger',
                 iconPath: {
-                    light: vscode.Uri.joinPath(context.extensionUri, 'images', 'icon.png'),
-                    dark: vscode.Uri.joinPath(context.extensionUri, 'images', 'icon-white.png')
+                    light: vscode.Uri.joinPath(context.extensionUri, ICON_PATH_BLACK),
+                    dark: vscode.Uri.joinPath(context.extensionUri, ICON_PATH_WHITE)
                 }
             });
             terminal.show();

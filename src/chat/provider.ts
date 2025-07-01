@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { ICON_PATH_BLACK, ICON_PATH_WHITE } from '../const';
 
 interface ButtonConfig {
     readonly command: string;
@@ -22,31 +23,6 @@ const FOLLOWUP_SUGGESTIONS: FollowupSuggestion[] = [
         title: 'View examples'
     }
 ];
-
-/**
- * Checks if experimental features are enabled and handles the response if not
- * @param stream The chat response stream
- * @returns true if enabled, false if disabled (and response sent)
- */
-const checkExperimentalFeatures = (stream: vscode.ChatResponseStream): boolean => {
-    const config = vscode.workspace.getConfiguration('dagger');
-    const experimentalFeaturesEnabled = config.get<boolean>('experimentalFeatures', false);
-
-    if (!experimentalFeaturesEnabled) {
-        stream.markdown('❌ **Experimental features are disabled**\n\nThis chat participant requires experimental features to be enabled.');
-        stream.markdown('\nTo enable experimental features:\n1. Open VS Code Settings\n2. Search for "dagger experimental"\n3. Enable "Dagger: Experimental Features"');
-        
-        const settingsButton: ButtonConfig = {
-            command: 'workbench.action.openSettings',
-            title: 'Open Settings',
-            arguments: ['dagger.experimentalFeatures']
-        };
-        stream.button(settingsButton);
-        return false;
-    }
-
-    return true;
-};
 
 /**
  * Generates search results response for the chat
@@ -92,11 +68,6 @@ const createChatHandler = (): vscode.ChatRequestHandler => {
         stream: vscode.ChatResponseStream,
         _token: vscode.CancellationToken
     ) => {
-        // Check if experimental features are enabled
-        if (!checkExperimentalFeatures(stream)) {
-            return;
-        }
-
         // Extract the query from the request
         const query = request.prompt;
         await generateSearchResponse(query, stream);
@@ -117,10 +88,9 @@ const createFollowupProvider = (): vscode.ChatFollowupProvider => ({
  * @param context The extension context
  */
 const setupParticipantIcon = (participant: vscode.ChatParticipant, context: vscode.ExtensionContext): void => {
-    const iconPath = path.join(context.extensionPath, 'images', 'icon.png');
     participant.iconPath = {
-        light: vscode.Uri.file(iconPath),
-        dark: vscode.Uri.file(iconPath)
+        light: vscode.Uri.file(path.join(context.extensionPath, ICON_PATH_BLACK)),
+        dark: vscode.Uri.file(path.join(context.extensionPath, ICON_PATH_WHITE))
     };
 };
 

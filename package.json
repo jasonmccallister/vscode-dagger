@@ -166,12 +166,6 @@
           "description": "Whether the Dagger Cloud setup notification has been permanently dismissed",
           "scope": "application"
         },
-        "dagger.experimentalFeatures": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable experimental features like chat participant and AI assistance",
-          "scope": "window"
-        },
         "dagger.saveTaskPromptDismissed": {
           "type": "boolean",
           "default": false,

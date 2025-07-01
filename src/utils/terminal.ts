@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { ICON_PATH_BLACK, ICON_PATH_WHITE } from '../const';
 
 const TERMINAL_CONFIG = {
     NAME: 'Dagger',
@@ -45,7 +46,10 @@ const findOrCreateTerminal = (extensionPath: string): TerminalResult => {
 
     // Add icon if extension path is available
     if (extensionPath) {
-        terminalOptions.iconPath = vscode.Uri.file(path.join(extensionPath, 'images', 'icon-white.png'));
+        terminalOptions.iconPath = {
+            light: vscode.Uri.file(path.join(extensionPath, ICON_PATH_BLACK)),
+            dark: vscode.Uri.file(path.join(extensionPath, ICON_PATH_WHITE))
+        };
     }
 
     const newTerminal = vscode.window.createTerminal(terminalOptions);
@@ -94,8 +98,17 @@ const runCommandAsTask = async (command: string): Promise<void> => {
                     daggerTerminal.show();
                     return;
                 }
+                
+                // Get extension path for icons
+                const extension = vscode.extensions.getExtension('jasonmccallister.vscode-dagger');
+                const extensionPath = extension?.extensionPath;
+                
                 const newTerminal = vscode.window.createTerminal({
                     name: TERMINAL_CONFIG.NAME,
+                    iconPath: extensionPath ? {
+                        light: vscode.Uri.file(path.join(extensionPath, ICON_PATH_BLACK)),
+                        dark: vscode.Uri.file(path.join(extensionPath, ICON_PATH_WHITE))
+                    } : undefined
                 });
                 newTerminal.show();
                 newTerminal.sendText(command);
