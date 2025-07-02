@@ -13,7 +13,7 @@ import { registerShellCommand } from './shell';
 import { registerUninstallCommand } from './uninstall';
 import { registerUpdateCommand } from './update';
 import { registerVersionCommand } from './version';
-import { promptCloud } from '../actions/cloud';
+import { showCloudIntegrationPrompt } from '../prompt';
 import { registerTreeView } from '../tree/provider';
 
 type Options = {
@@ -51,7 +51,7 @@ export default class CommandManager {
         registerTreeView(this.options.context, { cli: this.options.cli, workspacePath: this.options.workspacePath, registerTreeCommands: true });
 
         // Show cloud setup notification if appropriate
-        promptCloud(this.options.context, this.options.cli);
+        showCloudIntegrationPrompt(this.options.context, this.options.cli);
     }
 
     // getters

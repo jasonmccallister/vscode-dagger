@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import Cli from '../../dagger';
-import { initProjectCommand } from '../../actions/init';
+import { showProjectSetupPrompt } from '../../prompt';
 import { collectAndRunFunction, showSaveTaskPrompt } from '../../utils/function-helpers';
 import { DaggerTreeItem } from '../../tree/provider';
 
@@ -23,7 +23,7 @@ export const registerCallCommand = (
     workspacePath: string
 ): void => {
     const disposable = vscode.commands.registerCommand(COMMAND, async (preSelectedFunction?: string | DaggerTreeItem) => {
-        if (!(await cli.isDaggerProject())) { return initProjectCommand(); }
+        if (!(await cli.isDaggerProject())) { return showProjectSetupPrompt(); }
 
         const workspacePathForCli = getWorkspacePath(workspacePath);
 
