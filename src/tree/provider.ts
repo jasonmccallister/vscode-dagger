@@ -294,7 +294,14 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                     {
                         command: 'dagger.call',
                         title: 'Call Function',
-                        arguments: [functionName]
+                        arguments: [
+                            // Pass the tree item itself to have access to both function name and module name
+                            { 
+                                originalName: functionName,
+                                functionId: functionId,
+                                moduleName: moduleName
+                            }
+                        ]
                     },
                     moduleName, // Pass module name
                     functionId  // Pass function ID
@@ -355,7 +362,14 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                         {
                             command: 'dagger.call',
                             title: 'Call Function',
-                            arguments: [fn.name.trim()]  // Use full name with module prefix for command
+                            arguments: [
+                                // Pass the tree item itself to have access to both function name and module name
+                                { 
+                                    originalName: displayName,   // Use the display name without module prefix
+                                    functionId: functionId,
+                                    moduleName: moduleName
+                                }
+                            ]
                         },
                         moduleName,  // Pass module name
                         functionId   // Pass function ID

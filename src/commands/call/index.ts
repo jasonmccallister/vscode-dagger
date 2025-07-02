@@ -22,7 +22,7 @@ export const registerCallCommand = (
     cli: Cli,
     workspacePath: string
 ): void => {
-    const disposable = vscode.commands.registerCommand(COMMAND, async (preSelectedFunction?: string | DaggerTreeItem) => {
+    const disposable = vscode.commands.registerCommand(COMMAND, async (preSelectedFunction?: string | DaggerTreeItem | any) => {
         if (!(await cli.isDaggerProject())) { return showProjectSetupPrompt(); }
 
         // Ensure CLI has the workspace path set
@@ -35,28 +35,36 @@ export const registerCallCommand = (
         }, async (progress) => {
             progress.report({ message: 'Loading functions...' });
 
-            console.log(`Call command - workspace path: ${workspacePath}, preSelected: ${preSelectedFunction}`);
+            console.log(`Call command - workspace path: ${workspacePath}, preSelected: ${JSON.stringify(preSelectedFunction)}`);
 
             let selectedFunction: string;
             let functionId: string | undefined;
+            let moduleName: string | undefined;
 
-            // Handle different types of input - string or tree item object
+            // Handle different types of input - string, tree item object, or custom object with properties
             if (typeof preSelectedFunction === 'string') {
                 // String function name was passed
                 selectedFunction = preSelectedFunction;
             } else if (preSelectedFunction && typeof preSelectedFunction === 'object') {
-                // Tree item was passed
-                const treeItem = preSelectedFunction;
-
+                // Object was passed (tree item or custom object with properties)
+                
                 // Use the functionId property directly if available
-                if (treeItem.functionId) {
-                    functionId = treeItem.functionId;
-                    selectedFunction = treeItem.originalName;
-                    console.log(`Function selected from tree with ID: ${functionId}`);
+                if (preSelectedFunction.functionId) {
+                    functionId = preSelectedFunction.functionId;
+                    selectedFunction = preSelectedFunction.originalName || preSelectedFunction.label || '';
+                    moduleName = preSelectedFunction.moduleName;
+                    
+                    console.log(`Function selected with ID: ${functionId}, Module: ${moduleName || 'default'}`);
+                } else if (preSelectedFunction instanceof DaggerTreeItem) {
+                    // It's a DaggerTreeItem
+                    selectedFunction = preSelectedFunction.originalName;
+                    moduleName = preSelectedFunction.moduleName;
+                    
+                    console.log(`Function selected from tree by name: ${selectedFunction}, Module: ${moduleName || 'default'}`);
                 } else {
-                    // Fallback to using the name
-                    selectedFunction = treeItem.originalName;
-                    console.log(`Function selected from tree by name: ${selectedFunction}`);
+                    // Just use whatever properties we have
+                    selectedFunction = preSelectedFunction.originalName || preSelectedFunction.label || preSelectedFunction.toString();
+                    console.log(`Function selected by name: ${selectedFunction}`);
                 }
             } else {
                 // No function was pre-selected, show picker
@@ -89,6 +97,11 @@ export const registerCallCommand = (
                     args = await cli.getFunctionArgsByName(selectedFunction, workspacePath);
                 }
 
+                // Extract module name from tree item if available
+                if (preSelectedFunction && typeof preSelectedFunction === 'object') {
+                    moduleName = preSelectedFunction.moduleName;
+                }
+
                 if (!args) {
                     vscode.window.showErrorMessage(`Failed to get arguments for function '${selectedFunction}' - no arguments returned`);
                     return;
@@ -98,7 +111,12 @@ export const registerCallCommand = (
                 progress.report({ message: `Collecting input for function '${selectedFunction}'...` });
 
                 // Use the shared helper to collect arguments and run the function
-                const { success, argValues } = await collectAndRunFunction(context, selectedFunction, args);
+                const { success, argValues } = await collectAndRunFunction(
+                    context, 
+                    selectedFunction, 
+                    args,
+                    moduleName // Pass module name to determine command format
+                );
                 if (success) {
                     await showSaveTaskPrompt(selectedFunction, argValues, workspacePath);
                 }

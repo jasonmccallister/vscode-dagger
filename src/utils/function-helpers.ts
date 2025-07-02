@@ -75,10 +75,25 @@ export const selectOptionalArguments = async (optionalArgs: readonly FunctionArg
  * Builds command arguments array from collected values
  * @param functionName The function name to call
  * @param argValues The collected argument values
+ * @param moduleName Optional module name for non-root modules
  * @returns Command arguments array
  */
-export const buildCommandArgs = (functionName: string, argValues: Record<string, string>): readonly string[] => {
-    const commandArgs = ['dagger', 'call', functionName];
+export const buildCommandArgs = (
+    functionName: string, 
+    argValues: Record<string, string>,
+    moduleName?: string
+): readonly string[] => {
+    // Start with base command
+    const commandArgs = ['dagger', 'call'];
+    
+    // If a module name is provided and it's not the root module, 
+    // add it before the function name
+    if (moduleName && moduleName !== 'main' && moduleName !== 'default') {
+        commandArgs.push(moduleName, functionName);
+    } else {
+        // Root module or no module specified - just use the function name
+        commandArgs.push(functionName);
+    }
 
     // Add all collected arguments to the command array, quoting values with spaces
     Object.entries(argValues).forEach(([name, value]) => {
@@ -94,14 +109,17 @@ export const buildCommandArgs = (functionName: string, argValues: Record<string,
 
 /**
  * Collects function argument values from the user and executes the Dagger function
+ * @param _context VS Code extension context
  * @param functionName The name of the function to call
  * @param args The function arguments
+ * @param moduleName Optional module name for non-root modules
  * @returns A promise that resolves to { success, argValues } where argValues are the used arguments
  */
 export const collectAndRunFunction = async (
     _context: vscode.ExtensionContext,
     functionName: string,
     args: readonly FunctionArgument[],
+    moduleName?: string
 ): Promise<{ success: boolean, argValues: Record<string, string> }> => {
     // Separate required and optional arguments
     const requiredArgs = args.filter(arg => arg.required);
@@ -121,7 +139,7 @@ export const collectAndRunFunction = async (
     }
 
     // Build and execute the command
-    const commandArgs = buildCommandArgs(functionName, argValues);
+    const commandArgs = buildCommandArgs(functionName, argValues, moduleName);
 
     executeInTerminal(commandArgs.join(' '));
 
