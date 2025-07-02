@@ -16,6 +16,7 @@ export interface FunctionInfo {
     readonly description?: string;
     readonly args?: FunctionArgument[];
     readonly functionId?: string; // Unique identifier for the function from GraphQL
+    readonly module?: string; // Module name for grouping functions
 }
 
 export interface FunctionArgument {
@@ -104,11 +105,18 @@ export default class Cli {
                     continue;
                 }
 
+                // Get module name from object
+                const moduleName = obj.asObject.name || obj.name || 'default';
+
                 for (const func of obj.asObject.functions) {
+                    // Format the full name and extract module context
+                    const kebabName = this.camelCaseToKebabCase(func.name);
+                    
                     functions.push({
-                        name: this.camelCaseToKebabCase(func.name),
+                        name: kebabName,
                         description: func.description,
-                        functionId: func.id, // Add the function ID
+                        functionId: func.id,
+                        module: moduleName, // Set explicit module name from the object
                         args: func.args.map(arg => {
                             // Primary method: Use the optional property if available
                             // Fallback: Check description for [required] if optional property is not set
@@ -287,6 +295,11 @@ export default class Cli {
                         id
                         name
                         description
+                        parent {
+                            ... on Object {
+                                name
+                            }
+                        }
                         args {
                             name
                             description
@@ -307,11 +320,16 @@ export default class Cli {
                 return undefined;
             }
 
+            // Extract module name from parent object if available
+            const moduleName = func.parent?.name || 
+                (func.name.includes('.') ? func.name.split('.')[0] : 'default');
+
             // Convert GraphQL function data to FunctionInfo format
             return {
                 name: this.camelCaseToKebabCase(func.name),
                 description: func.description,
                 functionId: func.id,
+                module: moduleName, // Set module name from parent object
                 args: func.args.map((arg: any) => {
                     const isRequired = arg.typeDef.optional === undefined
                         ? arg.description?.includes('[required]') || false

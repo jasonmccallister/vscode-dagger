@@ -3,7 +3,7 @@ import Cli from '../dagger';
 import { COMMAND as INIT_COMMAND } from '../commands/init';
 import { COMMAND as REFRESH_COMMAND } from '../commands/refresh';
 
-type ItemType = 'function' | 'argument' | 'empty' | 'action';
+type ItemType = 'function' | 'argument' | 'empty' | 'action' | 'module';
 
 interface TreeViewConfig {
     workspacePath?: string;
@@ -16,6 +16,7 @@ const TREE_VIEW_ID = 'daggerTreeView';
 const FUNCTION_ICON_NAME = 'symbol-function';
 const ARGUMENT_ICON_NAME = 'symbol-parameter';
 const ACTION_ICON_NAME = 'arrow-right';
+const MODULE_ICON_NAME = 'package'; // Icon for module (package represents something modular)
 const TREE_VIEW_OPTIONS = {
     SHOW_COLLAPSE_ALL: true,
     CAN_SELECT_MANY: false
@@ -28,6 +29,7 @@ export const registerTreeView = (
     const workspacePath = config.workspacePath ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
     const cli = config.cli!;
 
+    // Pass the extension context to the data provider
     const dataProvider = new DataProvider(cli, workspacePath);
 
     const treeView = vscode.window.createTreeView(TREE_VIEW_ID, {
@@ -57,24 +59,30 @@ export class DaggerTreeItem extends vscode.TreeItem {
     children?: DaggerTreeItem[];
     readonly type: ItemType;
     readonly originalName: string;
-    readonly namespace?: string;
+    readonly moduleName?: string;
+    readonly functionId?: string;
 
     constructor(
         label: string,
         type: ItemType,
         collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.None,
         command?: vscode.Command,
-        namespace?: string
+        moduleName?: string,
+        functionId?: string
     ) {
         super(label, collapsibleState);
         this.type = type;
         this.originalName = label;
-        this.namespace = namespace;
+        this.moduleName = moduleName;
+        this.functionId = functionId;
 
-        // Generate a unique ID for this item if it's a function
-        if (type === 'function' && namespace) {
-            // Use namespace + name to ensure uniqueness
-            this.id = `${namespace}:${label}`;
+        // Generate a unique ID for this item based on its type
+        if (type === 'function' && functionId) {
+            // Use function ID from API for uniqueness
+            this.id = functionId;
+        } else if (type === 'module' && moduleName) {
+            // Use module name for module items
+            this.id = `module:${moduleName}`;
         }
 
         // Set command if provided
@@ -88,6 +96,11 @@ export class DaggerTreeItem extends vscode.TreeItem {
                 this.iconPath = new vscode.ThemeIcon(FUNCTION_ICON_NAME);
                 this.tooltip = `Function: ${label}`;
                 this.contextValue = 'function';
+                break;
+            case 'module':
+                this.iconPath = new vscode.ThemeIcon(MODULE_ICON_NAME);
+                this.tooltip = `Module: ${label}`;
+                this.contextValue = 'module';
                 break;
             case 'argument':
                 this.iconPath = new vscode.ThemeIcon(ARGUMENT_ICON_NAME);
@@ -114,12 +127,15 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
     private items: DaggerTreeItem[] = [];
     private cli: Cli;
     private workspacePath: string;
+    // Constants for chunking
+    private readonly CHUNK_SIZE = 10; // Number of functions to process at once
+    private readonly PROCESSING_DELAY = 50; // Milliseconds to wait between chunks
 
     constructor(cli: Cli, workspacePath: string) {
         this.cli = cli;
         this.workspacePath = workspacePath;
         // Show loading state immediately
-        this.items = [new DaggerTreeItem('🔄 Loading Dagger functions...', 'empty')];
+        this.items = [new DaggerTreeItem('Loading Dagger functions...', 'empty')];
         // Load data asynchronously without blocking
         this.loadData();
     }
@@ -130,11 +146,11 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
             if (!await this.cli.isInstalled()) {
                 this.items = [
                     new DaggerTreeItem(
-                        '❌ Dagger CLI not installed',
+                        'Dagger CLI not installed',
                         'empty'
                     ),
                     new DaggerTreeItem(
-                        '🚀 Install Dagger CLI',
+                        'Install Dagger CLI',
                         'action',
                         vscode.TreeItemCollapsibleState.None,
                         {
@@ -150,11 +166,11 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
             if (!await this.cli.isDaggerProject()) {
                 this.items = [
                     new DaggerTreeItem(
-                        '📁 Not a Dagger project',
+                        'Not a Dagger project',
                         'empty'
                     ),
                     new DaggerTreeItem(
-                        '🚀 Initialize Dagger Project',
+                        'Initialize Dagger Project',
                         'action',
                         vscode.TreeItemCollapsibleState.None,
                         {
@@ -170,59 +186,205 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
             // Show progress while loading functions
             await vscode.window.withProgress({
                 location: vscode.ProgressLocation.Notification,
-                title: 'Dagger',
-                cancellable: false
+                title: `Dagger`,
+                cancellable: false,
             }, async (progress) => {
-                progress.report({ message: 'Fetching functions...' });
+                try {
+                    progress.report({ message: 'Fetching functions...' });
 
-                const functions = await this.cli.functionsList(this.workspacePath);
+                    // Get all functions
+                    const functions = await this.cli.functionsList(this.workspacePath);
 
-                if (functions.length === 0) {
-                    this.items = [
-                        new DaggerTreeItem('📭 No functions found', 'empty'),
-                        new DaggerTreeItem(
-                            '🚀 Learn how to create functions',
-                            'action',
-                            vscode.TreeItemCollapsibleState.None,
-                            {
-                                command: 'vscode.open',
-                                title: 'Learn about Dagger functions',
-                                arguments: [vscode.Uri.parse('https://docs.dagger.io/quickstart')]
+                    if (functions.length === 0) {
+                        this.items = [
+                            new DaggerTreeItem('No functions found', 'empty'),
+                            new DaggerTreeItem(
+                                'Learn how to create functions',
+                                'action',
+                                vscode.TreeItemCollapsibleState.None,
+                                {
+                                    command: 'vscode.open',
+                                    title: 'Learn about Dagger functions',
+                                    arguments: [vscode.Uri.parse('https://docs.dagger.io/quickstart')]
+                                }
+                            )
+                        ];
+                        this.refresh();
+                        return;
+                    }
+
+                    this.items = [];
+
+                    // Group functions by module
+                    const moduleMap = new Map<string, Array<{ fn: any, index: number }>>();
+
+                    // Process functions in chunks to improve UI responsiveness
+                    const chunkedProcessing = async () => {
+                        // Initialize progress tracking
+                        const totalFunctions = functions.length;
+                        const incrementPerFunction = 100 / totalFunctions;
+
+                        // First pass: Group functions by their module
+                        const moduleMap = new Map<string, Array<{ fn: any, index: number }>>();
+
+                        // Process in chunks
+                        for (let i = 0; i < totalFunctions; i += this.CHUNK_SIZE) {
+                            const chunkEnd = Math.min(i + this.CHUNK_SIZE, totalFunctions);
+
+                            // Process current chunk
+                            for (let j = i; j < chunkEnd; j++) {
+                                const fn = functions[j];
+
+                                if (!fn.functionId) {
+                                    console.warn(`Function ${fn.name} has no ID, skipping`);
+                                    continue;
+                                }
+
+                                // Use the module property directly, which should be set correctly by functionsList
+                                const moduleName = fn.module || 'default';
+
+                                // Add function to its module group
+                                if (!moduleMap.has(moduleName)) {
+                                    moduleMap.set(moduleName, []);
+                                }
+                                moduleMap.get(moduleName)!.push({ fn, index: j });
+
+                                // Report progress for this function
+                                progress.report({
+                                    message: `Processing ${j + 1}/${totalFunctions}: ${fn.name.trim()}`,
+                                    increment: incrementPerFunction
+                                });
                             }
-                        )
-                    ];
+
+                            // Give the UI a chance to update between chunks
+                            if (i + this.CHUNK_SIZE < totalFunctions) {
+                                await new Promise(resolve => setTimeout(resolve, this.PROCESSING_DELAY));
+                            }
+                        }
+
+                        progress.report({ message: 'Building tree view...' });
+
+                        // Build the tree items after all functions are processed
+                        await this.buildTreeItems(moduleMap);
+
+                        // Refresh the tree view with the new items
+                        this.refresh();
+                    };
+
+                    // Start the chunked processing
+                    await chunkedProcessing();
+                } catch (error) {
+                    console.error('Error loading Dagger functions:', error);
+                    this.items = [new DaggerTreeItem('Error loading functions', 'empty')];
                     this.refresh();
-                    return;
+                    throw error; // Re-throw to be caught by the outer try-catch
+                }
+            });
+        } catch (error) {
+            console.error('Failed to load Dagger functions:', error);
+            this.items = [new DaggerTreeItem('Failed to load functions', 'empty')];
+            this.refresh();
+        }
+    }
+
+    /**
+     * Builds the tree items from the module map
+     * @param moduleMap Map of module names to function arrays
+     */
+    private async buildTreeItems(moduleMap: Map<string, Array<{ fn: any, index: number }>>): Promise<void> {
+        // If there's only one module, don't nest under module
+        if (moduleMap.size === 1) {
+            const moduleEntries = [...moduleMap.entries()][0];
+            const moduleName = moduleEntries[0]; // Get the module name
+            const moduleFunctions = moduleEntries[1];
+
+            // Create function items directly
+            for (const { fn } of moduleFunctions) {
+                const functionName = fn.name.trim();
+                const functionId = fn.functionId; // Use the function ID directly
+
+                if (!functionId) {
+                    console.warn(`Function ${functionName} has no ID, skipping`);
+                    continue;
                 }
 
-                this.items = [];
+                // Create function item with functionId for uniqueness
+                const functionItem = new DaggerTreeItem(
+                    functionName,
+                    'function',
+                    vscode.TreeItemCollapsibleState.Collapsed,
+                    {
+                        command: 'dagger.call',
+                        title: 'Call Function',
+                        arguments: [functionName]
+                    },
+                    moduleName, // Pass module name
+                    functionId  // Pass function ID
+                );
 
-                // Extract module name from the first function's namespace or use "default"
-                const moduleName = functions[0]?.name.includes('.')
-                    ? functions[0].name.split('.')[0]
-                    : 'default';
+                // Set tooltip with full information
+                let tooltip = `Function: ${functionName}`;
+                if (fn.description) {
+                    tooltip += `\n\nDescription:\n${fn.description}`;
+                }
+                functionItem.tooltip = tooltip;
 
-                // Process each function with progress updates
-                for (let i = 0; i < functions.length; i++) {
-                    const fn = functions[i];
-                    const functionName = fn.name.trim();
+                // Pre-load function arguments as children
+                if (fn.args && fn.args.length > 0) {
+                    functionItem.children = fn.args.map((arg: { name: string; type: string; required: boolean }) =>
+                        new DaggerTreeItem(
+                            `--${arg.name} (${arg.type})${arg.required ? ' [required]' : ''}`,
+                            'argument'
+                        )
+                    );
+                } else {
+                    functionItem.children = [new DaggerTreeItem('No arguments', 'empty')];
+                }
 
-                    // Create function item with functionId for uniqueness if available
+                this.items.push(functionItem);
+            }
+        } else {
+            // Multiple modules - nest functions under module tree items
+            for (const [moduleName, moduleFunctions] of moduleMap.entries()) {
+                // Create module tree item
+                const moduleItem = new DaggerTreeItem(
+                    moduleName,
+                    'module',
+                    vscode.TreeItemCollapsibleState.Expanded,
+                    undefined, // No command for module
+                    moduleName // Pass module name
+                );
+
+                // Add functions as children of the module
+                moduleItem.children = moduleFunctions.map(({ fn }) => {
+                    // For display, use the function name without module prefix
+                    const displayName = fn.name.includes('.')
+                        ? fn.name.substring(fn.name.indexOf('.') + 1)  // Remove module prefix from display
+                        : fn.name.trim();
+
+                    const functionId = fn.functionId; // Use the function ID directly
+
+                    if (!functionId) {
+                        console.warn(`Function ${displayName} in module ${moduleName} has no ID, skipping`);
+                        return new DaggerTreeItem(`${displayName} (error: no ID)`, 'empty');
+                    }
+
+                    // Create function item with functionId for uniqueness
                     const functionItem = new DaggerTreeItem(
-                        functionName,
+                        displayName,
                         'function',
                         vscode.TreeItemCollapsibleState.Collapsed,
                         {
-                            command: 'dagger.saveTask',
-                            title: 'Save as VS Code Task',
-                            arguments: [functionName]
+                            command: 'dagger.call',
+                            title: 'Call Function',
+                            arguments: [fn.name.trim()]  // Use full name with module prefix for command
                         },
-                        // Use the function ID if available, otherwise fallback to the namespace + index
-                        fn.functionId || `${moduleName}-${i}`
+                        moduleName,  // Pass module name
+                        functionId   // Pass function ID
                     );
 
                     // Set tooltip with full information
-                    let tooltip = `Function: ${functionName}`;
+                    let tooltip = `Function: ${fn.name.trim()}`;
                     if (fn.description) {
                         tooltip += `\n\nDescription:\n${fn.description}`;
                     }
@@ -230,7 +392,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
 
                     // Pre-load function arguments as children
                     if (fn.args && fn.args.length > 0) {
-                        functionItem.children = fn.args.map(arg =>
+                        functionItem.children = fn.args.map((arg: { name: string; type: string; required: boolean }) =>
                             new DaggerTreeItem(
                                 `--${arg.name} (${arg.type})${arg.required ? ' [required]' : ''}`,
                                 'argument'
@@ -240,15 +402,11 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                         functionItem.children = [new DaggerTreeItem('No arguments', 'empty')];
                     }
 
-                    this.items.push(functionItem);
-                }
+                    return functionItem;
+                });
 
-                this.refresh();
-            });
-        } catch (error) {
-            console.error('Failed to load Dagger functions:', error);
-            this.items = [new DaggerTreeItem('Failed to load functions', 'empty')];
-            this.refresh();
+                this.items.push(moduleItem);
+            }
         }
     }
 
@@ -261,9 +419,10 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
             // Use the progress indicator for reloading
             await vscode.window.withProgress({
                 location: vscode.ProgressLocation.Notification,
-                title: 'Dagger',
+                title: `Dagger`,
                 cancellable: false
-            }, async () => {
+            }, async (progress) => {
+                progress.report({ message: 'Reloading functions...' });
                 // Reload data asynchronously with progress already handled in loadData
                 await this.loadData();
             });
@@ -271,6 +430,9 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
             console.error('Failed to reload Dagger functions:', error);
             this.items = [new DaggerTreeItem('Failed to reload functions', 'empty')];
             this.refresh();
+
+            // Show error notification
+            vscode.window.showErrorMessage(`Failed to reload Dagger functions: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
 
@@ -292,12 +454,40 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
     }
 
     getParent(element: DaggerTreeItem): DaggerTreeItem | undefined {
-        // Find parent by searching through all function items
-        for (const item of this.items) {
-            if (item.children?.includes(element)) {
-                return item;
+        // For root items
+        if (this.items.includes(element)) {
+            return undefined;
+        }
+
+        // For function items - find their module parent
+        if (element.type === 'function' && element.moduleName) {
+            // Find module with matching name
+            return this.items.find(item =>
+                item.type === 'module' &&
+                item.originalName === element.moduleName
+            );
+        }
+
+        // For argument items - find their function parent
+        if (element.type === 'argument') {
+            // Search all items and their children
+            for (const item of this.items) {
+                // Direct child of root function
+                if (item.type === 'function' && item.children?.includes(element)) {
+                    return item;
+                }
+
+                // Child of a function under a module
+                if (item.type === 'module' && item.children) {
+                    for (const functionItem of item.children) {
+                        if (functionItem.children?.includes(element)) {
+                            return functionItem;
+                        }
+                    }
+                }
             }
         }
+
         return undefined;
     }
 }
