@@ -351,6 +351,30 @@ export default class Cli {
     }
 
     /**
+     * Gets detailed information about a function including its arguments using the function ID.
+     * 
+     * @param functionId The unique identifier of the function to fetch
+     * @param workspacePath The path to the workspace to run the command in
+     * @returns A Promise that resolves to a FunctionInfo object or undefined if not found
+     */
+    public async getFunction(functionId: string, workspacePath: string): Promise<FunctionInfo | undefined> {
+        try {
+            // Use the existing queryFunctionByID method to get the function data
+            const functionInfo = await this.queryFunctionByID(functionId, workspacePath);
+            
+            if (!functionInfo) {
+                console.warn(`Function with ID ${functionId} not found`);
+                return undefined;
+            }
+            
+            return functionInfo;
+        } catch (error: any) {
+            console.error(`Error in getFunction for ID ${functionId}:`, error);
+            throw new Error(`Failed to get function details: ${error.message}`);
+        }
+    }
+
+    /**
      * @param str The string to convert from camelCase to kebab-case
      * @description Converts a camelCase string to kebab-case by inserting hyphens before uppercase letters
      * and converting the entire string to lowercase.

@@ -25,10 +25,8 @@ export const registerCallCommand = (
     const disposable = vscode.commands.registerCommand(COMMAND, async (preSelectedFunction?: string | DaggerTreeItem) => {
         if (!(await cli.isDaggerProject())) { return showProjectSetupPrompt(); }
 
-        const workspacePathForCli = getWorkspacePath(workspacePath);
-
         // Ensure CLI has the workspace path set
-        cli.setWorkspacePath(workspacePathForCli);
+        cli.setWorkspacePath(workspacePath);
 
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
@@ -37,7 +35,7 @@ export const registerCallCommand = (
         }, async (progress) => {
             progress.report({ message: 'Loading functions...' });
 
-            console.log(`Call command - workspace path: ${workspacePathForCli}, preSelected: ${preSelectedFunction}`);
+            console.log(`Call command - workspace path: ${workspacePath}, preSelected: ${preSelectedFunction}`);
 
             let selectedFunction: string;
             let functionId: string | undefined;
@@ -62,7 +60,7 @@ export const registerCallCommand = (
                 }
             } else {
                 // No function was pre-selected, show picker
-                const result = await selectFunction(cli, workspacePathForCli);
+                const result = await selectFunction(cli, workspacePath);
                 if (!result) {
                     return;
                 }
@@ -78,7 +76,7 @@ export const registerCallCommand = (
                 // If we have a function ID, use the direct query method
                 if (functionId) {
                     progress.report({ message: `Loading function '${selectedFunction}' using ID...` });
-                    const functionInfo = await cli.queryFunctionByID(functionId, workspacePathForCli);
+                    const functionInfo = await cli.queryFunctionByID(functionId, workspacePath);
 
                     if (!functionInfo) {
                         vscode.window.showErrorMessage(`Failed to get details for function '${selectedFunction}' with ID ${functionId}`);
@@ -88,7 +86,7 @@ export const registerCallCommand = (
                     args = functionInfo.args;
                 } else {
                     // Fallback to the name-based lookup
-                    args = await cli.getFunctionArgsByName(selectedFunction, workspacePathForCli);
+                    args = await cli.getFunctionArgsByName(selectedFunction, workspacePath);
                 }
 
                 if (!args) {
@@ -102,7 +100,7 @@ export const registerCallCommand = (
                 // Use the shared helper to collect arguments and run the function
                 const { success, argValues } = await collectAndRunFunction(context, selectedFunction, args);
                 if (success) {
-                    await showSaveTaskPrompt(selectedFunction, argValues, workspacePathForCli);
+                    await showSaveTaskPrompt(selectedFunction, argValues, workspacePath);
                 }
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error);
