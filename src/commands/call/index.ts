@@ -4,7 +4,7 @@ import { initProjectCommand } from '../../actions/init';
 import { collectAndRunFunction, showSaveTaskPrompt } from '../../utils/function-helpers';
 import { DaggerTreeItem } from '../../tree/provider';
 
-const COMMAND = 'dagger.call';
+export const COMMAND = 'dagger.call';
 
 interface FunctionQuickPickItem extends vscode.QuickPickItem {
     readonly label: string;
@@ -22,7 +22,7 @@ export const registerCallCommand = (
     cli: Cli,
     workspacePath: string
 ): void => {
-    const disposable = vscode.commands.registerCommand(COMMAND, async (preSelectedFunctionOrItem?: string | DaggerTreeItem) => {
+    const disposable = vscode.commands.registerCommand(COMMAND, async (preSelectedFunction?: string | DaggerTreeItem) => {
         if (!(await cli.isDaggerProject())) { return initProjectCommand(); }
 
         const workspacePathForCli = getWorkspacePath(workspacePath);
@@ -37,22 +37,22 @@ export const registerCallCommand = (
         }, async (progress) => {
             progress.report({ message: 'Loading functions...' });
 
-            console.log(`Call command - workspace path: ${workspacePathForCli}, preSelected: ${preSelectedFunctionOrItem}`);
+            console.log(`Call command - workspace path: ${workspacePathForCli}, preSelected: ${preSelectedFunction}`);
 
             let selectedFunction: string;
             let functionId: string | undefined;
 
             // Handle different types of input - string or tree item object
-            if (typeof preSelectedFunctionOrItem === 'string') {
+            if (typeof preSelectedFunction === 'string') {
                 // String function name was passed
-                selectedFunction = preSelectedFunctionOrItem;
-            } else if (preSelectedFunctionOrItem && typeof preSelectedFunctionOrItem === 'object') {
+                selectedFunction = preSelectedFunction;
+            } else if (preSelectedFunction && typeof preSelectedFunction === 'object') {
                 // Tree item was passed
-                const treeItem = preSelectedFunctionOrItem;
+                const treeItem = preSelectedFunction;
 
-                // If we have a namespace that looks like a function ID (not just a namespace + index)
-                if (treeItem.namespace && !treeItem.namespace.includes('-')) {
-                    functionId = treeItem.namespace;
+                // Use the functionId property directly if available
+                if (treeItem.functionId) {
+                    functionId = treeItem.functionId;
                     selectedFunction = treeItem.originalName;
                     console.log(`Function selected from tree with ID: ${functionId}`);
                 } else {
@@ -164,7 +164,7 @@ const selectFunction = async (cli: Cli, workspacePath: string): Promise<Selected
 
     return {
         name: pick.label,
-        functionId: (pick as any).functionId
+        functionId: pick.functionId
     };
 };
 

@@ -203,6 +203,8 @@ export default class Cli {
             query($id: DirectoryID!) {
               loadDirectoryFromID(id: $id) {
                 asModule {
+                  id
+                  description
                   name
                   objects {
                     asObject {

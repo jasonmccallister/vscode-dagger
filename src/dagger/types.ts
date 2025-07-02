@@ -38,6 +38,8 @@ export interface ModuleObject {
 export interface ModuleResult {
   loadDirectoryFromID: {
     asModule: {
+      id: string;
+      description?: string; // Add module description
       name: string;
       objects: ModuleObject[];
     };
