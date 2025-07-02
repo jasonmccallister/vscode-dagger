@@ -19,6 +19,7 @@ export interface FunctionArg {
 }
 
 export interface ModuleFunction {
+  id: string; // Add the function ID
   name: string;
   description?: string;
   args: FunctionArg[];

@@ -15,6 +15,7 @@ export interface FunctionInfo {
     readonly name: string;
     readonly description?: string;
     readonly args?: FunctionArgument[];
+    readonly functionId?: string; // Unique identifier for the function from GraphQL
 }
 
 export interface FunctionArgument {
@@ -78,23 +79,36 @@ export default class Cli {
      * to user-friendly type names (e.g., OBJECT_STRING -> string, OBJECT_BOOLEAN -> boolean)
      */
     public async functionsList(workspacePath: string): Promise<FunctionInfo[]> {
-        const id = await this.queryDirectoryId(workspacePath);
-        if (!id) {
-            return [];
-        }
+        let functions: FunctionInfo[] = [];
+        try {
+            const id = await this.queryDirectoryId(workspacePath);
+            if (!id) {
+                console.warn(`Failed to get directory ID for workspace: ${workspacePath}`);
+                return [];
+            }
 
-        const objects = await this.queryModuleFunctions(id, workspacePath);
-        if (!objects || objects.length === 0) {
-            return [];
-        }
+            const objects = await this.queryModuleFunctions(id, workspacePath);
+            if (!objects || objects.length === 0) {
+                console.warn(`No functions found in Dagger module for workspace: ${workspacePath}`);
+                return [];
+            }
 
-        const functions: FunctionInfo[] = [];
-        for (const obj of objects) {
-            if (obj.asObject) {
+            for (const obj of objects) {
+                if (!obj.asObject) {
+                    console.warn(`Object ${obj.name} does not have asObject property`);
+                    continue;
+                }
+
+                if (!obj.asObject.functions || obj.asObject.functions.length === 0) {
+                    console.warn(`Object ${obj.name} has no functions defined`);
+                    continue;
+                }
+
                 for (const func of obj.asObject.functions) {
                     functions.push({
                         name: this.camelCaseToKebabCase(func.name),
                         description: func.description,
+                        functionId: func.id, // Add the function ID
                         args: func.args.map(arg => {
                             // Primary method: Use the optional property if available
                             // Fallback: Check description for [required] if optional property is not set
@@ -111,6 +125,9 @@ export default class Cli {
                     });
                 }
             }
+        } catch (error: any) {
+            console.error('Error retrieving functions from Dagger module:', error);
+            throw new Error(`Failed to retrieve functions from Dagger module: ${error.message}`);
         }
 
         return functions;
@@ -183,6 +200,7 @@ export default class Cli {
                     asObject {
                       name
                       functions {
+                        id
                         name
                         description
                         args {
@@ -248,6 +266,67 @@ export default class Cli {
         } catch (error: any) {
             console.error(`Error getting arguments for function ${functionName}:`, error);
             throw new Error(`Failed to get arguments for function '${functionName}': ${error.message}`);
+        }
+    }
+
+    /**
+     * Queries the Dagger CLI to get a specific function by its ID.
+     * @param functionId The ID of the function to query
+     * @param workspacePath The path to the Dagger project directory
+     * @returns A Promise that resolves to a FunctionInfo object with detailed function information
+     * @throws Error if the query fails or the function is not found
+     */
+    public async queryFunctionByID(
+        functionId: string,
+        workspacePath: string
+    ): Promise<FunctionInfo | undefined> {
+        try {
+            const query = `
+                query($id: FunctionID!) {
+                    loadFunctionFromID(id: $id) {
+                        id
+                        name
+                        description
+                        args {
+                            name
+                            description
+                            typeDef {
+                                kind
+                                optional
+                            }
+                        }
+                    }
+                }
+            `;
+
+            const result = await this.query(query, { id: functionId }, workspacePath);
+            const func = (result as any)?.loadFunctionFromID;
+            
+            if (!func) {
+                console.warn(`Function with ID ${functionId} not found`);
+                return undefined;
+            }
+
+            // Convert GraphQL function data to FunctionInfo format
+            return {
+                name: this.camelCaseToKebabCase(func.name),
+                description: func.description,
+                functionId: func.id,
+                args: func.args.map((arg: any) => {
+                    const isRequired = arg.typeDef.optional === undefined
+                        ? arg.description?.includes('[required]') || false
+                        : !arg.typeDef.optional;
+
+                    return {
+                        name: this.camelCaseToKebabCase(arg.name),
+                        type: this.getFriendlyTypeName(arg.typeDef.kind),
+                        required: isRequired
+                    };
+                })
+            };
+        } catch (error: any) {
+            console.error(`Error retrieving function with ID ${functionId}:`, error);
+            throw new Error(`Failed to retrieve function details: ${error.message}`);
         }
     }
 
@@ -334,7 +413,7 @@ export default class Cli {
         // Handle common GraphQL type prefixes
         if (graphQLType.startsWith('OBJECT_')) {
             const typeWithoutPrefix = graphQLType.substring(7).toLowerCase();
-            
+
             // Map specific type names
             switch (typeWithoutPrefix) {
                 case 'string':
@@ -363,7 +442,7 @@ export default class Cli {
                     return typeWithoutPrefix;
             }
         }
-        
+
         // Handle GraphQL scalar types
         switch (graphQLType.toUpperCase()) {
             case 'STRING':

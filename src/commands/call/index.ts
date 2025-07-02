@@ -2,13 +2,19 @@ import * as vscode from 'vscode';
 import Cli from '../../dagger';
 import { initProjectCommand } from '../../actions/init';
 import { collectAndRunFunction, showSaveTaskPrompt } from '../../utils/function-helpers';
-import type { Item } from '../../tree/provider';
+import { DaggerTreeItem } from '../../tree/provider';
 
 const COMMAND = 'dagger.call';
 
-interface FunctionQuickPickItem {
+interface FunctionQuickPickItem extends vscode.QuickPickItem {
     readonly label: string;
     readonly description: string;
+    readonly functionId?: string;
+}
+
+interface SelectedFunction {
+    name: string;
+    functionId?: string;
 }
 
 export const registerCallCommand = (
@@ -16,7 +22,7 @@ export const registerCallCommand = (
     cli: Cli,
     workspacePath: string
 ): void => {
-    const disposable = vscode.commands.registerCommand(COMMAND, async (preSelectedFunctionOrItem?: string | Item) => {
+    const disposable = vscode.commands.registerCommand(COMMAND, async (preSelectedFunctionOrItem?: string | DaggerTreeItem) => {
         if (!(await cli.isDaggerProject())) { return initProjectCommand(); }
 
         const workspacePathForCli = getWorkspacePath(workspacePath);
@@ -34,39 +40,63 @@ export const registerCallCommand = (
             console.log(`Call command - workspace path: ${workspacePathForCli}, preSelected: ${preSelectedFunctionOrItem}`);
 
             let selectedFunction: string;
+            let functionId: string | undefined;
 
             // Handle different types of input - string or tree item object
-            let preSelectedFunction: string | undefined;
             if (typeof preSelectedFunctionOrItem === 'string') {
-                preSelectedFunction = preSelectedFunctionOrItem;
-            } else if (preSelectedFunctionOrItem && preSelectedFunctionOrItem.id && typeof preSelectedFunctionOrItem.id === 'string') {
-                // Tree item was passed - extract the function name from the id property
-                preSelectedFunction = preSelectedFunctionOrItem.id;
-                console.log(`Function selected from tree: ${preSelectedFunction}`);
-            }
+                // String function name was passed
+                selectedFunction = preSelectedFunctionOrItem;
+            } else if (preSelectedFunctionOrItem && typeof preSelectedFunctionOrItem === 'object') {
+                // Tree item was passed
+                const treeItem = preSelectedFunctionOrItem;
 
-            // Use pre-selected function if provided, otherwise show picker
-            if (preSelectedFunction) {
-                selectedFunction = preSelectedFunction;
+                // If we have a namespace that looks like a function ID (not just a namespace + index)
+                if (treeItem.namespace && !treeItem.namespace.includes('-')) {
+                    functionId = treeItem.namespace;
+                    selectedFunction = treeItem.originalName;
+                    console.log(`Function selected from tree with ID: ${functionId}`);
+                } else {
+                    // Fallback to using the name
+                    selectedFunction = treeItem.originalName;
+                    console.log(`Function selected from tree by name: ${selectedFunction}`);
+                }
             } else {
+                // No function was pre-selected, show picker
                 const result = await selectFunction(cli, workspacePathForCli);
                 if (!result) {
                     return;
                 }
-                selectedFunction = result;
+                selectedFunction = result.name;
+                functionId = result.functionId;
             }
 
             progress.report({ message: 'Getting function arguments...' });
 
-            // get the selected function arguments - use the CLI workspace path consistently
             try {
-                const args = await cli.getFunctionArgsByName(selectedFunction, workspacePathForCli);
+                let args;
+
+                // If we have a function ID, use the direct query method
+                if (functionId) {
+                    progress.report({ message: `Loading function '${selectedFunction}' using ID...` });
+                    const functionInfo = await cli.queryFunctionByID(functionId, workspacePathForCli);
+
+                    if (!functionInfo) {
+                        vscode.window.showErrorMessage(`Failed to get details for function '${selectedFunction}' with ID ${functionId}`);
+                        return;
+                    }
+
+                    args = functionInfo.args;
+                } else {
+                    // Fallback to the name-based lookup
+                    args = await cli.getFunctionArgsByName(selectedFunction, workspacePathForCli);
+                }
+
                 if (!args) {
                     vscode.window.showErrorMessage(`Failed to get arguments for function '${selectedFunction}' - no arguments returned`);
                     return;
                 }
 
-                // show prompting for input progress
+                // Show prompting for input progress
                 progress.report({ message: `Collecting input for function '${selectedFunction}'...` });
 
                 // Use the shared helper to collect arguments and run the function
@@ -108,9 +138,9 @@ const getWorkspacePath = (workspace: string): string => {
  * Loads functions and shows quick pick for selection
  * @param cli The Dagger CLI instance
  * @param workspacePath The workspace path
- * @returns The selected function name or undefined if cancelled
+ * @returns The selected function details or undefined if cancelled
  */
-const selectFunction = async (cli: Cli, workspacePath: string): Promise<string | undefined> => {
+const selectFunction = async (cli: Cli, workspacePath: string): Promise<SelectedFunction | undefined> => {
     const functions = await cli.functionsList(workspacePath);
 
     if (functions.length === 0) {
@@ -118,16 +148,24 @@ const selectFunction = async (cli: Cli, workspacePath: string): Promise<string |
         return undefined;
     }
 
-    const functionItems: readonly FunctionQuickPickItem[] = functions.map(fn => ({
+    const functionItems: FunctionQuickPickItem[] = functions.map(fn => ({
         label: fn.name,
-        description: fn.description ?? ''
+        description: fn.description ?? '',
+        functionId: fn.functionId
     }));
 
     const pick = await vscode.window.showQuickPick(functionItems, {
         placeHolder: 'Select a function to call'
     });
 
-    return pick?.label;
+    if (!pick) {
+        return undefined;
+    }
+
+    return {
+        name: pick.label,
+        functionId: (pick as any).functionId
+    };
 };
 
 
