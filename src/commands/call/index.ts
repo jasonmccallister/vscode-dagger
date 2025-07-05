@@ -10,11 +10,13 @@ interface FunctionQuickPickItem extends vscode.QuickPickItem {
     readonly label: string;
     readonly description: string;
     readonly functionId?: string;
+    readonly moduleName?: string;
 }
 
 interface SelectedFunction {
     name: string;
     functionId?: string;
+    moduleName?: string;
 }
 
 export const registerCallCommand = (
@@ -22,7 +24,7 @@ export const registerCallCommand = (
     cli: Cli,
     workspacePath: string
 ): void => {
-    const disposable = vscode.commands.registerCommand(COMMAND, async (preSelectedFunction?: string | DaggerTreeItem | any) => {
+    const disposable = vscode.commands.registerCommand(COMMAND, async (input?: DaggerTreeItem | string) => {
         if (!(await cli.isDaggerProject())) { return showProjectSetupPrompt(); }
 
         // Ensure CLI has the workspace path set
@@ -35,119 +37,92 @@ export const registerCallCommand = (
         }, async (progress) => {
             progress.report({ message: 'Loading functions...' });
 
-            console.log(`Call command - workspace path: ${workspacePath}, preSelected: ${JSON.stringify(preSelectedFunction)}`);
-
-            let selectedFunction: string;
+            let functionName: string | undefined;
             let functionId: string | undefined;
             let moduleName: string | undefined;
+            let functionInfo;
 
-            // Handle different types of input - string, tree item object, or custom object with properties
-            if (typeof preSelectedFunction === 'string') {
-                // String function name was passed
-                selectedFunction = preSelectedFunction;
-            } else if (preSelectedFunction && typeof preSelectedFunction === 'object') {
-                // Object was passed (tree item or custom object with properties)
-                
-                // Use the functionId property directly if available
-                if (preSelectedFunction.functionId) {
-                    functionId = preSelectedFunction.functionId;
-                    selectedFunction = preSelectedFunction.originalName || preSelectedFunction.label || '';
-                    moduleName = preSelectedFunction.moduleName;
-                    
-                    console.log(`Function selected with ID: ${functionId}, Module: ${moduleName || 'default'}`);
-                } else if (preSelectedFunction instanceof DaggerTreeItem) {
-                    // It's a DaggerTreeItem
-                    selectedFunction = preSelectedFunction.originalName;
-                    moduleName = preSelectedFunction.moduleName;
-                    
-                    console.log(`Function selected from tree by name: ${selectedFunction}, Module: ${moduleName || 'default'}`);
-                } else {
-                    // Just use whatever properties we have
-                    selectedFunction = preSelectedFunction.originalName || preSelectedFunction.label || preSelectedFunction.toString();
-                    console.log(`Function selected by name: ${selectedFunction}`);
-                }
+
+            if (input instanceof DaggerTreeItem && input.functionId) {
+                functionId = input.functionId;
+                functionName = input.originalName;
+                moduleName = input.moduleName;
+                console.log(`Function selected from tree with ID: ${functionId}, Module: ${moduleName || 'default'}`);
+            } else if (typeof input === 'string') {
+                // Case 2: Function ID passed as string
+                functionId = input;
+                console.log(`Function selected by ID: ${functionId}`);
             } else {
-                // No function was pre-selected, show picker
+                // Case 3: No valid input or unrecognized input type - show selector
+                progress.report({ message: 'Selecting function...' });
                 const result = await selectFunction(cli, workspacePath);
+
                 if (!result) {
-                    return;
+                    return; // Selection cancelled
                 }
-                selectedFunction = result.name;
+
+                functionName = result.name;
                 functionId = result.functionId;
+                moduleName = result.moduleName;
+                console.log(`Function selected from picker: ${functionName}`);
             }
 
             progress.report({ message: 'Getting function arguments...' });
 
             try {
-                let args;
-
-                // If we have a function ID, use the direct query method
+                // Get function details from the Dagger CLI
                 if (functionId) {
-                    progress.report({ message: `Loading function '${selectedFunction}' using ID...` });
-                    const functionInfo = await cli.queryFunctionByID(functionId, workspacePath);
+                    progress.report({ message: 'Loading function using ID...' });
+
+                    // Use the new getFunction method if available, otherwise fall back to queryFunctionByID
+                    if (typeof cli.getFunction === 'function') {
+                        functionInfo = await cli.getFunction(functionId, workspacePath);
+                    } else {
+                        functionInfo = await cli.queryFunctionByID(functionId, workspacePath);
+                    }
 
                     if (!functionInfo) {
-                        vscode.window.showErrorMessage(`Failed to get details for function '${selectedFunction}' with ID ${functionId}`);
+                        vscode.window.showErrorMessage(`Failed to get details for function with ID ${functionId}`);
                         return;
                     }
 
-                    args = functionInfo.args;
+                    // Set properties from function info
+                    functionName = functionInfo.name;
+                    moduleName = functionInfo.module;
                 } else {
-                    // Fallback to the name-based lookup
-                    args = await cli.getFunctionArgsByName(selectedFunction, workspacePath);
+                    vscode.window.showErrorMessage('No function selected');
+                    return;
                 }
 
-                // Extract module name from tree item if available
-                if (preSelectedFunction && typeof preSelectedFunction === 'object') {
-                    moduleName = preSelectedFunction.moduleName;
-                }
-
-                if (!args) {
-                    vscode.window.showErrorMessage(`Failed to get arguments for function '${selectedFunction}' - no arguments returned`);
+                if (!functionInfo || !functionInfo.args) {
+                    vscode.window.showErrorMessage(`Failed to get arguments for function - no arguments returned`);
                     return;
                 }
 
                 // Show prompting for input progress
-                progress.report({ message: `Collecting input for function '${selectedFunction}'...` });
+                progress.report({ message: `Collecting input for function '${functionName}'...` });
 
                 // Use the shared helper to collect arguments and run the function
                 const { success, argValues } = await collectAndRunFunction(
-                    context, 
-                    selectedFunction, 
-                    args,
+                    context,
+                    functionName!,
+                    functionInfo.args,
                     moduleName // Pass module name to determine command format
                 );
+
                 if (success) {
-                    await showSaveTaskPrompt(selectedFunction, argValues, workspacePath);
+                    await showSaveTaskPrompt(functionName!, argValues, workspacePath);
                 }
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error);
-                vscode.window.showErrorMessage(`Failed to get arguments for function '${selectedFunction}': ${errorMessage}`);
-                console.error('Error getting function arguments:', error);
+                vscode.window.showErrorMessage(`Failed to get function details: ${errorMessage}`);
+                console.error('Error in call command:', error);
                 return;
             }
         });
     });
 
     context.subscriptions.push(disposable);
-};
-
-/**
- * Gets the workspace path, falling back to current working directory
- * @param workspace The initial workspace path
- * @returns The resolved workspace path
- */
-const getWorkspacePath = (workspace: string): string => {
-    if (workspace) {
-        return workspace;
-    }
-
-    console.log('No workspace path set. Using current workspace or cwd.');
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-
-    return workspaceFolders && workspaceFolders.length > 0
-        ? workspaceFolders[0].uri.fsPath
-        : process.cwd();
 };
 
 /**
@@ -167,7 +142,8 @@ const selectFunction = async (cli: Cli, workspacePath: string): Promise<Selected
     const functionItems: FunctionQuickPickItem[] = functions.map(fn => ({
         label: fn.name,
         description: fn.description ?? '',
-        functionId: fn.functionId
+        functionId: fn.functionId,
+        moduleName: fn.module
     }));
 
     const pick = await vscode.window.showQuickPick(functionItems, {
@@ -180,8 +156,7 @@ const selectFunction = async (cli: Cli, workspacePath: string): Promise<Selected
 
     return {
         name: pick.label,
-        functionId: pick.functionId
+        functionId: pick.functionId,
+        moduleName: pick.moduleName
     };
 };
-
-

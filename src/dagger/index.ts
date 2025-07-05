@@ -248,38 +248,6 @@ export default class Cli {
     }
 
     /**
-     * Gets the arguments for a specific function by name from the current project.
-     * @param functionName The name of the function to get arguments for (in kebab-case)
-     * @param workspacePath The path to the workspace directory (optional if workspacePath is already set)
-     * @returns A Promise that resolves to an array of function arguments or undefined if not found
-     */
-    public async getFunctionArgsByName(
-        functionName: string,
-        workspacePath?: string
-    ): Promise<FunctionArgument[] | undefined> {
-        try {
-            const path = workspacePath || this.workspacePath;
-            if (!path) {
-                throw new Error('Workspace path is not set. Please provide a workspace path.');
-            }
-
-            // Get all functions from the module
-            const functions = await this.functionsList(path);
-
-            // Find the function with the matching name
-            const targetFunction = functions.find(
-                fn => fn.name.toLowerCase() === functionName.toLowerCase()
-            );
-
-            // Return the arguments if found, undefined otherwise
-            return targetFunction?.args;
-        } catch (error: any) {
-            console.error(`Error getting arguments for function ${functionName}:`, error);
-            throw new Error(`Failed to get arguments for function '${functionName}': ${error.message}`);
-        }
-    }
-
-    /**
      * Queries the Dagger CLI to get a specific function by its ID.
      * @param functionId The ID of the function to query
      * @param workspacePath The path to the Dagger project directory
