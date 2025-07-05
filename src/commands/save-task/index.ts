@@ -61,8 +61,10 @@ export const registerSaveTaskCommand = (
             }, async (progress, token) => {
                 progress.report({ message: 'Getting function arguments...' });
 
-                // Get function arguments
-                const args = await cli.getFunctionArgsByName(functionName!, workspacePath);
+                // Get function arguments by finding the function in the functions list
+                const functions = await cli.functionsList(workspacePath);
+                const targetFunction = functions.find(f => f.name === functionName);
+                const args = targetFunction?.args;
                 if (!args) {
                     vscode.window.showErrorMessage(`Failed to get arguments for function '${functionName}'`);
                     return;

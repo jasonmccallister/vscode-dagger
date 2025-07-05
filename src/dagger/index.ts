@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { DirectoryIdResult, ModuleObject, ModuleResult } from './types';
+import { DaggerCache } from '../cache';
 
 export interface CommandResult {
     readonly stdout: string;
@@ -33,6 +34,11 @@ interface RunOptions {
 export default class Cli {
     private readonly command = 'dagger';
     private workspacePath?: string;
+    private cache?: DaggerCache;
+
+    constructor(cache?: DaggerCache) {
+        this.cache = cache;
+    }
 
     /**
      * Runs the Dagger command with the specified arguments and options
@@ -80,6 +86,39 @@ export default class Cli {
      * to user-friendly type names (e.g., OBJECT_STRING -> string, OBJECT_BOOLEAN -> boolean)
      */
     public async functionsList(workspacePath: string): Promise<FunctionInfo[]> {
+        const cacheKey = `functions_list_${workspacePath}`;
+
+        // Check cache first
+        if (this.cache) {
+            const cachedFunctions = await this.cache.get<FunctionInfo[]>(cacheKey);
+            if (cachedFunctions) {
+                console.log('Returning cached functions list');
+                // Update cache in background
+                this.updateFunctionsListCache(workspacePath, cacheKey).catch(error => {
+                    console.error('Error updating functions list cache in background:', error);
+                });
+                return cachedFunctions;
+            }
+        }
+
+        // No cache or cache miss, fetch and cache
+        const functions = await this.fetchFunctionsList(workspacePath);
+
+        // Cache the result
+        if (this.cache && functions.length > 0) {
+            await this.cache.set(cacheKey, functions);
+        }
+
+        return functions;
+    }
+
+    /**
+     * Fetches the functions list from the Dagger CLI (without caching)
+     * @param workspacePath The path to the Dagger project directory
+     * @returns A Promise that resolves to an array of FunctionInfo objects
+     * @private
+     */
+    private async fetchFunctionsList(workspacePath: string): Promise<FunctionInfo[]> {
         let functions: FunctionInfo[] = [];
         try {
             const id = await this.queryDirectoryId(workspacePath);
@@ -111,7 +150,7 @@ export default class Cli {
                 for (const func of obj.asObject.functions) {
                     // Format the full name and extract module context
                     const kebabName = this.camelCaseToKebabCase(func.name);
-                    
+
                     functions.push({
                         name: kebabName,
                         description: func.description,
@@ -139,6 +178,30 @@ export default class Cli {
         }
 
         return functions;
+    }
+
+    /**
+     * Updates the functions list cache in the background
+     * @param workspacePath The path to the Dagger project directory
+     * @param cacheKey The cache key to update
+     * @private
+     */
+    private async updateFunctionsListCache(workspacePath: string, cacheKey: string): Promise<void> {
+        try {
+            const freshFunctions = await this.fetchFunctionsList(workspacePath);
+            if (this.cache && freshFunctions.length > 0) {
+                // Check if data has actually changed using SHA256 comparison
+                const hasChanged = await this.cache.hasDataChanged(cacheKey, freshFunctions);
+                if (hasChanged) {
+                    await this.cache.set(cacheKey, freshFunctions);
+                    console.log('Updated functions list cache in background - data changed');
+                } else {
+                    console.log('Skipped functions list cache update - data unchanged');
+                }
+            }
+        } catch (error) {
+            console.error('Error updating functions list cache:', error);
+        }
     }
 
     /**
@@ -258,6 +321,43 @@ export default class Cli {
         functionId: string,
         workspacePath: string
     ): Promise<FunctionInfo | undefined> {
+        const cacheKey = `function_by_id_${functionId}`;
+
+        // Check cache first
+        if (this.cache) {
+            const cachedFunction = await this.cache.get<FunctionInfo>(cacheKey);
+            if (cachedFunction) {
+                console.log(`Returning cached function for ID: ${functionId}`);
+                // Update cache in background
+                this.updateFunctionByIDCache(functionId, workspacePath, cacheKey).catch(error => {
+                    console.error('Error updating function cache in background:', error);
+                });
+                return cachedFunction;
+            }
+        }
+
+        // No cache or cache miss, fetch and cache
+        const functionInfo = await this.fetchFunctionByID(functionId, workspacePath);
+
+        // Cache the result if successful
+        if (this.cache && functionInfo) {
+            await this.cache.set(cacheKey, functionInfo);
+        }
+
+        return functionInfo;
+    }
+
+    /**
+     * Fetches a function by ID from the Dagger CLI (without caching)
+     * @param functionId The ID of the function to query
+     * @param workspacePath The path to the Dagger project directory
+     * @returns A Promise that resolves to a FunctionInfo object or undefined if not found
+     * @private
+     */
+    private async fetchFunctionByID(
+        functionId: string,
+        workspacePath: string
+    ): Promise<FunctionInfo | undefined> {
         try {
             const query = `
                 query($id: FunctionID!) {
@@ -284,14 +384,14 @@ export default class Cli {
 
             const result = await this.query(query, { id: functionId }, workspacePath);
             const func = (result as any)?.loadFunctionFromID;
-            
+
             if (!func) {
                 console.warn(`Function with ID ${functionId} not found`);
                 return undefined;
             }
 
             // Extract module name from parent object if available
-            const moduleName = func.parent?.name || 
+            const moduleName = func.parent?.name ||
                 (func.name.includes('.') ? func.name.split('.')[0] : 'default');
 
             // Convert GraphQL function data to FunctionInfo format
@@ -319,6 +419,35 @@ export default class Cli {
     }
 
     /**
+     * Updates the function cache in the background
+     * @param functionId The ID of the function to update
+     * @param workspacePath The path to the Dagger project directory
+     * @param cacheKey The cache key to update
+     * @private
+     */
+    private async updateFunctionByIDCache(
+        functionId: string,
+        workspacePath: string,
+        cacheKey: string
+    ): Promise<void> {
+        try {
+            const freshFunction = await this.fetchFunctionByID(functionId, workspacePath);
+            if (this.cache && freshFunction) {
+                // Check if data has actually changed using SHA256 comparison
+                const hasChanged = await this.cache.hasDataChanged(cacheKey, freshFunction);
+                if (hasChanged) {
+                    await this.cache.set(cacheKey, freshFunction);
+                    console.log(`Updated function cache for ID: ${functionId} - data changed`);
+                } else {
+                    console.log(`Skipped function cache update for ID: ${functionId} - data unchanged`);
+                }
+            }
+        } catch (error) {
+            console.error(`Error updating function cache for ID ${functionId}:`, error);
+        }
+    }
+
+    /**
      * Gets detailed information about a function including its arguments using the function ID.
      * 
      * @param functionId The unique identifier of the function to fetch
@@ -327,18 +456,36 @@ export default class Cli {
      */
     public async getFunction(functionId: string, workspacePath: string): Promise<FunctionInfo | undefined> {
         try {
-            // Use the existing queryFunctionByID method to get the function data
+            // Use the cached queryFunctionByID method
             const functionInfo = await this.queryFunctionByID(functionId, workspacePath);
-            
+
             if (!functionInfo) {
                 console.warn(`Function with ID ${functionId} not found`);
                 return undefined;
             }
-            
+
             return functionInfo;
         } catch (error: any) {
             console.error(`Error in getFunction for ID ${functionId}:`, error);
             throw new Error(`Failed to get function details: ${error.message}`);
+        }
+    }
+
+    /**
+     * Sets the cache instance for this CLI
+     * @param cache The cache instance to use
+     */
+    public setCache(cache: DaggerCache): void {
+        this.cache = cache;
+    }
+
+    /**
+     * Clears the cache if available
+     */
+    public async clearCache(): Promise<void> {
+        if (this.cache) {
+            await this.cache.clear();
+            console.log('Cache cleared');
         }
     }
 

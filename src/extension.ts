@@ -7,10 +7,15 @@ import { chatRequestHandler } from './chat/participant';
 import { CHAT_PARTICIPANT_ID, EXTENSION_NAME } from './const';
 import CommandManager from './commands';
 import { registerTerminalProvider } from './terminal';
+import { VSCodeWorkspaceCache } from './cache';
 
 export async function activate(context: vscode.ExtensionContext) {
 	try {
-		const cli = new Cli();
+		// Initialize cache with VS Code workspace storage
+		const cache = new VSCodeWorkspaceCache(context.workspaceState);
+		
+		// Initialize CLI with cache
+		const cli = new Cli(cache);
 
 		const commandManager = new CommandManager({
 			context,

@@ -12,7 +12,9 @@ describe('Tree Provider', () => {
             isInstalled: async () => true,
             isDaggerProject: async () => true,
             functionsList: async () => [],
-            getFunctionArgsByName: async () => []
+            getFunction(functionId: string, _workspacePath: string): Promise<FunctionInfo> {
+                return Promise.resolve({ name: 'mockFunction', description: 'Mock function description', id: functionId });
+            },
         };
     });
 
