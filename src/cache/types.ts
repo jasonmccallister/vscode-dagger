@@ -3,7 +3,7 @@ export interface CacheItem<T> {
     readonly sha256: string; // SHA256 hash of the serialized data
 }
 
-export interface DaggerCache {
+export interface CliCache {
     /**
      * Gets an item from the cache
      * @param key The cache key

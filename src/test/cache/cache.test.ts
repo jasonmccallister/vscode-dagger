@@ -1,10 +1,10 @@
 import { describe, it, beforeEach } from 'mocha';
 import * as assert from 'assert';
 import * as crypto from 'crypto';
-import { DaggerCache, CacheItem } from '../../cache/types';
+import { CliCache, CacheItem } from '../../cache/types';
 
 // Mock cache implementation for testing
-class MockCache implements DaggerCache {
+class MockCache implements CliCache {
     private storage = new Map<string, CacheItem<any>>();
 
     private generateSHA256(data: any): string {
@@ -66,8 +66,8 @@ class MockCache implements DaggerCache {
     }
 }
 
-describe('DaggerCache', () => {
-    let cache: DaggerCache;
+describe('CliCache', () => {
+    let cache: CliCache;
 
     beforeEach(() => {
         cache = new MockCache();

@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { DirectoryIdResult, ModuleObject, ModuleResult } from './types';
-import { DaggerCache } from '../cache';
+import { CliCache } from '../cache';
 
 export interface CommandResult {
     readonly stdout: string;
@@ -34,9 +34,9 @@ interface RunOptions {
 export default class Cli {
     private readonly command = 'dagger';
     private workspacePath?: string;
-    private cache?: DaggerCache;
+    private cache?: CliCache;
 
-    constructor(cache?: DaggerCache) {
+    constructor(cache?: CliCache) {
         this.cache = cache;
     }
 
@@ -475,7 +475,7 @@ export default class Cli {
      * Sets the cache instance for this CLI
      * @param cache The cache instance to use
      */
-    public setCache(cache: DaggerCache): void {
+    public setCache(cache: CliCache): void {
         this.cache = cache;
     }
 

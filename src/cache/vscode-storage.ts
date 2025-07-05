@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import * as crypto from 'crypto';
-import { DaggerCache, CacheItem } from './types';
+import { CliCache, CacheItem } from './types';
 
-export class VSCodeWorkspaceCache implements DaggerCache {
+export class VSCodeWorkspaceCache implements CliCache {
     private readonly storage: vscode.Memento;
 
     constructor(storage: vscode.Memento) {
