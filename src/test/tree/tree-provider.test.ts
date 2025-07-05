@@ -21,8 +21,8 @@ describe('Tree Provider', () => {
     it('should load data with test items on construction', async () => {
         // Arrange: mock functionsList to return test items
         const testFunctions: FunctionInfo[] = [
-            { name: 'testFunc1', description: 'desc1' },
-            { name: 'testFunc2', description: 'desc2' }
+            { name: 'testFunc1', description: 'desc1', functionId: 'func1' },
+            { name: 'testFunc2', description: 'desc2', functionId: 'func2' }
         ];
         mockCli.functionsList = async () => testFunctions;
         mockCli.isInstalled = async () => true;
