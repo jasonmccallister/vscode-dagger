@@ -30,43 +30,54 @@ export const registerCallCommand = (
         // Ensure CLI has the workspace path set
         cli.setWorkspacePath(workspacePath);
 
+        // Debug logging
+        console.log(`Call command invoked with input:`, input);
+        console.log(`Input type: ${typeof input}`);
+        console.log(`Input instanceof DaggerTreeItem: ${input instanceof DaggerTreeItem}`);
+        if (input instanceof DaggerTreeItem) {
+            console.log(`DaggerTreeItem properties:`, {
+                originalName: input.originalName,
+                functionId: input.functionId,
+                moduleName: input.moduleName
+            });
+        }
+
+        let functionName: string | undefined;
+        let functionId: string | undefined;
+        let moduleName: string | undefined;
+        let functionInfo;
+
+        // Determine function selection method
+        if (input instanceof DaggerTreeItem && input.functionId) {
+            // Case 1: Function selected from tree view
+            functionId = input.functionId;
+            functionName = input.originalName;
+            moduleName = input.moduleName;
+            console.log(`Function selected from tree with ID: ${functionId}, Name: ${functionName}, Module: ${moduleName || 'default'}`);
+        } else if (typeof input === 'string') {
+            // Case 2: Function ID passed as string
+            functionId = input;
+            console.log(`Function selected by ID: ${functionId}`);
+        } else {
+            // Case 3: No input - show function picker
+            console.log('No function input provided, showing function picker');
+            const result = await selectFunction(cli, workspacePath);
+
+            if (!result) {
+                return; // Selection cancelled
+            }
+
+            functionName = result.name;
+            functionId = result.functionId;
+            moduleName = result.moduleName;
+            console.log(`Function selected from picker: ${functionName}`);
+        }
+
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
             title: 'Dagger',
             cancellable: false
         }, async (progress) => {
-            progress.report({ message: 'Loading functions...' });
-
-            let functionName: string | undefined;
-            let functionId: string | undefined;
-            let moduleName: string | undefined;
-            let functionInfo;
-
-
-            if (input instanceof DaggerTreeItem && input.functionId) {
-                functionId = input.functionId;
-                functionName = input.originalName;
-                moduleName = input.moduleName;
-                console.log(`Function selected from tree with ID: ${functionId}, Module: ${moduleName || 'default'}`);
-            } else if (typeof input === 'string') {
-                // Case 2: Function ID passed as string
-                functionId = input;
-                console.log(`Function selected by ID: ${functionId}`);
-            } else {
-                // Case 3: No valid input or unrecognized input type - show selector
-                progress.report({ message: 'Selecting function...' });
-                const result = await selectFunction(cli, workspacePath);
-
-                if (!result) {
-                    return; // Selection cancelled
-                }
-
-                functionName = result.name;
-                functionId = result.functionId;
-                moduleName = result.moduleName;
-                console.log(`Function selected from picker: ${functionName}`);
-            }
-
             progress.report({ message: 'Getting function arguments...' });
 
             try {

@@ -311,21 +311,17 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                     functionName,
                     'function',
                     vscode.TreeItemCollapsibleState.Collapsed,
-                    {
-                        command: 'dagger.call',
-                        title: 'Call Function',
-                        arguments: [
-                            // Pass the tree item itself to have access to both function name and module name
-                            { 
-                                originalName: functionName,
-                                functionId: functionId,
-                                moduleName: moduleName
-                            }
-                        ]
-                    },
+                    undefined, // Don't set command here - we'll set it after creating the item
                     moduleName, // Pass module name
                     functionId  // Pass function ID
                 );
+
+                // Set the command after creating the item so we can pass the item itself
+                functionItem.command = {
+                    command: 'dagger.call',
+                    title: 'Call Function',
+                    arguments: [functionItem] // Pass the tree item itself
+                };
 
                 // Set tooltip with full information
                 let tooltip = `Function: ${functionName}`;
@@ -379,21 +375,17 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                         displayName,
                         'function',
                         vscode.TreeItemCollapsibleState.Collapsed,
-                        {
-                            command: 'dagger.call',
-                            title: 'Call Function',
-                            arguments: [
-                                // Pass the tree item itself to have access to both function name and module name
-                                { 
-                                    originalName: displayName,   // Use the display name without module prefix
-                                    functionId: functionId,
-                                    moduleName: moduleName
-                                }
-                            ]
-                        },
+                        undefined, // Don't set command here - we'll set it after creating the item
                         moduleName,  // Pass module name
                         functionId   // Pass function ID
                     );
+
+                    // Set the command after creating the item so we can pass the item itself
+                    functionItem.command = {
+                        command: 'dagger.call',
+                        title: 'Call Function',
+                        arguments: [functionItem] // Pass the tree item itself
+                    };
 
                     // Set tooltip with full information
                     let tooltip = `Function: ${fn.name.trim()}`;
