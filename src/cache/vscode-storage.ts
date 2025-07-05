@@ -3,7 +3,6 @@ import * as crypto from 'crypto';
 import { DaggerCache, CacheItem } from './types';
 
 export class VSCodeWorkspaceCache implements DaggerCache {
-    private readonly DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
     private readonly storage: vscode.Memento;
 
     constructor(storage: vscode.Memento) {
@@ -28,14 +27,6 @@ export class VSCodeWorkspaceCache implements DaggerCache {
                 return undefined;
             }
 
-            // Check if item has expired
-            const now = Date.now();
-            if (now > item.timestamp + item.ttl) {
-                // Item has expired, remove it
-                await this.remove(key);
-                return undefined;
-            }
-
             return item.data;
         } catch (error) {
             console.error(`Error getting cache item for key ${key}:`, error);
@@ -43,13 +34,11 @@ export class VSCodeWorkspaceCache implements DaggerCache {
         }
     }
 
-    async set<T>(key: string, value: T, ttl: number = this.DEFAULT_TTL): Promise<void> {
+    async set<T>(key: string, value: T): Promise<void> {
         try {
             const sha256 = this.generateSHA256(value);
             const item: CacheItem<T> = {
                 data: value,
-                timestamp: Date.now(),
-                ttl,
                 sha256
             };
 
@@ -88,21 +77,13 @@ export class VSCodeWorkspaceCache implements DaggerCache {
     /**
      * Gets the SHA256 hash of a cached item without returning the data
      * @param key The cache key
-     * @returns The SHA256 hash or undefined if not found or expired
+     * @returns The SHA256 hash or undefined if not found
      */
     async getSHA256(key: string): Promise<string | undefined> {
         try {
             const item = this.storage.get<CacheItem<any>>(key);
             
             if (!item) {
-                return undefined;
-            }
-
-            // Check if item has expired
-            const now = Date.now();
-            if (now > item.timestamp + item.ttl) {
-                // Item has expired, remove it
-                await this.remove(key);
                 return undefined;
             }
 

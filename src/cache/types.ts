@@ -1,7 +1,5 @@
 export interface CacheItem<T> {
     readonly data: T;
-    readonly timestamp: number;
-    readonly ttl: number; // Time to live in milliseconds
     readonly sha256: string; // SHA256 hash of the serialized data
 }
 
@@ -17,9 +15,8 @@ export interface DaggerCache {
      * Sets an item in the cache
      * @param key The cache key
      * @param value The value to cache
-     * @param ttl Time to live in milliseconds (optional, defaults to 5 minutes)
      */
-    set<T>(key: string, value: T, ttl?: number): Promise<void>;
+    set<T>(key: string, value: T): Promise<void>;
 
     /**
      * Removes an item from the cache
@@ -33,7 +30,7 @@ export interface DaggerCache {
     clear(): Promise<void>;
 
     /**
-     * Checks if an item exists in the cache and is not expired
+     * Checks if an item exists in the cache
      * @param key The cache key
      */
     has(key: string): Promise<boolean>;
@@ -41,7 +38,7 @@ export interface DaggerCache {
     /**
      * Gets the SHA256 hash of a cached item without returning the data
      * @param key The cache key
-     * @returns The SHA256 hash or undefined if not found or expired
+     * @returns The SHA256 hash or undefined if not found
      */
     getSHA256(key: string): Promise<string | undefined>;
 

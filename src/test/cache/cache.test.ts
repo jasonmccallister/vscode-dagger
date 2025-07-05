@@ -19,22 +19,13 @@ class MockCache implements DaggerCache {
             return undefined;
         }
 
-        // Check if item has expired
-        const now = Date.now();
-        if (now > item.timestamp + item.ttl) {
-            this.storage.delete(key);
-            return undefined;
-        }
-
         return item.data;
     }
 
-    async set<T>(key: string, value: T, ttl: number = 300000): Promise<void> {
+    async set<T>(key: string, value: T): Promise<void> {
         const sha256 = this.generateSHA256(value);
         const item: CacheItem<T> = {
             data: value,
-            timestamp: Date.now(),
-            ttl,
             sha256
         };
 
@@ -58,13 +49,6 @@ class MockCache implements DaggerCache {
         const item = this.storage.get(key);
         
         if (!item) {
-            return undefined;
-        }
-
-        // Check if item has expired
-        const now = Date.now();
-        if (now > item.timestamp + item.ttl) {
-            this.storage.delete(key);
             return undefined;
         }
 
@@ -102,23 +86,6 @@ describe('DaggerCache', () => {
     it('should return undefined for non-existent keys', async () => {
         const retrieved = await cache.get('non-existent-key');
         assert.strictEqual(retrieved, undefined);
-    });
-
-    it('should expire items after TTL', async () => {
-        const key = 'test-key';
-        const value = { name: 'test-function', id: '123' };
-        const shortTTL = 10; // 10ms
-
-        await cache.set(key, value, shortTTL);
-        
-        // Should exist immediately
-        assert.strictEqual(await cache.has(key), true);
-        
-        // Wait for expiration
-        await new Promise(resolve => setTimeout(resolve, 20));
-        
-        // Should be expired
-        assert.strictEqual(await cache.has(key), false);
     });
 
     it('should clear all items', async () => {

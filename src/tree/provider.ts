@@ -189,68 +189,88 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                 try {
                     progress.report({ message: 'Fetching functions...' });
 
-                    // Get all functions
-                    const functions = await this.cli.functionsList(this.workspacePath);
+                    // Set up a timeout to show a notice if loading takes too long
+                    let timeoutNoticeShown = false;
+                    const timeoutHandle = setTimeout(() => {
+                        if (!timeoutNoticeShown) {
+                            timeoutNoticeShown = true;
+                            progress.report({ 
+                                message: 'Still loading... Depending on your project size, the initial load could take a while. Subsequent response times will be cached and updated in the background.' 
+                            });
+                        }
+                    }, 3000); // Show notice after 3 seconds
 
-                    if (functions.length === 0) {
-                        this.items = [
-                            new DaggerTreeItem('No functions found', 'empty'),
-                            new DaggerTreeItem(
-                                'Learn how to create functions',
-                                'action',
-                                vscode.TreeItemCollapsibleState.None,
-                                {
-                                    command: 'vscode.open',
-                                    title: 'Learn about Dagger functions',
-                                    arguments: [vscode.Uri.parse('https://docs.dagger.io/quickstart')]
-                                }
-                            )
-                        ];
+                    try {
+                        // Get all functions
+                        const functions = await this.cli.functionsList(this.workspacePath);
+                        
+                        // Clear the timeout since we're done loading
+                        clearTimeout(timeoutHandle);
+
+                        if (functions.length === 0) {
+                            this.items = [
+                                new DaggerTreeItem('No functions found', 'empty'),
+                                new DaggerTreeItem(
+                                    'Learn how to create functions',
+                                    'action',
+                                    vscode.TreeItemCollapsibleState.None,
+                                    {
+                                        command: 'vscode.open',
+                                        title: 'Learn about Dagger functions',
+                                        arguments: [vscode.Uri.parse('https://docs.dagger.io/quickstart')]
+                                    }
+                                )
+                            ];
+                            this.refresh();
+                            return;
+                        }
+
+                        this.items = [];
+
+                        // Initialize progress tracking
+                        const totalFunctions = functions.length;
+                        const incrementPerFunction = 100 / totalFunctions;
+
+                        // Group functions by their module
+                        const moduleMap = new Map<string, Array<{ fn: any, index: number }>>();
+
+                        // Process all functions at once
+                        for (let i = 0; i < functions.length; i++) {
+                            const fn = functions[i];
+
+                            if (!fn.functionId) {
+                                console.warn(`Function ${fn.name} has no ID, skipping`);
+                                continue;
+                            }
+
+                            // Use the module property directly, which should be set correctly by functionsList
+                            const moduleName = fn.module || 'default';
+
+                            // Add function to its module group
+                            if (!moduleMap.has(moduleName)) {
+                                moduleMap.set(moduleName, []);
+                            }
+                            moduleMap.get(moduleName)!.push({ fn, index: i });
+
+                            // Report progress for this function
+                            progress.report({
+                                message: `Processing ${i + 1}/${totalFunctions}: ${fn.name.trim()}`,
+                                increment: incrementPerFunction
+                            });
+                        }
+
+                        progress.report({ message: 'Building tree view...' });
+
+                        // Build the tree items after all functions are processed
+                        await this.buildTreeItems(moduleMap);
+
+                        // Refresh the tree view with the new items
                         this.refresh();
-                        return;
+                    } catch (error) {
+                        // Make sure to clear the timeout in case of error
+                        clearTimeout(timeoutHandle);
+                        throw error;
                     }
-
-                    this.items = [];
-
-                    // Initialize progress tracking
-                    const totalFunctions = functions.length;
-                    const incrementPerFunction = 100 / totalFunctions;
-
-                    // Group functions by their module
-                    const moduleMap = new Map<string, Array<{ fn: any, index: number }>>();
-
-                    // Process all functions at once
-                    for (let i = 0; i < functions.length; i++) {
-                        const fn = functions[i];
-
-                        if (!fn.functionId) {
-                            console.warn(`Function ${fn.name} has no ID, skipping`);
-                            continue;
-                        }
-
-                        // Use the module property directly, which should be set correctly by functionsList
-                        const moduleName = fn.module || 'default';
-
-                        // Add function to its module group
-                        if (!moduleMap.has(moduleName)) {
-                            moduleMap.set(moduleName, []);
-                        }
-                        moduleMap.get(moduleName)!.push({ fn, index: i });
-
-                        // Report progress for this function
-                        progress.report({
-                            message: `Processing ${i + 1}/${totalFunctions}: ${fn.name.trim()}`,
-                            increment: incrementPerFunction
-                        });
-                    }
-
-                    progress.report({ message: 'Building tree view...' });
-
-                    // Build the tree items after all functions are processed
-                    await this.buildTreeItems(moduleMap);
-
-                    // Refresh the tree view with the new items
-                    this.refresh();
                 } catch (error) {
                     console.error('Error loading Dagger functions:', error);
                     this.items = [new DaggerTreeItem('Error loading functions', 'empty')];
