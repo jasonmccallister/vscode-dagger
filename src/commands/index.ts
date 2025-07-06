@@ -14,7 +14,6 @@ import { registerShellCommand } from './shell';
 import { registerUninstallCommand } from './uninstall';
 import { registerUpdateCommand } from './update';
 import { registerVersionCommand } from './version';
-import { registerRefreshFunctionsCommand } from './refresh';
 import { showCloudIntegrationPrompt } from '../prompt';
 import { registerTreeView } from '../tree/provider';
 import { DaggerSettings } from '../settings';
@@ -52,12 +51,6 @@ export default class CommandManager {
         registerUpdateCommand(this.options.context, this.options.cli, this.options.settings);
         registerVersionCommand(this.options.context, this.options.cli);
         
-        // Register refresh function command
-        registerRefreshFunctionsCommand(this.options.context, () => {
-            // Refresh functionality is handled in the tree view provider
-            vscode.commands.executeCommand('dagger.refresh');
-        });
-
         // Register tree view with settings
         registerTreeView(this.options.context, {
             cli: this.options.cli,
