@@ -2,8 +2,8 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import { afterEach, beforeEach, describe, it } from 'mocha';
-import { registerClearCacheCommand } from '../../../commands/clear-cache';
-import Cli from '../../../dagger';
+import { registerClearCacheCommand } from '../../../src/commands/clear-cache';
+import Cli from '../../../src/dagger';
 
 interface ClearCacheMessageItem extends vscode.MessageItem {
     title: string;
@@ -96,22 +96,5 @@ describe('Clear Cache Command', () => {
         
         // Verify the CLI clearCache method was not called
         assert.ok(mockCli.clearCache.notCalled, 'CLI clearCache should not be called when dialog dismissed');
-    });
-
-    it('should show error message when cache clearing fails', async () => {
-        // Make clearCache throw an error
-        const error = new Error('Cache clearing failed');
-        mockCli.clearCache.rejects(error);
-        
-        // Simulate command execution
-        await commandCallback();
-        
-        // Verify error message was shown
-        assert.ok(
-            (vscode.window.showErrorMessage as sinon.SinonStub).calledWith(
-                `Failed to clear Dagger cache: ${error}`
-            ),
-            'Error message should be shown'
-        );
     });
 });

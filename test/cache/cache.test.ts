@@ -1,7 +1,7 @@
 import { describe, it, beforeEach } from 'mocha';
 import * as assert from 'assert';
 import * as crypto from 'crypto';
-import { CliCache, CacheItem } from '../../cache/types';
+import { CliCache, CacheItem } from '../../src/cache/types';
 
 // Mock cache implementation for testing
 class MockCache implements CliCache {

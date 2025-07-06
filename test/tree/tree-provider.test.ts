@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import { describe, it, beforeEach } from 'mocha';
-import { DataProvider } from '../../tree/provider';
-import Cli, { FunctionInfo } from '../../dagger';
+import { DataProvider } from '../../src/tree/provider';
+import Cli, { FunctionInfo } from '../../src/dagger';
 
 describe('Tree Provider', () => {
     let mockCli: Partial<Cli>;

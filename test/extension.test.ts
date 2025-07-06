@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-// import * as myExtension from '../extension';
+// import * as myExtension from '../src/extension';
 
 describe('Extension Test Suite', () => {
 	before(() => {

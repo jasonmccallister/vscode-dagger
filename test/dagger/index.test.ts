@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import { describe, it, beforeEach, afterEach } from 'mocha';
-import Cli, { FunctionInfo } from '../../dagger';
+import Cli, { FunctionInfo } from '../../src/dagger';
 import sinon from 'sinon';
 
 describe('Dagger CLI Wrapper', () => {
