@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import Cli from '../../dagger';
 import { DaggerSettings } from '../../settings';
 
-type CloudResponse = 'Visit dagger.cloud' | 'Open Settings' | 'Test Connection' | 'Cancel';
+type CloudResponse = 'Visit dagger.cloud' | 'Open Settings' | 'Cancel';
 
 const COMMAND = 'dagger.setupCloud';
 
@@ -70,17 +70,11 @@ const getTokenSources = async (): Promise<TokenSources> => {
  * @returns Array of response options
  */
 const getResponseOptions = (tokens: TokenSources): CloudResponse[] => {
-    const { envToken, secretToken, currentToken } = tokens;
     const options: CloudResponse[] = ['Cancel'];
 
     // Add options in reverse order so they appear in the desired order
     options.unshift('Visit dagger.cloud');
     options.unshift('Open Settings');
-
-    // Only show test connection if we have at least one token
-    if (envToken || secretToken || currentToken) {
-        options.unshift('Test Connection');
-    }
 
     return options;
 };
@@ -115,7 +109,7 @@ const getCloudMessage = (tokens: TokenSources): string => {
  */
 const handleCloudResponse = async (
     response: CloudResponse | undefined,
-    tokens: TokenSources
+    _tokens: TokenSources
 ): Promise<void> => {
     if (!response || response === 'Cancel') {
         return;
@@ -130,28 +124,4 @@ const handleCloudResponse = async (
         await vscode.commands.executeCommand('workbench.action.openSettings', 'dagger.cloudToken');
         return;
     }
-
-    if (response === 'Test Connection') {
-        await testConnection(tokens);
-        return;
-    }
 };
-
-/**
- * Tests the connection to Dagger Cloud
- * @param tokens The token sources
- */
-const testConnection = async (tokens: TokenSources): Promise<void> => {
-    // For now, we just show a success message
-    // In a real implementation, we would actually test the connection
-    // using one of the tokens (envToken, secretToken, or currentToken)
-    const { envToken, secretToken, currentToken } = tokens;
-    const token = envToken || secretToken || currentToken;
-    
-    if (token) {
-        vscode.window.showInformationMessage('Connection successful!');
-    } else {
-        vscode.window.showErrorMessage('No token available to test connection');
-    }
-};
-
