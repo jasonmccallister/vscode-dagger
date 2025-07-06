@@ -3,6 +3,7 @@ import { describe, it, beforeEach, afterEach } from 'mocha';
 import Cli, { FunctionInfo } from '../../src/dagger';
 import sinon from 'sinon';
 import { DaggerSettings } from '../../src/settings';
+import * as vscode from 'vscode';
 
 describe('Dagger CLI Wrapper', () => {
     let cli: Cli;
@@ -11,7 +12,16 @@ describe('Dagger CLI Wrapper', () => {
     // Create a simple mock settings class for testing
     class MockDaggerSettings implements DaggerSettings {
         readonly enableCache: boolean = true;
+        readonly installMethod: 'brew' | 'curl' = 'brew';
+        readonly cloudNotificationDismissed: boolean = false;
+        readonly saveTaskPromptDismissed: boolean = false;
+        readonly runFunctionCallsInBackground: boolean = false;
+        
         reload(): void { /* no-op */ }
+        
+        update<T>(_section: string, _value: T, _target: vscode.ConfigurationTarget): Thenable<void> {
+            return Promise.resolve();
+        }
     }
 
     beforeEach(() => {

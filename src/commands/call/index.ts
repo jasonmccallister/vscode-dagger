@@ -3,6 +3,7 @@ import Cli from '../../dagger';
 import { showProjectSetupPrompt } from '../../prompt';
 import { collectAndRunFunction, showSaveTaskPrompt } from '../../utils/function-helpers';
 import { DaggerTreeItem } from '../../tree/provider';
+import { DaggerSettings } from '../../settings';
 
 export const COMMAND = 'dagger.call';
 
@@ -22,7 +23,8 @@ interface SelectedFunction {
 export const registerCallCommand = (
     context: vscode.ExtensionContext,
     cli: Cli,
-    workspacePath: string
+    workspacePath: string,
+    settings: DaggerSettings
 ): void => {
     const disposable = vscode.commands.registerCommand(COMMAND, async (input?: DaggerTreeItem | string) => {
         if (!(await cli.isDaggerProject())) { return showProjectSetupPrompt(); }
@@ -106,7 +108,7 @@ export const registerCallCommand = (
                 );
 
                 if (success) {
-                    await showSaveTaskPrompt(functionName!, argValues, workspacePath);
+                    await showSaveTaskPrompt(functionName!, argValues, workspacePath, settings);
                 }
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error);

@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
-import { FunctionArgument } from '../dagger';
+import * as fs from 'fs';
+import * as path from 'path';
+import Cli, { FunctionInfo, FunctionArgument } from '../dagger';
 import { executeInTerminal } from './terminal';
+import { DaggerSettings } from '../settings';
 import { saveTaskToTasksJson } from '../commands/save-task';
 
 interface ArgumentPick {
@@ -151,15 +154,16 @@ export const collectAndRunFunction = async (
  * @param functionName The name of the function called
  * @param argValues The argument values used in the call
  * @param workspacePath The workspace path
+ * @param settings The Dagger settings
  */
 export const showSaveTaskPrompt = async (
     functionName: string,
     argValues: Record<string, string>,
-    workspacePath: string
+    workspacePath: string,
+    settings: DaggerSettings
 ): Promise<void> => {
-    const config = vscode.workspace.getConfiguration('dagger');
-    const dismissed = config.get<boolean>('saveTaskPromptDismissed', false);
-    if (dismissed) { return; }
+    // Use settings instead of directly accessing configuration
+    if (settings.saveTaskPromptDismissed) { return; }
 
     const choice = await vscode.window.showInformationMessage(
         `Would you like to save this Dagger function call as a VS Code task?`,
@@ -192,7 +196,7 @@ export const showSaveTaskPrompt = async (
         await saveTaskToTasksJson(taskName.trim(), command, workspacePath);
         vscode.window.showInformationMessage(`Task "${taskName.trim()}" saved! You can run it from the Run Task menu.`);
     } else if (choice === "Don't show again") {
-        await config.update('saveTaskPromptDismissed', true, vscode.ConfigurationTarget.Global);
+        await settings.update('saveTaskPromptDismissed', true, vscode.ConfigurationTarget.Global);
     }
     // 'Not now' does nothing (prompt will show again next time)
 };

@@ -6,6 +6,7 @@ import { registerCallCommand } from '../../../src/commands/call';
 import Cli from '../../../src/dagger';
 import { DaggerTreeItem } from '../../../src/tree/provider';
 import { FunctionInfo } from '../../../src/dagger';
+import { DaggerSettings } from '../../../src/settings';
 
 // Mock the utils module
 const mockUtils = {
@@ -18,16 +19,35 @@ const mockPrompt = {
     showProjectSetupPrompt: sinon.stub()
 };
 
+// Create a simple mock settings class for testing
+class MockDaggerSettings implements DaggerSettings {
+    readonly enableCache: boolean = true;
+    readonly installMethod: 'brew' | 'curl' = 'brew';
+    readonly cloudNotificationDismissed: boolean = false;
+    readonly saveTaskPromptDismissed: boolean = false;
+    readonly runFunctionCallsInBackground: boolean = false;
+    
+    reload(): void { /* no-op */ }
+    
+    update<T>(_section: string, _value: T, _target: vscode.ConfigurationTarget): Thenable<void> {
+        return Promise.resolve();
+    }
+}
+
 describe('Call Command Tests', () => {
     let mockCli: sinon.SinonStubbedInstance<Cli>;
     let mockContext: Partial<vscode.ExtensionContext>;
     let workspacePath: string;
+    let commandCallback: any;
     let sandbox: sinon.SinonSandbox;
-    let commandCallback: (input?: any) => Promise<void>;
+    let mockSettings: DaggerSettings;
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
-        workspacePath = '/test/workspace';
+        workspacePath = '/mock/workspace';
+        
+        // Initialize mock settings
+        mockSettings = new MockDaggerSettings();
         
         // Create mock CLI
         mockCli = sandbox.createStubInstance(Cli);
@@ -60,7 +80,7 @@ describe('Call Command Tests', () => {
         };
         
         // Register the command to capture the callback
-        registerCallCommand(mockContext as vscode.ExtensionContext, mockCli as any, workspacePath);
+        registerCallCommand(mockContext as vscode.ExtensionContext, mockCli as any, workspacePath, mockSettings);
         commandCallback = capturedCallback;
     });
 

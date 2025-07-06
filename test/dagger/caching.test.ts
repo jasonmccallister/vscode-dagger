@@ -3,6 +3,7 @@ import { describe, it, beforeEach, afterEach } from 'mocha';
 import Cli, { FunctionInfo } from '../../src/dagger';
 import sinon from 'sinon';
 import { DaggerSettings } from '../../src/settings';
+import * as vscode from 'vscode';
 
 describe('Dagger CLI Caching', () => {
     let sandbox: sinon.SinonSandbox;
@@ -28,9 +29,29 @@ describe('Dagger CLI Caching', () => {
     // Create a mock settings class that allows setting enableCache for testing
     class MockDaggerSettings implements DaggerSettings {
         private _enableCache: boolean = true;
+        private _installMethod: 'brew' | 'curl' = 'brew';
+        private _cloudNotificationDismissed: boolean = false;
+        private _saveTaskPromptDismissed: boolean = false;
+        private _runFunctionCallsInBackground: boolean = false;
         
         get enableCache(): boolean {
             return this._enableCache;
+        }
+        
+        get installMethod(): 'brew' | 'curl' {
+            return this._installMethod;
+        }
+        
+        get cloudNotificationDismissed(): boolean {
+            return this._cloudNotificationDismissed;
+        }
+        
+        get saveTaskPromptDismissed(): boolean {
+            return this._saveTaskPromptDismissed;
+        }
+        
+        get runFunctionCallsInBackground(): boolean {
+            return this._runFunctionCallsInBackground;
         }
         
         // Method for tests to set the enableCache value
@@ -40,6 +61,10 @@ describe('Dagger CLI Caching', () => {
         
         reload(): void {
             // No-op for tests
+        }
+        
+        update<T>(_section: string, _value: T, _target: vscode.ConfigurationTarget): Thenable<void> {
+            return Promise.resolve();
         }
     }
 

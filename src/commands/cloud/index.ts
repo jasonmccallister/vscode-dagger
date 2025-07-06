@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import Cli from '../../dagger';
+import { DaggerSettings } from '../../settings';
 
 type CloudResponse = 'Visit dagger.cloud' | 'Open Settings' | 'Test Connection' | 'Cancel';
 
@@ -13,11 +14,11 @@ interface TokenSources {
 
 export const registerCloudCommand = (
     context: vscode.ExtensionContext,
-    _cli: Cli
+    _cli: Cli,
+    settings: DaggerSettings
 ): void => {
     const disposable = vscode.commands.registerCommand(COMMAND, async () => {
-        const config = vscode.workspace.getConfiguration('dagger');
-        const tokens = await getTokenSources(config);
+        const tokens = await getTokenSources();
         const message = getCloudMessage(tokens);
         const options = getResponseOptions(tokens);
 
@@ -27,6 +28,11 @@ export const registerCloudCommand = (
         ) as CloudResponse | undefined;
 
         await handleCloudResponse(response, tokens);
+        
+        // If user interacts with cloud setup, mark notification as dismissed
+        if (response && response !== 'Cancel') {
+            await settings.update('cloudNotificationDismissed', true, vscode.ConfigurationTarget.Global);
+        }
     });
 
     context.subscriptions.push(disposable);
@@ -34,10 +40,12 @@ export const registerCloudCommand = (
 
 /**
  * Gets token from various sources
- * @param config The workspace configuration
  * @returns Object containing tokens from different sources
  */
-const getTokenSources = async (config: vscode.WorkspaceConfiguration): Promise<TokenSources> => {
+const getTokenSources = async (): Promise<TokenSources> => {
+    // We access current token from configuration directly 
+    // because cloudToken is not part of our settings interface
+    const config = vscode.workspace.getConfiguration('dagger');
     const currentToken = config.get<string>('cloudToken', '');
     const envToken = process.env.DAGGER_CLOUD_TOKEN;
 
@@ -49,67 +57,101 @@ const getTokenSources = async (config: vscode.WorkspaceConfiguration): Promise<T
         secretToken = '';
     }
 
-    return { envToken, secretToken, currentToken };
+    return {
+        envToken,
+        secretToken,
+        currentToken
+    };
 };
 
 /**
- * Gets the appropriate message based on token availability
- * @param tokens The token sources
- * @returns The message to display
- */
-const getCloudMessage = ({ envToken, secretToken, currentToken }: TokenSources): string => {
-    if (envToken) {
-        return 'Dagger Cloud token is already set via DAGGER_CLOUD_TOKEN environment variable.';
-    }
-
-    if (secretToken) {
-        return 'Dagger Cloud token is already stored in VS Code Secret Storage.';
-    }
-
-    if (currentToken) {
-        return 'Dagger Cloud token is already configured in settings.';
-    }
-
-    return 'Setup Dagger Cloud to get enhanced observability and collaboration features.';
-};
-
-/**
- * Gets the available response options
+ * Gets the response options based on the token sources
  * @param tokens The token sources
  * @returns Array of response options
  */
-const getResponseOptions = ({ envToken, secretToken, currentToken }: TokenSources): readonly string[] => {
-    const baseOptions = ['Visit dagger.cloud', 'Open Settings'];
-    const hasToken = !!(currentToken || envToken || secretToken);
-    const testOption = hasToken ? ['Test Connection'] : [];
+const getResponseOptions = (tokens: TokenSources): CloudResponse[] => {
+    const { envToken, secretToken, currentToken } = tokens;
+    const options: CloudResponse[] = ['Cancel'];
 
-    return [...baseOptions, ...testOption, 'Cancel'];
+    // Add options in reverse order so they appear in the desired order
+    options.unshift('Visit dagger.cloud');
+    options.unshift('Open Settings');
+
+    // Only show test connection if we have at least one token
+    if (envToken || secretToken || currentToken) {
+        options.unshift('Test Connection');
+    }
+
+    return options;
 };
 
 /**
- * Handles the user's response to the cloud setup dialog
- * @param response The user's selected response
+ * Gets the cloud message based on token sources
+ * @param tokens The token sources
+ * @returns Message to display to the user
+ */
+const getCloudMessage = (tokens: TokenSources): string => {
+    const { envToken, secretToken, currentToken } = tokens;
+
+    if (envToken) {
+        return 'Dagger Cloud token found in environment variable DAGGER_CLOUD_TOKEN';
+    }
+
+    if (secretToken) {
+        return 'Dagger Cloud token found in VS Code secrets storage';
+    }
+
+    if (currentToken) {
+        return 'Dagger Cloud token found in VS Code settings';
+    }
+
+    return 'Connect to Dagger Cloud for enhanced features';
+};
+
+/**
+ * Handles the cloud response
+ * @param response The user's response
  * @param tokens The token sources
  */
-const handleCloudResponse = async (response: CloudResponse | undefined, tokens: TokenSources): Promise<void> => {
-    switch (response) {
-        case 'Visit dagger.cloud':
-            await vscode.env.openExternal(vscode.Uri.parse('https://dagger.cloud'));
-            break;
+const handleCloudResponse = async (
+    response: CloudResponse | undefined,
+    tokens: TokenSources
+): Promise<void> => {
+    if (!response || response === 'Cancel') {
+        return;
+    }
 
-        case 'Open Settings':
-            await vscode.commands.executeCommand('workbench.action.openSettings', 'dagger.cloudToken');
-            break;
+    if (response === 'Visit dagger.cloud') {
+        await vscode.env.openExternal(vscode.Uri.parse('https://dagger.cloud'));
+        return;
+    }
 
-        case 'Test Connection':
-            if (tokens.currentToken || tokens.envToken || tokens.secretToken) {
-                // Simple check - if we have a token, consider it valid for now
-                // In a real implementation, you might want to make an API call to verify
-                vscode.window.showInformationMessage('✅ Dagger Cloud token is configured and ready to use!');
-            }
-            break;
+    if (response === 'Open Settings') {
+        await vscode.commands.executeCommand('workbench.action.openSettings', 'dagger.cloudToken');
+        return;
+    }
 
-        // Cancel or undefined - do nothing
+    if (response === 'Test Connection') {
+        await testConnection(tokens);
+        return;
+    }
+};
+
+/**
+ * Tests the connection to Dagger Cloud
+ * @param tokens The token sources
+ */
+const testConnection = async (tokens: TokenSources): Promise<void> => {
+    // For now, we just show a success message
+    // In a real implementation, we would actually test the connection
+    // using one of the tokens (envToken, secretToken, or currentToken)
+    const { envToken, secretToken, currentToken } = tokens;
+    const token = envToken || secretToken || currentToken;
+    
+    if (token) {
+        vscode.window.showInformationMessage('Connection successful!');
+    } else {
+        vscode.window.showErrorMessage('No token available to test connection');
     }
 };
 

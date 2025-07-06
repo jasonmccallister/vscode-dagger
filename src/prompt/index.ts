@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import Cli from '../dagger';
+import { DaggerSettings } from '../settings';
 
 type CloudPromptResponse = 'Sign up' | 'Learn More' | "Don't show again";
 
@@ -13,12 +14,15 @@ interface CloudTokenSources {
 /**
  * Check if Dagger Cloud token is available and show setup notification if needed
  */
-export const showCloudIntegrationPrompt = async (context: vscode.ExtensionContext, cli: Cli): Promise<void> => {
-    const config = vscode.workspace.getConfiguration('dagger');
+export const showCloudIntegrationPrompt = async (
+    context: vscode.ExtensionContext, 
+    cli: Cli,
+    settings: DaggerSettings
+): Promise<void> => {
     const tokens = await getCloudTokenSources(context);
     const cliInstalled = await cli.isInstalled();
 
-    if (!shouldShowCloudNotification(config, tokens, cliInstalled)) {
+    if (!shouldShowCloudNotification(settings, tokens, cliInstalled)) {
         return;
     }
 
@@ -30,7 +34,7 @@ export const showCloudIntegrationPrompt = async (context: vscode.ExtensionContex
         "Don't show again"
     ) as CloudPromptResponse | undefined;
 
-    await handleCloudPromptResponse(response, config);
+    await handleCloudPromptResponse(response, settings);
 };
 
 export const showProjectSetupPrompt = async (): Promise<void> => {
@@ -61,30 +65,28 @@ const getCloudTokenSources = async (context: vscode.ExtensionContext): Promise<C
 
 /**
  * Determines if cloud notification should be shown
- * @param config The workspace configuration
+ * @param settings The Dagger settings
  * @param tokens The available cloud tokens
  * @param cliInstalled Whether the CLI is installed
  * @returns true if notification should be shown
  */
 const shouldShowCloudNotification = (
-    config: vscode.WorkspaceConfiguration,
+    settings: DaggerSettings,
     { secretToken, envToken }: CloudTokenSources,
     cliInstalled: boolean
 ): boolean => {
-    const notificationDismissed = config.get<boolean>('cloudNotificationDismissed', false);
-
     // Don't show if token is available or notification was dismissed or CLI not installed
-    return !secretToken && !envToken && !notificationDismissed && cliInstalled;
+    return !secretToken && !envToken && !settings.cloudNotificationDismissed && cliInstalled;
 };
 
 /**
  * Handles the cloud prompt response
  * @param response The user's response
- * @param config The workspace configuration
+ * @param settings The Dagger settings
  */
 const handleCloudPromptResponse = async (
     response: CloudPromptResponse | undefined,
-    config: vscode.WorkspaceConfiguration
+    settings: DaggerSettings
 ): Promise<void> => {
     switch (response) {
         case 'Sign up':
@@ -96,10 +98,8 @@ const handleCloudPromptResponse = async (
             break;
 
         case "Don't show again":
-            await config.update('cloudNotificationDismissed', true, vscode.ConfigurationTarget.Global);
+            await settings.update('cloudNotificationDismissed', true, vscode.ConfigurationTarget.Global);
             break;
-
-        // No response - do nothing
     }
 };
 

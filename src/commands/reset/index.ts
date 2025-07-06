@@ -1,13 +1,15 @@
 import * as vscode from 'vscode';
+import { DaggerSettings } from '../../settings';
 
 type ResetChoice = 'Yes' | 'No';
 
 const COMMAND = 'dagger.reset';
 
-export const registerResetCommand = (context: vscode.ExtensionContext): void => {
+export const registerResetCommand = (
+    context: vscode.ExtensionContext,
+    settings: DaggerSettings
+): void => {
     const disposable = vscode.commands.registerCommand(COMMAND, async () => {
-        const config = vscode.workspace.getConfiguration('dagger');
-
         const response = await vscode.window.showWarningMessage(
             'Are you sure you want to reset your Dagger preferences?',
             { modal: true },
@@ -16,7 +18,7 @@ export const registerResetCommand = (context: vscode.ExtensionContext): void => 
         ) as ResetChoice | undefined;
 
         if (response === 'Yes') {
-            await resetPreferences(context, config);
+            await resetPreferences(context, settings);
         }
     });
 
@@ -26,15 +28,16 @@ export const registerResetCommand = (context: vscode.ExtensionContext): void => 
 /**
  * Resets Dagger preferences including cloud token and notification settings
  * @param context The extension context
- * @param config The workspace configuration
+ * @param settings The dagger settings
  */
 const resetPreferences = async (
     context: vscode.ExtensionContext,
-    config: vscode.WorkspaceConfiguration
+    settings: DaggerSettings
 ): Promise<void> => {
     await Promise.all([
         context.secrets.delete('dagger.cloudToken'),
-        config.update('cloudNotificationDismissed', false, vscode.ConfigurationTarget.Global)
+        settings.update('cloudNotificationDismissed', false, vscode.ConfigurationTarget.Global),
+        settings.update('saveTaskPromptDismissed', false, vscode.ConfigurationTarget.Global)
     ]);
 
     vscode.window.showInformationMessage('Dagger preferences have been reset.');

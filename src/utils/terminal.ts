@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { ICON_PATH_BLACK, ICON_PATH_WHITE } from '../const';
+import { getGlobalSettings } from '../settings';
 
 const TERMINAL_CONFIG = {
     NAME: 'Dagger',
@@ -15,9 +16,12 @@ const TERMINAL_CONFIG = {
  * Executes a command in the Dagger terminal
  */
 export const executeInTerminal = async (command: string): Promise<void> => {
-    // Read user setting for running function calls in background
-    const config = vscode.workspace.getConfiguration('dagger');
-    const runInBackground = config.get<boolean>('functionCalls.runInBackground', true);
+    // Get global settings
+    const settings = getGlobalSettings();
+    
+    // Default to false if settings are not available
+    const runInBackground = settings?.runFunctionCallsInBackground ?? false;
+    
     const taskExecution = new vscode.ShellExecution(command);
     const taskDefinition: vscode.TaskDefinition = {
         type: 'shell',

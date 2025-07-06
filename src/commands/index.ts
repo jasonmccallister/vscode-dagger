@@ -14,13 +14,16 @@ import { registerShellCommand } from './shell';
 import { registerUninstallCommand } from './uninstall';
 import { registerUpdateCommand } from './update';
 import { registerVersionCommand } from './version';
+import { registerRefreshFunctionsCommand } from './refresh';
 import { showCloudIntegrationPrompt } from '../prompt';
 import { registerTreeView } from '../tree/provider';
+import { DaggerSettings } from '../settings';
 
 type Options = {
     context: vscode.ExtensionContext;
     cli: Cli;
     workspacePath: string;
+    settings: DaggerSettings;
 }
 
 export default class CommandManager {
@@ -30,30 +33,43 @@ export default class CommandManager {
 
     public register(all: boolean = true) {
         if (!all) {
-            registerInstallCommand(this.options.context);
+            registerInstallCommand(this.options.context, this.options.settings);
             return;
         }
 
         // Register all commands
-        registerCallCommand(this.options.context, this.options.cli, this.options.workspacePath);
+        registerCallCommand(this.options.context, this.options.cli, this.options.workspacePath, this.options.settings);
         registerClearCacheCommand(this.options.context, this.options.cli);
-        registerCloudCommand(this.options.context, this.options.cli);
+        registerCloudCommand(this.options.context, this.options.cli, this.options.settings);
         registerDevelopCommand(this.options.context, this.options.cli, this.options.workspacePath);
         registerFunctionsCommand(this.options.context);
         registerInitCommand(this.options.context, this.options.cli);
         registerInstallModuleCommand(this.options.context, this.options.cli);
-        registerResetCommand(this.options.context);
+        registerResetCommand(this.options.context, this.options.settings);
         registerSaveTaskCommand(this.options.context, this.options.cli, this.options.workspacePath);
         registerShellCommand(this.options.context, this.options.workspacePath);
-        registerUninstallCommand(this.options.context);
-        registerUpdateCommand(this.options.context, this.options.cli);
+        registerUninstallCommand(this.options.context, this.options.settings);
+        registerUpdateCommand(this.options.context, this.options.cli, this.options.settings);
         registerVersionCommand(this.options.context, this.options.cli);
+        
+        // Register refresh function command
+        registerRefreshFunctionsCommand(this.options.context, () => {
+            // Refresh functionality is handled in the tree view provider
+            vscode.commands.executeCommand('dagger.refresh');
+        });
 
-        // Register tree view for environments with CLI and workspace path
-        registerTreeView(this.options.context, { cli: this.options.cli, workspacePath: this.options.workspacePath, registerTreeCommands: true });
+        // Register tree view with settings
+        registerTreeView(this.options.context, {
+            cli: this.options.cli,
+            workspacePath: this.options.workspacePath,
+            registerTreeCommands: true,
+            settings: this.options.settings
+        });
 
-        // Show cloud setup notification if appropriate
-        showCloudIntegrationPrompt(this.options.context, this.options.cli);
+        // Only show cloud integration prompt if not dismissed
+        if (!this.options.settings.cloudNotificationDismissed) {
+            showCloudIntegrationPrompt(this.options.context, this.options.cli, this.options.settings);
+        }
     }
 
     // getters

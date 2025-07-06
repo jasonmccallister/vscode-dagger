@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import Cli from '../dagger';
 import { COMMAND as INIT_COMMAND } from '../commands/init';
 import { COMMAND as REFRESH_COMMAND } from '../commands/refresh';
+import { DaggerSettings } from '../settings';
 
 type ItemType = 'function' | 'argument' | 'empty' | 'action' | 'module';
 
@@ -9,6 +10,7 @@ interface TreeViewConfig {
     workspacePath?: string;
     cli?: Cli;
     registerTreeCommands?: boolean; // Flag to control command registration
+    settings: DaggerSettings;
 }
 
 // Constants to eliminate magic strings and numbers

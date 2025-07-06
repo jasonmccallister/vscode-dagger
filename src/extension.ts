@@ -8,7 +8,7 @@ import { CHAT_PARTICIPANT_ID, EXTENSION_NAME } from './const';
 import CommandManager from './commands';
 import { registerTerminalProvider } from './terminal';
 import { VSCodeWorkspaceCache } from './cache';
-import { DaggerSettingsProvider } from './settings';
+import { DaggerSettingsProvider, setGlobalSettings } from './settings';
 
 export async function activate(context: vscode.ExtensionContext) {
 	try {
@@ -18,13 +18,20 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Initialize settings provider
 		const settings = new DaggerSettingsProvider();
 		
+		// Set global settings instance
+		setGlobalSettings(settings);
+		
 		// Initialize CLI with settings and cache
 		const cli = new Cli(settings, cache);
+
+		// Get workspace path
+		const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
 
 		const commandManager = new CommandManager({
 			context,
 			cli: cli,
-			workspacePath: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '',
+			workspacePath,
+			settings,
 		});
 
 		// only register install command if no CLI is found
@@ -49,7 +56,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		if (!installResult.hasCorrectBinary) {
 			// Show installation prompt but don't register install command again
-			await handleMissingInstallation(context, commandManager.cli, installResult);
+			await handleMissingInstallation(context, commandManager.cli, installResult, settings);
 			return;
 		}
 
@@ -64,10 +71,20 @@ export async function activate(context: vscode.ExtensionContext) {
 	}
 }
 
-const handleMissingInstallation = async (context: vscode.ExtensionContext, cli: Cli, installResult: InstallResult): Promise<void> => {
+const handleMissingInstallation = async (
+	context: vscode.ExtensionContext, 
+	cli: Cli, 
+	installResult: InstallResult,
+	settings: DaggerSettingsProvider
+): Promise<void> => {
 	// Still register tree view to show installation status
 	const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
-	registerTreeView(context, { cli, workspacePath, registerTreeCommands: false });
+	registerTreeView(context, { 
+		cli, 
+		workspacePath, 
+		registerTreeCommands: false,
+		settings
+	});
 
 	// Determine available installation methods for the prompt
 	const installButtons: { title: string; command: string; method?: string }[] = [];
