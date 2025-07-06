@@ -184,6 +184,12 @@
           "default": false,
           "description": "Run Dagger function calls in the background unless there is an error.",
           "scope": "window"
+        },
+        "dagger.enableCache": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable caching of Dagger functions data. Disabling may increase API calls but ensures data is always fresh.",
+          "scope": "window"
         }
       }
     },

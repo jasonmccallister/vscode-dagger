@@ -13,7 +13,13 @@ describe('Tree Provider', () => {
             isDaggerProject: async () => true,
             functionsList: async () => [],
             getFunction(functionId: string, _workspacePath: string): Promise<FunctionInfo> {
-                return Promise.resolve({ name: 'mockFunction', description: 'Mock function description', id: functionId });
+                return Promise.resolve({ 
+                    name: 'mockFunction', 
+                    description: 'Mock function description', 
+                    functionId: functionId,
+                    module: 'default',
+                    args: []
+                });
             },
         };
     });
@@ -21,8 +27,8 @@ describe('Tree Provider', () => {
     it('should load data with test items on construction', async () => {
         // Arrange: mock functionsList to return test items
         const testFunctions: FunctionInfo[] = [
-            { name: 'testFunc1', description: 'desc1', functionId: 'func1' },
-            { name: 'testFunc2', description: 'desc2', functionId: 'func2' }
+            { name: 'testFunc1', description: 'desc1', functionId: 'func1', module: 'default', args: [] },
+            { name: 'testFunc2', description: 'desc2', functionId: 'func2', module: 'default', args: [] }
         ];
         mockCli.functionsList = async () => testFunctions;
         mockCli.isInstalled = async () => true;

@@ -8,14 +8,18 @@ import { CHAT_PARTICIPANT_ID, EXTENSION_NAME } from './const';
 import CommandManager from './commands';
 import { registerTerminalProvider } from './terminal';
 import { VSCodeWorkspaceCache } from './cache';
+import { DaggerSettingsProvider } from './settings';
 
 export async function activate(context: vscode.ExtensionContext) {
 	try {
 		// Initialize cache with VS Code workspace storage
 		const cache = new VSCodeWorkspaceCache(context.workspaceState);
 		
-		// Initialize CLI with cache
-		const cli = new Cli(cache);
+		// Initialize settings provider
+		const settings = new DaggerSettingsProvider();
+		
+		// Initialize CLI with settings and cache
+		const cli = new Cli(settings, cache);
 
 		const commandManager = new CommandManager({
 			context,
@@ -25,6 +29,15 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		// only register install command if no CLI is found
 		commandManager.register(false);
+
+		// Register configuration change listener to reload settings
+		context.subscriptions.push(
+			vscode.workspace.onDidChangeConfiguration(event => {
+				if (event.affectsConfiguration('dagger')) {
+					settings.reload();
+				}
+			})
+		);
 
 		// Register chat participant for chat UI
 		if ('chat' in vscode && typeof vscode.chat.createChatParticipant === 'function') {

@@ -1,43 +1,50 @@
-import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as vscode from 'vscode';
 import * as crypto from 'crypto';
-import { DirectoryIdResult, ModuleObject, ModuleResult } from './types';
-import { CliCache } from '../cache';
+import * as childProcess from 'child_process';
+import * as vscode from 'vscode';
+import { CliCache } from '../cache/types';
+import { DaggerSettings } from '../settings';
+import { DirectoryIdResult, ModuleResult, ModuleObject } from './types';
 
-export interface CommandResult {
-    readonly stdout: string;
-    readonly stderr: string;
-    readonly exitCode: number;
-    readonly success?: boolean;
+// Type definitions for the CLI interface
+export interface RunOptions {
+    shell?: boolean;
+    cwd?: string;
+    env?: NodeJS.ProcessEnv;
+    timeout?: number;
 }
 
-export interface FunctionInfo {
-    readonly name: string;
-    readonly description?: string;
-    readonly args?: FunctionArgument[];
-    readonly functionId?: string; // Unique identifier for the function from GraphQL
-    readonly module?: string; // Module name for grouping functions
+export interface CommandResult {
+    code: number;
+    exitCode?: number;
+    stdout: string;
+    stderr: string;
+    success?: boolean;
 }
 
 export interface FunctionArgument {
-    readonly name: string;
-    readonly type: string;
-    readonly required: boolean;
+    name: string;
+    type: string;
+    required: boolean;
 }
 
-interface RunOptions {
-    readonly timeout?: number;
-    readonly cwd?: string;
+export interface FunctionInfo {
+    name: string;
+    description?: string;
+    functionId: string;
+    module: string;
+    args: FunctionArgument[];
 }
 
 export default class Cli {
     private readonly command = 'dagger';
     private workspacePath?: string;
     private cache?: CliCache;
+    private settings: DaggerSettings;
 
-    constructor(cache?: CliCache) {
+    constructor(settings: DaggerSettings, cache?: CliCache) {
+        this.settings = settings;
         this.cache = cache;
     }
 
@@ -56,7 +63,7 @@ export default class Cli {
                 throw new Error(`Working directory does not exist: ${cwd}`);
             }
 
-            const stdout = execSync(command, {
+            const stdout = childProcess.execSync(command, {
                 cwd: cwd ?? this.workspacePath ?? process.cwd(),
                 timeout,
                 env: process.env,
@@ -64,6 +71,7 @@ export default class Cli {
             });
 
             return {
+                code: 0,
                 stdout: stdout.toString().trim(),
                 stderr: '',
                 exitCode: 0,
@@ -71,6 +79,7 @@ export default class Cli {
             };
         } catch (error: any) {
             return {
+                code: error.status || 1,
                 stdout: error.stdout?.toString().trim() || '',
                 stderr: error.stderr?.toString().trim() || error.message || 'Unknown error',
                 exitCode: error.status || 1,
@@ -89,24 +98,33 @@ export default class Cli {
     public async functionsList(workspacePath: string): Promise<FunctionInfo[]> {
         const cacheKey = this.createCacheKey('functions_list', workspacePath);
 
-        // Check cache first
-        if (this.cache) {
+        // Check cache first (only if caching is enabled)
+        if (this.cache && this.settings.enableCache) {
             const cachedFunctions = await this.cache.get<FunctionInfo[]>(cacheKey);
-            if (cachedFunctions) {
+            if (cachedFunctions && cachedFunctions.length > 0) {
                 console.log('Returning cached functions list');
-                // Update cache in background
-                this.updateFunctionsListCache(workspacePath, cacheKey).catch(error => {
-                    console.error('Error updating functions list cache in background:', error);
-                });
+                
+                // Update cache in background if caching is enabled
+                // Use a simple try/catch to avoid breaking tests
+                try {
+                    if (this.settings.enableCache) {
+                        this.updateFunctionsListCache(workspacePath, cacheKey).catch(error => {
+                            console.error('Error updating functions list cache in background:', error);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error initiating background cache update:', error);
+                }
+                
                 return cachedFunctions;
             }
         }
 
-        // No cache or cache miss, fetch and cache
+        // No cache, cache miss, or caching disabled - fetch directly
         const functions = await this.fetchFunctionsList(workspacePath);
 
-        // Cache the result
-        if (this.cache && functions.length > 0) {
+        // Cache the result if caching is enabled
+        if (this.cache && this.settings.enableCache && functions.length > 0) {
             await this.cache.set(cacheKey, functions);
         }
 
@@ -188,6 +206,11 @@ export default class Cli {
      * @private
      */
     private async updateFunctionsListCache(workspacePath: string, cacheKey: string): Promise<void> {
+        // Skip if caching is disabled
+        if (!this.settings.enableCache) {
+            return;
+        }
+
         try {
             const freshFunctions = await this.fetchFunctionsList(workspacePath);
             if (this.cache && freshFunctions.length > 0) {
@@ -324,24 +347,33 @@ export default class Cli {
     ): Promise<FunctionInfo | undefined> {
         const cacheKey = this.createCacheKey('function_by_id', functionId, workspacePath);
 
-        // Check cache first
-        if (this.cache) {
+        // Check cache first (only if caching is enabled)
+        if (this.cache && this.settings.enableCache) {
             const cachedFunction = await this.cache.get<FunctionInfo>(cacheKey);
             if (cachedFunction) {
                 console.log(`Returning cached function for ID: ${functionId}`);
-                // Update cache in background
-                this.updateFunctionByIDCache(functionId, workspacePath, cacheKey).catch(error => {
-                    console.error('Error updating function cache in background:', error);
-                });
+                
+                // Update cache in background if caching is enabled
+                // Use a simple try/catch to avoid breaking tests
+                try {
+                    if (this.settings.enableCache) {
+                        this.updateFunctionByIDCache(functionId, workspacePath, cacheKey).catch(error => {
+                            console.error('Error updating function cache in background:', error);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error initiating background cache update:', error);
+                }
+                
                 return cachedFunction;
             }
         }
 
-        // No cache or cache miss, fetch and cache
+        // No cache, cache miss, or caching disabled - fetch directly
         const functionInfo = await this.fetchFunctionByID(functionId, workspacePath);
 
-        // Cache the result if successful
-        if (this.cache && functionInfo) {
+        // Cache the result if caching is enabled
+        if (this.cache && this.settings.enableCache && functionInfo) {
             await this.cache.set(cacheKey, functionInfo);
         }
 
@@ -428,6 +460,11 @@ export default class Cli {
         workspacePath: string,
         cacheKey: string
     ): Promise<void> {
+        // Skip if caching is disabled
+        if (!this.settings.enableCache) {
+            return;
+        }
+
         try {
             const freshFunction = await this.fetchFunctionByID(functionId, workspacePath);
             if (this.cache && freshFunction) {

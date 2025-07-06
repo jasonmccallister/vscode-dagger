@@ -2,12 +2,21 @@ import * as assert from 'assert';
 import { describe, it, beforeEach, afterEach } from 'mocha';
 import Cli, { FunctionInfo } from '../../src/dagger';
 import sinon from 'sinon';
+import { DaggerSettings } from '../../src/settings';
 
 describe('Dagger CLI Wrapper', () => {
     let cli: Cli;
+    let mockSettings: DaggerSettings;
+
+    // Create a simple mock settings class for testing
+    class MockDaggerSettings implements DaggerSettings {
+        readonly enableCache: boolean = true;
+        reload(): void { /* no-op */ }
+    }
 
     beforeEach(() => {
-        cli = new Cli();
+        mockSettings = new MockDaggerSettings();
+        cli = new Cli(mockSettings);
     });
 
     afterEach(() => {
