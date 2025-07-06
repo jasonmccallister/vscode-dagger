@@ -2,6 +2,7 @@ import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import * as crypto from 'crypto';
 import { DirectoryIdResult, ModuleObject, ModuleResult } from './types';
 import { CliCache } from '../cache';
 
@@ -86,7 +87,7 @@ export default class Cli {
      * to user-friendly type names (e.g., OBJECT_STRING -> string, OBJECT_BOOLEAN -> boolean)
      */
     public async functionsList(workspacePath: string): Promise<FunctionInfo[]> {
-        const cacheKey = `functions_list_${workspacePath}`;
+        const cacheKey = this.createCacheKey('functions_list', workspacePath);
 
         // Check cache first
         if (this.cache) {
@@ -321,7 +322,7 @@ export default class Cli {
         functionId: string,
         workspacePath: string
     ): Promise<FunctionInfo | undefined> {
-        const cacheKey = `function_by_id_${functionId}`;
+        const cacheKey = this.createCacheKey('function_by_id', functionId, workspacePath);
 
         // Check cache first
         if (this.cache) {
@@ -615,6 +616,18 @@ export default class Cli {
                 // If we can't map it, just lowercase the original type
                 return graphQLType.toLowerCase();
         }
+    }
+
+    /**
+     * Creates a consistent MD5 hash of the provided key for safer cache storage
+     * @param keyType Type of cache key (e.g., 'function', 'functions_list')
+     * @param identifiers Additional identifiers to include in the key
+     * @returns MD5 hashed cache key
+     * @private
+     */
+    private createCacheKey(keyType: string, ...identifiers: string[]): string {
+        const rawKey = `${keyType}_${identifiers.join('_')}`;
+        return crypto.createHash('md5').update(rawKey).digest('hex');
     }
 }
 

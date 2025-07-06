@@ -45,6 +45,16 @@ Install, update, or uninstall the Dagger CLI with one click. Supports macOS, Lin
 2. Initialize a project or browse functions.
 3. Execute functions with one click.
 4. Save function calls as tasks for reuse.
+5. Clear cache using the "Dagger: Clear Cache" command when needed.
+
+## Commands
+
+Access the following commands from the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`):
+
+- **Dagger: Initialize Project** - Create a new Dagger project
+- **Dagger: Call Function** - Execute a Dagger function
+- **Dagger: Clear Cache** - Remove cached function data
+- **Dagger: View Functions** - Browse available functions
 
 ## Contributing
 

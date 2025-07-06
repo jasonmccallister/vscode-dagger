@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { registerInstallCommand } from './install';
 import Cli from '../dagger';
 import { registerCallCommand } from './call';
+import { registerClearCacheCommand } from './clear-cache';
 import { registerCloudCommand } from './cloud';
 import { registerDevelopCommand } from './develop';
 import { registerFunctionsCommand } from './functions';
@@ -35,6 +36,7 @@ export default class CommandManager {
 
         // Register all commands
         registerCallCommand(this.options.context, this.options.cli, this.options.workspacePath);
+        registerClearCacheCommand(this.options.context, this.options.cli);
         registerCloudCommand(this.options.context, this.options.cli);
         registerDevelopCommand(this.options.context, this.options.cli, this.options.workspacePath);
         registerFunctionsCommand(this.options.context);

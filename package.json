@@ -65,6 +65,13 @@
         "shortTitle": "Call"
       },
       {
+        "command": "dagger.clearCache",
+        "title": "Clear Cache",
+        "icon": "$(trash)",
+        "category": "Dagger",
+        "shortTitle": "Clear Cache"
+      },
+      {
         "command": "dagger.saveTask",
         "title": "Save as Task",
         "icon": "$(save)",

@@ -195,7 +195,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                         if (!timeoutNoticeShown) {
                             timeoutNoticeShown = true;
                             progress.report({ 
-                                message: 'Still loading... Depending on your project size, the initial load could take a while. Subsequent response times will be cached and updated in the background.' 
+                                message: 'Loading... Depending on your project initial load could take a while. Subsequent response times will be cached and updated in the background.' 
                             });
                         }
                     }, 3000); // Show notice after 3 seconds
