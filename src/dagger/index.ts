@@ -365,11 +365,6 @@ export default class Cli {
                         id
                         name
                         description
-                        parent {
-                            ... on Object {
-                                name
-                            }
-                        }
                         args {
                             name
                             description
@@ -390,16 +385,18 @@ export default class Cli {
                 return undefined;
             }
 
-            // Extract module name from parent object if available
-            const moduleName = func.parent?.name ||
-                (func.name.includes('.') ? func.name.split('.')[0] : 'default');
+            // Extract module name from function name if it contains a dot
+            // Otherwise use 'default' as the module name
+            const moduleName = func.name.includes('.')
+                ? func.name.substring(0, func.name.indexOf('.'))
+                : 'default';
 
             // Convert GraphQL function data to FunctionInfo format
             return {
                 name: this.camelCaseToKebabCase(func.name),
                 description: func.description,
                 functionId: func.id,
-                module: moduleName, // Set module name from parent object
+                module: moduleName,
                 args: func.args.map((arg: any) => {
                     const isRequired = arg.typeDef.optional === undefined
                         ? arg.description?.includes('[required]') || false
