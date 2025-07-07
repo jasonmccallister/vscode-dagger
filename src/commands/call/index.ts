@@ -73,7 +73,7 @@ export const registerCallCommand = (
             try {
                 // Get function details from the Dagger CLI
                 if (functionId) {
-                    progress.report({ message: 'Loading function using ID...' });
+                    progress.report({ message: 'Loading function...' });
 
                     // Use the new getFunction method if available, otherwise fall back to queryFunctionByID
                     const functionInfo = await cli.getFunction(functionId, workspacePath);

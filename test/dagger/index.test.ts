@@ -61,4 +61,83 @@ describe('Dagger CLI Wrapper', () => {
             }
         });
     });
+
+    // Additional test cases
+    
+    describe('fetchFunctionsList module relationship detection', () => {
+        it('should correctly identify parent-child module relationships', async () => {
+            // Create a mock for queryModuleFunctions to return test data
+            const mockQueryModuleFunctions = sinon.stub(cli, 'queryModuleFunctions');
+            
+            // Mock response with parent-child module hierarchy
+            mockQueryModuleFunctions.resolves([
+                {
+                    name: 'DaggerDev',
+                    asObject: {
+                        name: 'DaggerDev',
+                        functions: [
+                            {
+                                id: 'func1',
+                                name: 'buildImage',
+                                description: 'Builds an image',
+                                args: []
+                            }
+                        ]
+                    }
+                },
+                {
+                    name: 'DaggerDevCli',
+                    asObject: {
+                        name: 'DaggerDevCli',
+                        functions: [
+                            {
+                                id: 'func2',
+                                name: 'installBinary',
+                                description: 'Installs CLI binary',
+                                args: []
+                            }
+                        ]
+                    }
+                },
+                {
+                    name: 'DaggerDevDocs',
+                    asObject: {
+                        name: 'DaggerDevDocs',
+                        functions: [
+                            {
+                                id: 'func3',
+                                name: 'generateDocs',
+                                description: 'Generates documentation',
+                                args: []
+                            }
+                        ]
+                    }
+                }
+            ]);
+            
+            // Mock queryDirectoryId to return a test ID
+            const mockQueryDirectoryId = sinon.stub(cli, 'queryDirectoryId');
+            mockQueryDirectoryId.resolves('dir-123');
+            
+            // Call the method under test
+            const functions = await (cli as any).fetchFunctionsList('/test/workspace');
+            
+            // Verify the results
+            assert.strictEqual(functions.length, 3, 'Should return 3 function objects');
+            
+            // Check parent module detection
+            const parentModule = functions.find((f: FunctionInfo) => f.module === 'dagger-dev');
+            assert.strictEqual(parentModule?.isParentModule, true, 'DaggerDev should be identified as a parent module');
+            assert.strictEqual(parentModule?.parentModule, undefined, 'Parent module should not have a parent');
+            
+            // Check child modules
+            const cliModule = functions.find((f: FunctionInfo) => f.module === 'cli');
+            assert.strictEqual(cliModule?.isParentModule, false, 'Cli should not be a parent module');
+            assert.strictEqual(cliModule?.parentModule, 'dagger-dev', 'Cli should have dagger-dev as parent');
+            
+            const docsModule = functions.find((f: FunctionInfo) => f.module === 'docs');
+            assert.strictEqual(docsModule?.isParentModule, false, 'Docs should not be a parent module');
+            assert.strictEqual(docsModule?.parentModule, 'dagger-dev', 'Docs should have dagger-dev as parent');
+        });
+    });
 });

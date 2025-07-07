@@ -34,6 +34,8 @@ export interface FunctionInfo {
     description?: string;
     functionId: string;
     module: string;
+    isParentModule: boolean;
+    parentModule?: string;
     args: FunctionArgument[];
 }
 
@@ -103,7 +105,7 @@ export default class Cli {
             const cachedFunctions = await this.cache.get<FunctionInfo[]>(cacheKey);
             if (cachedFunctions && cachedFunctions.length > 0) {
                 console.log('Returning cached functions list');
-                
+
                 // Update cache in background if caching is enabled
                 // Use a simple try/catch to avoid breaking tests
                 try {
@@ -115,7 +117,7 @@ export default class Cli {
                 } catch (error) {
                     console.error('Error initiating background cache update:', error);
                 }
-                
+
                 return cachedFunctions;
             }
         }
@@ -166,15 +168,58 @@ export default class Cli {
                 // Get module name from object
                 const moduleName = obj.asObject.name || obj.name || 'default';
 
+                // Analyze module hierarchy based on naming patterns
+                // Check if this module name appears as a prefix in other module names
+                const isParentModule = objects.some(otherObj => {
+                    const otherName = otherObj.asObject?.name || otherObj.name || '';
+                    return otherName !== moduleName &&
+                        otherName.startsWith(moduleName) &&
+                        otherName.length > moduleName.length;
+                });
+
+                // Determine parent module (if any) by looking for the longest prefix match
+                let parentModule: string | undefined = undefined;
+                if (!isParentModule) {
+                    // This module might be a child - find potential parent with longest matching prefix
+                    let longestPrefixLength = 0;
+                    
+                    objects.forEach(otherObj => {
+                        const otherName = otherObj.asObject?.name || otherObj.name || '';
+                        if (otherName !== moduleName && 
+                            moduleName.startsWith(otherName) && 
+                            otherName.length > longestPrefixLength) {
+                            longestPrefixLength = otherName.length;
+                            parentModule = otherName;
+                        }
+                    });
+                }
+                
+                // Extract the actual module name for submodules by removing the parent prefix
+                let actualModuleName = moduleName;
+                if (!isParentModule && parentModule) {
+                    // Convert to string (TypeScript should already know it's a string, but being explicit)
+                    const parentModuleStr: string = parentModule;
+                    // Remove the parent module name from the beginning to get the real submodule name
+                    actualModuleName = moduleName.slice(parentModuleStr.length);
+                    // In case there's any remaining separators or capitalization at the beginning
+                    // This handles cases like "DaggerDevCli" → "Cli" after removing "DaggerDev"
+                }
+                
+                // Convert module name to kebab-case
+                const moduleKebabName = this.camelCaseToKebabCase(actualModuleName);
+
                 for (const func of obj.asObject.functions) {
                     // Format the full name and extract module context
                     const kebabName = this.camelCaseToKebabCase(func.name);
-
+                    
+                    // Create the function info object with module information
                     functions.push({
                         name: kebabName,
                         description: func.description,
                         functionId: func.id,
-                        module: moduleName, // Set explicit module name from the object
+                        module: moduleKebabName, // Use kebab-case module name
+                        isParentModule,
+                        parentModule: parentModule ? this.camelCaseToKebabCase(parentModule) : undefined, // Convert parent to kebab-case too
                         args: func.args.map(arg => {
                             // Primary method: Use the optional property if available
                             // Fallback: Check description for [required] if optional property is not set
@@ -352,7 +397,7 @@ export default class Cli {
             const cachedFunction = await this.cache.get<FunctionInfo>(cacheKey);
             if (cachedFunction) {
                 console.log(`Returning cached function for ID: ${functionId}`);
-                
+
                 // Update cache in background if caching is enabled
                 // Use a simple try/catch to avoid breaking tests
                 try {
@@ -364,7 +409,7 @@ export default class Cli {
                 } catch (error) {
                     console.error('Error initiating background cache update:', error);
                 }
-                
+
                 return cachedFunction;
             }
         }
@@ -423,13 +468,18 @@ export default class Cli {
             const moduleName = func.name.includes('.')
                 ? func.name.substring(0, func.name.indexOf('.'))
                 : 'default';
+                
+            // Convert module name to kebab-case
+            const moduleKebabName = this.camelCaseToKebabCase(moduleName);
 
             // Convert GraphQL function data to FunctionInfo format
             return {
                 name: this.camelCaseToKebabCase(func.name),
                 description: func.description,
                 functionId: func.id,
-                module: moduleName,
+                module: moduleKebabName, // Use kebab-case module name
+                isParentModule: false, // Default to false for individual function lookups
+                parentModule: undefined, // We don't have context for determining parent here
                 args: func.args.map((arg: any) => {
                     const isRequired = arg.typeDef.optional === undefined
                         ? arg.description?.includes('[required]') || false

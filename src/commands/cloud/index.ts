@@ -69,7 +69,7 @@ const getTokenSources = async (): Promise<TokenSources> => {
  * @param tokens The token sources
  * @returns Array of response options
  */
-const getResponseOptions = (tokens: TokenSources): CloudResponse[] => {
+const getResponseOptions = (_tokens: TokenSources): CloudResponse[] => {
     const options: CloudResponse[] = ['Cancel'];
 
     // Add options in reverse order so they appear in the desired order

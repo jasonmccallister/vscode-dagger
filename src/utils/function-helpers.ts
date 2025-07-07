@@ -89,12 +89,12 @@ export const buildCommandArgs = (
     // Start with base command
     const commandArgs = ['dagger', 'call'];
     
-    // If a module name is provided and it's not the root module, 
-    // add it before the function name
-    if (moduleName && moduleName !== 'main' && moduleName !== 'default') {
+    // If a module name is provided, add it before the function name
+    // Module names are always unique, so we always include them in the command
+    if (moduleName) {
         commandArgs.push(moduleName, functionName);
     } else {
-        // Root module or no module specified - just use the function name
+        // No module specified - just use the function name
         commandArgs.push(functionName);
     }
 
