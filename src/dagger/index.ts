@@ -436,6 +436,8 @@ export default class Cli {
         functionId: string,
         workspacePath: string
     ): Promise<FunctionInfo | undefined> {
+        console.log(`fetchFunctionByID called with functionId: ${functionId}`);
+        
         try {
             const query = `
                 query($id: FunctionID!) {
@@ -455,13 +457,22 @@ export default class Cli {
                 }
             `;
 
+            console.log(`Executing GraphQL query for function ID: ${functionId}`);
             const result = await this.query(query, { id: functionId }, workspacePath);
+            console.log(`Query result received: ${result ? 'data returned' : 'no data'}`);
+            
             const func = (result as any)?.loadFunctionFromID;
-
+            
             if (!func) {
-                console.warn(`Function with ID ${functionId} not found`);
+                console.warn(`Function with ID ${functionId} not found in GraphQL response`);
                 return undefined;
             }
+            
+            console.log(`Function data received: ${JSON.stringify({
+                id: func.id,
+                name: func.name,
+                argsCount: func.args?.length || 0
+            })}`);
 
             // Extract module name from function name if it contains a dot
             // Otherwise use 'default' as the module name
@@ -540,15 +551,22 @@ export default class Cli {
      * @returns A Promise that resolves to a FunctionInfo object or undefined if not found
      */
     public async getFunction(functionId: string, workspacePath: string): Promise<FunctionInfo | undefined> {
+        console.log(`getFunction called with functionId: ${functionId}, workspacePath: ${workspacePath}`);
+        
         try {
-            // Use the cached queryFunctionByID method
             const functionInfo = await this.queryFunctionByID(functionId, workspacePath);
-
+            
             if (!functionInfo) {
                 console.warn(`Function with ID ${functionId} not found`);
                 return undefined;
             }
-
+            
+            console.log(`Function retrieved successfully: ${JSON.stringify({
+                name: functionInfo.name,
+                module: functionInfo.module,
+                argsCount: functionInfo.args?.length || 0
+            })}`);
+            
             return functionInfo;
         } catch (error: any) {
             console.error(`Error in getFunction for ID ${functionId}:`, error);

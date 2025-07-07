@@ -35,7 +35,6 @@ export const registerCallCommand = (
         let functionName: string | undefined;
         let functionId: string | undefined;
         let moduleName: string | undefined;
-        let functionInfo: FunctionInfo | undefined;
 
         // No input, prompt user to select a function
         if (input === undefined) {
@@ -56,11 +55,13 @@ export const registerCallCommand = (
             functionId = input.functionId;
             functionName = input.originalName;
             moduleName = input.moduleName;
+            console.log(`Tree view function selected: ID=${functionId}, name=${functionName}, module=${moduleName}`);
         }
 
         if (typeof input === 'string') {
             // Function ID passed as string
             functionId = input;
+            console.log(`Function ID passed as string: ${functionId}`);
         }
 
         await vscode.window.withProgress({
@@ -71,14 +72,19 @@ export const registerCallCommand = (
             progress.report({ message: 'Getting function arguments...' });
 
             try {
+                // Initialize functionInfo variable
+                let functionInfo: FunctionInfo | undefined;
+                
                 // Get function details from the Dagger CLI
                 if (functionId) {
-                    progress.report({ message: 'Loading function...' });
+                    progress.report({ message: `Loading function (ID: ${functionId})...` });
+                    console.log(`Retrieving function details for ID: ${functionId}`);
 
-                    // Use the new getFunction method if available, otherwise fall back to queryFunctionByID
-                    const functionInfo = await cli.getFunction(functionId, workspacePath);
+                    // Get function details
+                    functionInfo = await cli.getFunction(functionId, workspacePath);
+                    console.log(`Function details retrieved: ${functionInfo ? 'success' : 'failed'}`);
 
-                    if (!functionInfo || functionInfo === undefined) {
+                    if (!functionInfo) {
                         vscode.window.showErrorMessage(`Failed to get details for function with ID ${functionId}`);
                         return;
                     }
@@ -86,13 +92,9 @@ export const registerCallCommand = (
                     // Set properties from function info
                     functionName = functionInfo.name;
                     moduleName = functionInfo.module;
+                    console.log(`Using function name: ${functionName}, module: ${moduleName}`);
                 } else {
                     vscode.window.showErrorMessage('No function selected');
-                    return;
-                }
-
-                if (!functionInfo) {
-                    vscode.window.showErrorMessage(`Failed to get arguments for function - no arguments returned`);
                     return;
                 }
 
