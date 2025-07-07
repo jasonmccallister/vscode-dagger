@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import Cli from '../../dagger';
+import Cli, { FunctionInfo } from '../../dagger';
 import { showProjectSetupPrompt } from '../../prompt';
 import { collectAndRunFunction, showSaveTaskPrompt } from '../../utils/function-helpers';
 import { DaggerTreeItem } from '../../tree/provider';
@@ -35,19 +35,10 @@ export const registerCallCommand = (
         let functionName: string | undefined;
         let functionId: string | undefined;
         let moduleName: string | undefined;
-        let functionInfo;
+        let functionInfo: FunctionInfo | undefined;
 
-        // Determine function selection method
-        if (input instanceof DaggerTreeItem && input.functionId) {
-            // Case 1: Function selected from tree view
-            functionId = input.functionId;
-            functionName = input.originalName;
-            moduleName = input.moduleName;
-        } else if (typeof input === 'string') {
-            // Case 2: Function ID passed as string
-            functionId = input;
-        } else {
-            // Case 3: No input - show function picker
+        // No input, prompt user to select a function
+        if (input === undefined) {
             const result = await selectFunction(cli, workspacePath);
 
             if (!result) {
@@ -57,6 +48,19 @@ export const registerCallCommand = (
             functionName = result.name;
             functionId = result.functionId;
             moduleName = result.moduleName;
+        }
+
+        // Determine function selection method
+        if (input instanceof DaggerTreeItem && input.functionId) {
+            // Function selected from tree view
+            functionId = input.functionId;
+            functionName = input.originalName;
+            moduleName = input.moduleName;
+        }
+
+        if (typeof input === 'string') {
+            // Function ID passed as string
+            functionId = input;
         }
 
         await vscode.window.withProgress({
@@ -72,13 +76,9 @@ export const registerCallCommand = (
                     progress.report({ message: 'Loading function using ID...' });
 
                     // Use the new getFunction method if available, otherwise fall back to queryFunctionByID
-                    if (typeof cli.getFunction === 'function') {
-                        functionInfo = await cli.getFunction(functionId, workspacePath);
-                    } else {
-                        functionInfo = await cli.queryFunctionByID(functionId, workspacePath);
-                    }
+                    const functionInfo = await cli.getFunction(functionId, workspacePath);
 
-                    if (!functionInfo) {
+                    if (!functionInfo || functionInfo === undefined) {
                         vscode.window.showErrorMessage(`Failed to get details for function with ID ${functionId}`);
                         return;
                     }
@@ -91,7 +91,7 @@ export const registerCallCommand = (
                     return;
                 }
 
-                if (!functionInfo || !functionInfo.args) {
+                if (!functionInfo) {
                     vscode.window.showErrorMessage(`Failed to get arguments for function - no arguments returned`);
                     return;
                 }
@@ -107,7 +107,8 @@ export const registerCallCommand = (
                     moduleName // Pass module name to determine command format
                 );
 
-                if (success) {
+                // if successful and the prompt is not dismissed
+                if (success && settings.saveTaskPromptDismissed !== true) {
                     await showSaveTaskPrompt(functionName!, argValues, workspacePath, settings);
                 }
             } catch (error) {
@@ -138,7 +139,7 @@ const selectFunction = async (cli: Cli, workspacePath: string): Promise<Selected
 
     const functionItems: FunctionQuickPickItem[] = functions.map(fn => ({
         label: fn.name,
-        description: fn.description ?? '',
+        description: `(${fn.module}) ${fn.description ? ' ' + fn.description : ''}`,
         functionId: fn.functionId,
         moduleName: fn.module
     }));
