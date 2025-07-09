@@ -292,5 +292,73 @@ describe('Call Command Tests', () => {
             assert.strictEqual(callArgs[0], 'parent-function', 'Function name should match');
             assert.strictEqual(callArgs[4], '', 'Module name should be empty for parent modules');
         });
+
+        it('should use tree item args without fetching function when it has argument children', async () => {
+            // Setup
+            mockCli.isDaggerProject.resolves(true);
+            mockCli.setWorkspacePath.returns();
+            
+            // Create a mock TreeItem with argument children
+            const mockTreeItem = new DaggerTreeItem(
+                'test-function',
+                'function',
+                vscode.TreeItemCollapsibleState.Collapsed,
+                undefined,
+                'test-module',
+                'func1'
+            );
+            
+            // Add argument children
+            mockTreeItem.children = [
+                new DaggerTreeItem(
+                    '--arg1 (string) [required]',
+                    'argument'
+                ),
+                new DaggerTreeItem(
+                    '--arg2 (number)',
+                    'argument'
+                )
+            ];
+
+            // Mock VS Code APIs
+            const withProgressStub = sandbox.stub(vscode.window, 'withProgress');
+
+            // Mock progress callback
+            withProgressStub.callsFake(async (_, task) => {
+                const mockProgress = {
+                    report: sandbox.stub()
+                };
+                return await task(mockProgress, {} as vscode.CancellationToken);
+            });
+
+            // Mock collectAndRunFunction
+            mockUtils.collectAndRunFunction.resolves({ success: true, argValues: { arg1: 'value1' } });
+            mockUtils.showSaveTaskPrompt.resolves();
+
+            // Execute command with TreeItem input that has children
+            await commandCallback(mockTreeItem);
+
+            // Verify that getFunction was NOT called
+            assert.strictEqual(mockCli.getFunction.called, false, 'getFunction should not be called when tree item has argument children');
+            
+            // Verify collectAndRunFunction was called with the expected arguments
+            assert.ok(mockUtils.collectAndRunFunction.called, 'collectAndRunFunction should be called');
+            
+            const callArgs = mockUtils.collectAndRunFunction.getCall(0).args;
+            assert.strictEqual(callArgs[0], mockContext, 'First arg should be the context');
+            
+            // Check the constructed functionInfo object from the tree item
+            const functionInfo = callArgs[1];
+            assert.strictEqual(functionInfo.name, 'test-function', 'Function name should match');
+            assert.strictEqual(functionInfo.module, 'test-module', 'Module name should match');
+            assert.strictEqual(functionInfo.functionId, 'func1', 'Function ID should match');
+            assert.strictEqual(functionInfo.args.length, 2, 'Should have 2 arguments');
+            assert.strictEqual(functionInfo.args[0].name, 'arg1', 'First arg name should match');
+            assert.strictEqual(functionInfo.args[0].type, 'string', 'First arg type should match');
+            assert.strictEqual(functionInfo.args[0].required, true, 'First arg required should match');
+            assert.strictEqual(functionInfo.args[1].name, 'arg2', 'Second arg name should match');
+            assert.strictEqual(functionInfo.args[1].type, 'number', 'Second arg type should match');
+            assert.strictEqual(functionInfo.args[1].required, false, 'Second arg required should match');
+        });
     });
 });

@@ -35,6 +35,7 @@ export const registerCallCommand = (
         let functionName: string | undefined;
         let functionId: string | undefined;
         let moduleName: string | undefined;
+        let hasArgumentChildren = false;
 
         // No input, prompt user to select a function
         if (input === undefined) {
@@ -55,6 +56,8 @@ export const registerCallCommand = (
             functionId = input.functionId;
             functionName = input.originalName;
             moduleName = input.moduleName;
+            // Check if this tree item already has argument children
+            hasArgumentChildren = Boolean(input.children && input.children.length > 0);
             console.log(`Tree view function selected: ID=${functionId}, name=${functionName}, module=${moduleName}`);
         }
 
@@ -75,18 +78,48 @@ export const registerCallCommand = (
                 // Initialize functionInfo variable
                 let functionInfo: FunctionInfo | undefined;
                 
-                // Get function details from the Dagger CLI
+                // Get function details from the Dagger CLI if needed
                 if (functionId) {
-                    progress.report({ message: `Loading function (ID: ${functionId})...` });
-                    console.log(`Retrieving function details for ID: ${functionId}`);
+                    // If we have a tree item with children and it's a function type, we don't need to fetch the function details again
+                    if (input instanceof DaggerTreeItem && input.type === 'function' && hasArgumentChildren) {
+                        // We can construct a simplified FunctionInfo object from the tree item
+                        functionInfo = {
+                            name: functionName || '',
+                            functionId: functionId,
+                            module: moduleName || '',
+                            isParentModule: !moduleName, // Assume it's a parent module if moduleName is empty
+                            returnType: '', // Not needed for argument collection
+                            args: input.children?.map(child => {
+                                // Parse argument info from the label (format: "--name (type)[required]")
+                                const match = child.originalName.match(/--([^ ]+) \(([^)]+)\)(\s\[required\])?/);
+                                if (match) {
+                                    return {
+                                        name: match[1],
+                                        type: match[2],
+                                        required: Boolean(match[3])
+                                    };
+                                }
+                                return {
+                                    name: child.originalName,
+                                    type: 'unknown',
+                                    required: false
+                                };
+                            }) || []
+                        };
+                        console.log(`Using function info from tree item with ${functionInfo.args.length} args`);
+                    } else {
+                        // We need to fetch the full function details
+                        progress.report({ message: `Loading function (ID: ${functionId})...` });
+                        console.log(`Retrieving function details for ID: ${functionId}`);
 
-                    // Get function details
-                    functionInfo = await cli.getFunction(functionId, workspacePath);
-                    console.log(`Function details retrieved: ${functionInfo ? 'success' : 'failed'}`);
+                        // Get function details
+                        functionInfo = await cli.getFunction(functionId, workspacePath);
+                        console.log(`Function details retrieved: ${functionInfo ? 'success' : 'failed'}`);
 
-                    if (!functionInfo) {
-                        vscode.window.showErrorMessage(`Failed to get details for function with ID ${functionId}`);
-                        return;
+                        if (!functionInfo) {
+                            vscode.window.showErrorMessage(`Failed to get details for function with ID ${functionId}`);
+                            return;
+                        }
                     }
 
                     // Set properties from function info
