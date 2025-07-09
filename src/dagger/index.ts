@@ -154,6 +154,24 @@ export default class Cli {
                 return [];
             }
 
+            // First, identify the root module (if any)
+            let rootModuleName = '';
+            // Find modules that are parent modules (they have submodules)
+            const parentModules = objects.filter(obj => {
+                const objName = obj.asObject?.name || obj.name || '';
+                return objects.some(otherObj => {
+                    const otherName = otherObj.asObject?.name || otherObj.name || '';
+                    return otherName !== objName &&
+                        otherName.startsWith(objName) &&
+                        otherName.length > objName.length;
+                });
+            });
+            
+            // If there's only one parent module, consider it the root
+            if (parentModules.length === 1) {
+                rootModuleName = parentModules[0].asObject?.name || parentModules[0].name || '';
+            }
+
             for (const obj of objects) {
                 if (!obj.asObject) {
                     console.warn(`Object ${obj.name} does not have asObject property`);
@@ -194,19 +212,36 @@ export default class Cli {
                     });
                 }
                 
-                // Extract the actual module name for submodules by removing the parent prefix
-                let actualModuleName = moduleName;
-                if (!isParentModule && parentModule) {
-                    // Convert to string (TypeScript should already know it's a string, but being explicit)
-                    const parentModuleStr: string = parentModule;
-                    // Remove the parent module name from the beginning to get the real submodule name
-                    actualModuleName = moduleName.slice(parentModuleStr.length);
-                    // In case there's any remaining separators or capitalization at the beginning
-                    // This handles cases like "DaggerDevCli" → "Cli" after removing "DaggerDev"
+                // For parent modules, use empty string as module name
+                // For submodules, extract the actual module name by removing the parent prefix
+                let actualModuleName = '';
+                
+                if (isParentModule) {
+                    // Parent modules use empty string as module name
+                    actualModuleName = '';
+                } else {
+                    // If this is a submodule of the root module, extract just the submodule name
+                    if (rootModuleName && moduleName.startsWith(rootModuleName) && moduleName !== rootModuleName) {
+                        // Remove root module prefix to get the clean submodule name
+                        // This converts e.g. "dagger-dev-cli" to "cli" when root is "dagger-dev"
+                        actualModuleName = moduleName.substring(rootModuleName.length);
+                        
+                        // Clean up any separators at the beginning (like hyphens or underscores)
+                        actualModuleName = actualModuleName.replace(/^[-_]+/, '');
+                    } else if (parentModule) {
+                        // For other submodules, remove parent module prefix
+                        // Ensure parentModule is treated as a string
+                        const parentModuleStr: string = parentModule;
+                        actualModuleName = moduleName.substring(parentModuleStr.length);
+                        actualModuleName = actualModuleName.replace(/^[-_]+/, '');
+                    } else {
+                        // Regular module, use its name
+                        actualModuleName = moduleName;
+                    }
                 }
                 
                 // Convert module name to kebab-case
-                const moduleKebabName = this.camelCaseToKebabCase(actualModuleName);
+                const moduleKebabName = actualModuleName ? this.camelCaseToKebabCase(actualModuleName) : '';
 
                 for (const func of obj.asObject.functions) {
                     // Format the full name and extract module context
@@ -217,7 +252,7 @@ export default class Cli {
                         name: kebabName,
                         description: func.description,
                         functionId: func.id,
-                        module: moduleKebabName, // Use kebab-case module name
+                        module: moduleKebabName, // Use cleaned, kebab-case module name
                         isParentModule,
                         parentModule: parentModule ? this.camelCaseToKebabCase(parentModule) : undefined, // Convert parent to kebab-case too
                         args: func.args.map(arg => {
@@ -238,9 +273,11 @@ export default class Cli {
             }
         } catch (error: any) {
             console.error('Error retrieving functions from Dagger module:', error);
-            throw new Error(`Failed to retrieve functions from Dagger module: ${error.message}`);
         }
 
+        // Log the result for debugging
+        console.log(`fetchFunctionsList found ${functions.length} functions`);
+        
         return functions;
     }
 
@@ -475,13 +512,69 @@ export default class Cli {
             })}`);
 
             // Extract module name from function name if it contains a dot
-            // For parent modules, use empty string instead of 'default'
             let moduleName = '';
             let isParentModule = false;
             
             if (func.name.includes('.')) {
-                moduleName = func.name.substring(0, func.name.indexOf('.'));
+                const fullModuleName = func.name.substring(0, func.name.indexOf('.'));
                 isParentModule = false;
+                
+                // Get the list of functions to determine root module
+                const allFunctions = await this.functionsList(workspacePath);
+                
+                // Find the root module name (if any)
+                // Look for a function that has isParentModule=true
+                const rootModuleFuncs = allFunctions.filter(f => f.isParentModule);
+                let rootModuleName = '';
+                
+                if (rootModuleFuncs.length > 0) {
+                    // We found at least one parent module function, use its module name
+                    // The actual module name will be in the original name format (before kebab-case conversion)
+                    // Extract it from one of the functions
+                    const parentModuleFunc = rootModuleFuncs[0];
+                    // We need to analyze the original name to find the parent module name
+                    // First, find a function with this ID to get more context
+                    const matchingFunc = allFunctions.find(f => f.functionId === parentModuleFunc.functionId);
+                    
+                    if (matchingFunc) {
+                        // Get parent module functions in original module names
+                        // For this, we need to get raw functions list from the API
+                        const directoryId = await this.queryDirectoryId(workspacePath);
+                        if (directoryId) {
+                            const objects = await this.queryModuleFunctions(directoryId, workspacePath);
+                            if (objects && objects.length > 0) {
+                                // Find parent modules (they have submodules)
+                                const parentModules = objects.filter(obj => {
+                                    const objName = obj.asObject?.name || obj.name || '';
+                                    return objects.some(otherObj => {
+                                        const otherName = otherObj.asObject?.name || otherObj.name || '';
+                                        return otherName !== objName &&
+                                            otherName.startsWith(objName) &&
+                                            otherName.length > objName.length;
+                                    });
+                                });
+                                
+                                // If there's only one parent module, consider it the root
+                                if (parentModules.length === 1) {
+                                    rootModuleName = parentModules[0].asObject?.name || parentModules[0].name || '';
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Now determine the clean module name
+                if (rootModuleName && fullModuleName.startsWith(rootModuleName) && fullModuleName !== rootModuleName) {
+                    // This is a submodule of the root module, extract just the submodule name
+                    // Remove root module prefix to get the clean submodule name
+                    moduleName = fullModuleName.substring(rootModuleName.length);
+                    
+                    // Clean up any separators at the beginning (like hyphens or underscores)
+                    moduleName = moduleName.replace(/^[-_]+/, '');
+                } else {
+                    // Regular module or no root module found, use the full module name
+                    moduleName = fullModuleName;
+                }
             } else {
                 // This is a parent module function, use empty string for module name
                 isParentModule = true;

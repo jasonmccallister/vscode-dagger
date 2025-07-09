@@ -81,6 +81,12 @@ describe('Dagger CLI Wrapper', () => {
                                 name: 'buildImage',
                                 description: 'Builds an image',
                                 args: []
+                            },
+                            {
+                                id: 'func4',
+                                name: 'generateDocs',
+                                description: 'Generates documentation in the parent module',
+                                args: []
                             }
                         ]
                     }
@@ -123,7 +129,7 @@ describe('Dagger CLI Wrapper', () => {
             const functions = await (cli as any).fetchFunctionsList('/test/workspace');
             
             // Verify the results
-            assert.strictEqual(functions.length, 3, 'Should return 3 function objects');
+            assert.strictEqual(functions.length, 4, 'Should return 4 function objects');
             
             // Check parent module detection - parent modules now have empty module name
             const parentModule = functions.find((f: FunctionInfo) => 
@@ -133,12 +139,15 @@ describe('Dagger CLI Wrapper', () => {
             assert.strictEqual(parentModule?.isParentModule, true, 'Parent module should be identified as a parent module');
             assert.strictEqual(parentModule?.parentModule, undefined, 'Parent module should not have a parent');
             
-            // Check child modules
+            // Check submodules - they should have clean names now (without the parent prefix)
+            // Note: The module name is now expected to be 'cli' and 'docs' not 'dagger-dev-cli' and 'dagger-dev-docs'
             const cliModule = functions.find((f: FunctionInfo) => f.module === 'cli');
+            assert.ok(cliModule, 'Should find the cli module function');
             assert.strictEqual(cliModule?.isParentModule, false, 'Cli should not be a parent module');
             assert.strictEqual(cliModule?.parentModule, 'dagger-dev', 'Cli should have dagger-dev as parent');
             
             const docsModule = functions.find((f: FunctionInfo) => f.module === 'docs');
+            assert.ok(docsModule, 'Should find the docs module function');
             assert.strictEqual(docsModule?.isParentModule, false, 'Docs should not be a parent module');
             assert.strictEqual(docsModule?.parentModule, 'dagger-dev', 'Docs should have dagger-dev as parent');
         });
