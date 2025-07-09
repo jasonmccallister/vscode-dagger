@@ -348,8 +348,71 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                 this.items.push(functionItem);
             }
         } else {
-            // Multiple modules - nest functions under module tree items
+            // Multiple modules - handle root module separately and nest other functions under module tree items
+            
+            // First, add root module functions (empty module name) at the top level
+            const rootModuleFunctions = moduleMap.get('') || [];
+            if (rootModuleFunctions.length > 0) {
+                for (const { fn } of rootModuleFunctions) {
+                    const functionName = fn.name.trim();
+                    const functionId = fn.functionId;
+
+                    if (!functionId) {
+                        console.warn(`Root module function ${functionName} has no ID, skipping`);
+                        continue;
+                    }
+
+                    // Create function item for root module
+                    const functionItem = new DaggerTreeItem(
+                        functionName,
+                        'function',
+                        vscode.TreeItemCollapsibleState.Collapsed,
+                        undefined,
+                        '', // Empty module name for root functions
+                        functionId
+                    );
+
+                    // Set the command
+                    functionItem.command = {
+                        command: 'dagger.call',
+                        title: 'Call Function',
+                        arguments: [functionItem]
+                    };
+
+                    // Set tooltip
+                    let tooltip = `Function: ${functionName}`;
+                    if (fn.description) {
+                        tooltip += `\n\nDescription:\n${fn.description}`;
+                    }
+                    functionItem.tooltip = tooltip;
+
+                    // Pre-load function arguments as children
+                    if (fn.args && fn.args.length > 0) {
+                        functionItem.children = fn.args.map((arg: { name: string; type: string; required: boolean }) =>
+                            new DaggerTreeItem(
+                                `--${arg.name} (${arg.type})${arg.required ? ' [required]' : ''}`,
+                                'argument'
+                            )
+                        );
+                    } else {
+                        functionItem.children = [new DaggerTreeItem('No arguments', 'empty')];
+                    }
+
+                    // Add to top level items
+                    this.items.push(functionItem);
+                }
+                
+                // Remove the root module from the map so we don't process it again
+                moduleMap.delete('');
+            }
+
+            // Then handle the remaining modules
             for (const [moduleName, moduleFunctions] of moduleMap.entries()) {
+                // Skip empty module name as we've already handled it
+                if (moduleName === '') {
+                    continue;
+                }
+                
                 // Create module tree item
                 const moduleItem = new DaggerTreeItem(
                     moduleName,
