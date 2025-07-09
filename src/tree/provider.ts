@@ -313,7 +313,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                 const functionItem = new DaggerTreeItem(
                     functionName,
                     'function',
-                    vscode.TreeItemCollapsibleState.Collapsed,
+                    fn.args && fn.args.length > 0 ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None,
                     undefined, // Don't set command here - we'll set it after creating the item
                     moduleName, // Pass module name
                     functionId  // Pass function ID
@@ -342,8 +342,6 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                             'argument'
                         )
                     );
-                } else {
-                    functionItem.children = [new DaggerTreeItem('No arguments', 'empty')];
                 }
 
                 this.items.push(functionItem);
@@ -367,7 +365,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                     const functionItem = new DaggerTreeItem(
                         functionName,
                         'function',
-                        vscode.TreeItemCollapsibleState.Collapsed,
+                        fn.args && fn.args.length > 0 ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None,
                         undefined,
                         '', // Empty module name for root functions
                         functionId
@@ -396,8 +394,6 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                                 'argument'
                             )
                         );
-                    } else {
-                        functionItem.children = [new DaggerTreeItem('No arguments', 'empty')];
                     }
 
                     // Add to top level items
@@ -442,7 +438,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                     const functionItem = new DaggerTreeItem(
                         displayName,
                         'function',
-                        vscode.TreeItemCollapsibleState.Collapsed,
+                        fn.args && fn.args.length > 0 ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None,
                         undefined, // Don't set command here - we'll set it after creating the item
                         moduleName,  // Pass module name
                         functionId   // Pass function ID
@@ -471,8 +467,6 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                                 'argument'
                             )
                         );
-                    } else {
-                        functionItem.children = [new DaggerTreeItem('No arguments', 'empty')];
                     }
 
                     return functionItem;
@@ -494,8 +488,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                 location: vscode.ProgressLocation.Notification,
                 title: `Dagger`,
                 cancellable: false
-            }, async (progress) => {
-                progress.report({ message: 'Reloading functions...' });
+            }, async () => {
                 // Reload data asynchronously with progress already handled in loadData
                 await this.loadData();
             });

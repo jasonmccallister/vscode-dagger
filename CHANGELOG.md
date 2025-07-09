@@ -14,3 +14,6 @@ All notable changes to the "vscode-dagger" extension will be documented in this 
 - **Terminal Integration**: Custom terminal profile for Dagger commands
 - **Cache Management**: Clear cached function data with the clear cache command
 - **Return Type Display**: Function return types are now captured and displayed in tooltips
+
+### Changed
+- **UI Improvement**: Functions without arguments are no longer expandable in the tree view
