@@ -18,7 +18,8 @@
     "containers",
     "docker",
     "pipelines",
-    "devops"
+    "devops",
+    "workflows"
   ],
   "icon": "images/icon.png",
   "repository": {
@@ -143,10 +144,11 @@
       "profiles": [
         {
           "id": "dagger.terminal-profile",
-          "title": "Dagger Shell",
-          "name": "Dagger Shell",
+          "title": "Dagger",
+          "name": "Dagger",
           "icon": "images/icon-white.png",
-          "isTransient": true
+          "isTransient": true,
+          "description": "Dagger Shell terminal profile"
         }
       ]
     },

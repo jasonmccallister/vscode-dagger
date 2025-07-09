@@ -31,6 +31,7 @@ const mockParentModuleFunction: FunctionInfo = {
 describe('Save Task Command', () => {
     let sandbox: sinon.SinonSandbox;
     let mockCli: sinon.SinonStubbedInstance<Cli>;
+    let fsStub: any;
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
@@ -43,11 +44,16 @@ describe('Save Task Command', () => {
         sandbox.stub(vscode.window, 'showInputBox').resolves('dagger-test-task');
         sandbox.stub(vscode.window, 'showInformationMessage').resolves(undefined);
 
-        // Use proper mocking for vscode.workspace.fs APIs
-        sandbox.stub(vscode.workspace.fs, 'stat').resolves();
-        sandbox.stub(vscode.workspace.fs, 'createDirectory').resolves();
-        sandbox.stub(vscode.workspace.fs, 'writeFile').resolves();
-        sandbox.stub(vscode.workspace.fs, 'readFile').rejects(new Error('File not found'));
+        // Create a fake fs object instead of stubbing individual methods
+        fsStub = {
+            createDirectory: sandbox.stub().resolves(),
+            writeFile: sandbox.stub().resolves(),
+            readFile: sandbox.stub().rejects(new Error('File not found')),
+            stat: sandbox.stub().resolves()
+        };
+        
+        // Replace vscode.workspace.fs with our stub
+        sandbox.stub(vscode.workspace, 'fs').value(fsStub);
 
         // Mock vscode.workspace.getWorkspaceFolder
         sandbox.stub(vscode.workspace, 'getWorkspaceFolder').returns({
@@ -91,11 +97,9 @@ describe('Save Task Command', () => {
 
     it('should save task to tasks.json', async () => {
         // Test the saveTaskToTasksJson function
-        const writeFileSpy = sandbox.spy(vscode.workspace.fs, 'writeFile');
-        
         await saveTaskToTasksJson('test-task', 'dagger call test-function', mockWorkspacePath);
         
-        // Verify writeFile was called with the correct parameters
-        assert.strictEqual(writeFileSpy.calledOnce, true);
+        // Verify writeFile was called
+        assert.strictEqual(fsStub.writeFile.calledOnce, true);
     });
 });

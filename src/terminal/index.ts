@@ -30,6 +30,7 @@ export const registerTerminalProvider = (
     context: vscode.ExtensionContext,
     pathFinder: DaggerPathFinder = findDaggerPath
 ): void => {
+    // Create properly formatted URIs for the icon paths
     const iconPath = {
         light: vscode.Uri.file(context.asAbsolutePath(ICON_PATH_BLACK)),
         dark: vscode.Uri.file(context.asAbsolutePath(ICON_PATH_WHITE))
@@ -42,14 +43,20 @@ export const registerTerminalProvider = (
         return;
     }
 
+    // Create the terminal provider that returns a terminal options object
+    // instead of using TerminalProfile directly
     const terminalProvider: vscode.TerminalProfileProvider = {
-        provideTerminalProfile: async (_token: vscode.CancellationToken): Promise<vscode.TerminalProfile | undefined> => {
-            return new vscode.TerminalProfile({
-                name: 'Dagger Shell',
-                iconPath,
-                isTransient: true,
-                shellPath: daggerPath,
-            });
+        provideTerminalProfile: async (_token: vscode.CancellationToken) => {
+            // Return a plain object that VS Code will use to create a terminal
+            // This avoids using vscode.TerminalProfile which requires the nativeWindowHandle API
+            return {
+                options: {
+                    name: 'Dagger',
+                    iconPath, // Use the ThemeIcon object with both light and dark variants
+                    isTransient: true,
+                    shellPath: daggerPath,
+                }
+            } as any; // Cast to any to avoid type errors
         }
     };
 
