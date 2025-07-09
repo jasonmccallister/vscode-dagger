@@ -166,7 +166,7 @@ export default class Cli {
                 }
 
                 // Get module name from object
-                const moduleName = obj.asObject.name || obj.name || 'default';
+                const moduleName = obj.asObject.name || obj.name || '';
 
                 // Analyze module hierarchy based on naming patterns
                 // Check if this module name appears as a prefix in other module names
@@ -475,21 +475,28 @@ export default class Cli {
             })}`);
 
             // Extract module name from function name if it contains a dot
-            // Otherwise use 'default' as the module name
-            const moduleName = func.name.includes('.')
-                ? func.name.substring(0, func.name.indexOf('.'))
-                : 'default';
+            // For parent modules, use empty string instead of 'default'
+            let moduleName = '';
+            let isParentModule = false;
+            
+            if (func.name.includes('.')) {
+                moduleName = func.name.substring(0, func.name.indexOf('.'));
+                isParentModule = false;
+            } else {
+                // This is a parent module function, use empty string for module name
+                isParentModule = true;
+            }
                 
-            // Convert module name to kebab-case
-            const moduleKebabName = this.camelCaseToKebabCase(moduleName);
+            // Convert module name to kebab-case (only if it's not empty)
+            const moduleKebabName = moduleName ? this.camelCaseToKebabCase(moduleName) : '';
 
             // Convert GraphQL function data to FunctionInfo format
             return {
                 name: this.camelCaseToKebabCase(func.name),
                 description: func.description,
                 functionId: func.id,
-                module: moduleKebabName, // Use kebab-case module name
-                isParentModule: false, // Default to false for individual function lookups
+                module: moduleKebabName, // Use kebab-case module name or empty string for parent modules
+                isParentModule: isParentModule, // Indicate if this is a parent module function
                 parentModule: undefined, // We don't have context for determining parent here
                 args: func.args.map((arg: any) => {
                     const isRequired = arg.typeDef.optional === undefined

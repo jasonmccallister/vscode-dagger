@@ -125,9 +125,12 @@ describe('Dagger CLI Wrapper', () => {
             // Verify the results
             assert.strictEqual(functions.length, 3, 'Should return 3 function objects');
             
-            // Check parent module detection
-            const parentModule = functions.find((f: FunctionInfo) => f.module === 'dagger-dev');
-            assert.strictEqual(parentModule?.isParentModule, true, 'DaggerDev should be identified as a parent module');
+            // Check parent module detection - parent modules now have empty module name
+            const parentModule = functions.find((f: FunctionInfo) => 
+                f.isParentModule && f.name.includes('generate'));
+            assert.ok(parentModule, 'Should find the parent module function');
+            assert.strictEqual(parentModule?.module, '', 'Parent module should have an empty string as module name');
+            assert.strictEqual(parentModule?.isParentModule, true, 'Parent module should be identified as a parent module');
             assert.strictEqual(parentModule?.parentModule, undefined, 'Parent module should not have a parent');
             
             // Check child modules

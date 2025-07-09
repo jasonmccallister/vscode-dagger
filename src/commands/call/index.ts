@@ -104,14 +104,12 @@ export const registerCallCommand = (
                 // Use the shared helper to collect arguments and run the function
                 const { success, argValues } = await collectAndRunFunction(
                     context,
-                    functionName!,
-                    functionInfo.args,
-                    moduleName // Pass module name to determine command format
+                    functionInfo
                 );
 
                 // if successful and the prompt is not dismissed
                 if (success && settings.saveTaskPromptDismissed !== true) {
-                    await showSaveTaskPrompt(functionName!, argValues, workspacePath, settings);
+                    await showSaveTaskPrompt(functionName!, argValues, workspacePath, settings, moduleName);
                 }
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error);

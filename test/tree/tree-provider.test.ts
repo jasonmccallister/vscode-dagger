@@ -18,7 +18,9 @@ describe('Tree Provider', () => {
                     description: 'Mock function description', 
                     functionId: functionId,
                     module: 'default',
-                    args: []
+                    args: [],
+                    isParentModule: false,
+                    parentModule: undefined
                 });
             },
         };
@@ -27,8 +29,8 @@ describe('Tree Provider', () => {
     it('should load data with test items on construction', async () => {
         // Arrange: mock functionsList to return test items
         const testFunctions: FunctionInfo[] = [
-            { name: 'testFunc1', description: 'desc1', functionId: 'func1', module: 'default', args: [] },
-            { name: 'testFunc2', description: 'desc2', functionId: 'func2', module: 'default', args: [] }
+            { name: 'testFunc1', description: 'desc1', functionId: 'func1', module: 'default', args: [], isParentModule: false, parentModule: undefined },
+            { name: 'testFunc2', description: 'desc2', functionId: 'func2', module: 'default', args: [], isParentModule: false, parentModule: undefined }
         ];
         mockCli.functionsList = async () => testFunctions;
         mockCli.isInstalled = async () => true;

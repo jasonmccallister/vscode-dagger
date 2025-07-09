@@ -100,14 +100,18 @@ describe('Call Command Tests', () => {
                     description: 'Test function 1',
                     functionId: 'func1',
                     module: 'test-module',
-                    args: []
+                    args: [],
+                    isParentModule: false,
+                    parentModule: undefined
                 },
                 {
                     name: 'test-function-2', 
                     description: 'Test function 2',
                     functionId: 'func2',
                     module: 'test-module',
-                    args: []
+                    args: [],
+                    isParentModule: false,
+                    parentModule: undefined
                 }
             ];
 
@@ -116,7 +120,9 @@ describe('Call Command Tests', () => {
                 name: 'test-function-1',
                 functionId: 'func1',
                 module: 'test-module',
-                args: []
+                args: [],
+                isParentModule: false,
+                parentModule: undefined
             });
 
             // Mock VS Code APIs
@@ -168,6 +174,118 @@ describe('Call Command Tests', () => {
             // Verify information message was shown
             assert.ok(showInformationMessageStub.calledWith('No Dagger functions found in this project.'), 
                 'Should show no functions message');
+        });
+    });
+
+    describe('Condition 2: Command called with TreeItem input', () => {
+        it('should call showSaveTaskPrompt with correct module name', async () => {
+            // Setup
+            mockCli.isDaggerProject.resolves(true);
+            mockCli.setWorkspacePath.returns();
+            
+            const mockFunction: FunctionInfo = {
+                name: 'test-function',
+                description: 'Test function',
+                functionId: 'func1',
+                module: 'test-module',
+                args: [],
+                isParentModule: false,
+                parentModule: undefined
+            };
+
+            // Create a mock TreeItem
+            const mockTreeItem = new DaggerTreeItem(
+                'test-function',
+                'function',
+                vscode.TreeItemCollapsibleState.None,
+                undefined,
+                'test-module',
+                'func1'
+            );
+
+            mockCli.getFunction.resolves(mockFunction);
+            
+            // Mock VS Code APIs
+            const withProgressStub = sandbox.stub(vscode.window, 'withProgress');
+
+            // Mock progress callback
+            withProgressStub.callsFake(async (_, task) => {
+                const mockProgress = {
+                    report: sandbox.stub()
+                };
+                return await task(mockProgress, {} as vscode.CancellationToken);
+            });
+
+            // Mock collectAndRunFunction
+            mockUtils.collectAndRunFunction.resolves({ success: true, argValues: { arg1: 'value1' } });
+            mockUtils.showSaveTaskPrompt.resolves();
+
+            // Execute command with TreeItem input
+            await commandCallback(mockTreeItem);
+
+            // Verify showSaveTaskPrompt was called with the correct parameters
+            assert.ok(mockUtils.showSaveTaskPrompt.calledOnce, 'showSaveTaskPrompt should be called');
+            
+            // Check that the module name was passed
+            const callArgs = mockUtils.showSaveTaskPrompt.getCall(0).args;
+            assert.strictEqual(callArgs[0], 'test-function', 'Function name should match');
+            assert.deepStrictEqual(callArgs[1], { arg1: 'value1' }, 'Arg values should match');
+            assert.strictEqual(callArgs[2], workspacePath, 'Workspace path should match');
+            assert.strictEqual(callArgs[4], 'test-module', 'Module name should be passed correctly');
+        });
+
+        it('should call showSaveTaskPrompt with empty module name for parent modules', async () => {
+            // Setup
+            mockCli.isDaggerProject.resolves(true);
+            mockCli.setWorkspacePath.returns();
+            
+            const mockFunction: FunctionInfo = {
+                name: 'parent-function',
+                description: 'Parent module function',
+                functionId: 'parent1',
+                module: '', // Empty module name for parent modules
+                args: [],
+                isParentModule: true,
+                parentModule: undefined
+            };
+
+            // Create a mock TreeItem
+            const mockTreeItem = new DaggerTreeItem(
+                'parent-function',
+                'function',
+                vscode.TreeItemCollapsibleState.None,
+                undefined,
+                '', // Empty module name
+                'parent1'
+            );
+
+            mockCli.getFunction.resolves(mockFunction);
+            
+            // Mock VS Code APIs
+            const withProgressStub = sandbox.stub(vscode.window, 'withProgress');
+
+            // Mock progress callback
+            withProgressStub.callsFake(async (_, task) => {
+                const mockProgress = {
+                    report: sandbox.stub()
+                };
+                return await task(mockProgress, {} as vscode.CancellationToken);
+            });
+
+            // Mock collectAndRunFunction
+            mockUtils.collectAndRunFunction.resolves({ success: true, argValues: {} });
+            mockUtils.showSaveTaskPrompt.resolves();
+
+            // Execute command with TreeItem input
+            await commandCallback(mockTreeItem);
+
+            // Verify showSaveTaskPrompt was called with the correct parameters
+            assert.ok(mockUtils.showSaveTaskPrompt.calledOnce, 'showSaveTaskPrompt should be called');
+            
+            // Check that the module name was passed as empty string
+            const callArgs = mockUtils.showSaveTaskPrompt.getCall(0).args;
+            assert.strictEqual(callArgs[0], 'parent-function', 'Function name should match');
+            assert.strictEqual(callArgs[4], '', 'Module name should be empty for parent modules');
         });
     });
 });

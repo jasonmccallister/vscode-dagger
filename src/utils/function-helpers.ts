@@ -89,12 +89,11 @@ export const buildCommandArgs = (
     // Start with base command
     const commandArgs = ['dagger', 'call'];
     
-    // If a module name is provided, add it before the function name
-    // Module names are always unique, so we always include them in the command
-    if (moduleName) {
+    // If a module name is provided and non-empty, add it before the function name
+    if (moduleName && moduleName.length > 0) {
         commandArgs.push(moduleName, functionName);
     } else {
-        // No module specified - just use the function name
+        // No module specified or empty module (parent module) - just use the function name
         commandArgs.push(functionName);
     }
 
@@ -112,18 +111,16 @@ export const buildCommandArgs = (
 
 /**
  * Collects function argument values from the user and executes the Dagger function
- * @param _context VS Code extension context
- * @param functionName The name of the function to call
- * @param args The function arguments
- * @param moduleName Optional module name for non-root modules
+ * @param _context VS Code extension context (not currently used but kept for future extension)
+ * @param functionInfo The function information including name, arguments, and module
  * @returns A promise that resolves to { success, argValues } where argValues are the used arguments
  */
 export const collectAndRunFunction = async (
     _context: vscode.ExtensionContext,
-    functionName: string,
-    args: readonly FunctionArgument[],
-    moduleName?: string
+    functionInfo: FunctionInfo
 ): Promise<{ success: boolean, argValues: Record<string, string> }> => {
+    const { name: functionName, args, module: moduleName } = functionInfo;
+    
     // Separate required and optional arguments
     const requiredArgs = args.filter(arg => arg.required);
     const optionalArgs = args.filter(arg => !arg.required);
@@ -155,12 +152,14 @@ export const collectAndRunFunction = async (
  * @param argValues The argument values used in the call
  * @param workspacePath The workspace path
  * @param settings The Dagger settings
+ * @param moduleName Optional module name for non-root modules
  */
 export const showSaveTaskPrompt = async (
     functionName: string,
     argValues: Record<string, string>,
     workspacePath: string,
-    settings: DaggerSettings
+    settings: DaggerSettings,
+    moduleName?: string
 ): Promise<void> => {
     // Use settings instead of directly accessing configuration
     if (settings.saveTaskPromptDismissed) { return; }
@@ -190,7 +189,7 @@ export const showSaveTaskPrompt = async (
         });
         if (!taskName) { return; }
         // Build the command
-        const commandArgs = buildCommandArgs(functionName, argValues);
+        const commandArgs = buildCommandArgs(functionName, argValues, moduleName);
         const command = commandArgs.join(' ');
         // Save the task using existing logic
         await saveTaskToTasksJson(taskName.trim(), command, workspacePath);
@@ -199,4 +198,28 @@ export const showSaveTaskPrompt = async (
         await settings.update('saveTaskPromptDismissed', true, vscode.ConfigurationTarget.Global);
     }
     // 'Not now' does nothing (prompt will show again next time)
+};
+
+/**
+ * @deprecated Use collectAndRunFunction with FunctionInfo parameter instead
+ * Backward compatibility function for the old signature
+ */
+export const collectAndRunFunctionOld = async (
+    context: vscode.ExtensionContext,
+    functionName: string,
+    args: readonly FunctionArgument[],
+    moduleName?: string
+): Promise<{ success: boolean, argValues: Record<string, string> }> => {
+    // Create a simplified FunctionInfo object
+    const functionInfo: FunctionInfo = {
+        name: functionName,
+        functionId: '', // Not needed for this function
+        args: [...args], // Create a copy of the readonly array
+        module: moduleName || '',
+        description: '',
+        isParentModule: false,
+        parentModule: undefined
+    };
+    
+    return collectAndRunFunction(context, functionInfo);
 };

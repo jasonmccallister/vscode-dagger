@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import Cli, { FunctionArgument } from '../../dagger';
+import Cli, { FunctionArgument, FunctionInfo } from '../../dagger';
+import { buildCommandArgs, collectArgumentValues, selectOptionalArguments } from '../../utils/function-helpers';
 
 export const COMMAND = 'dagger.saveTask';
 
@@ -64,12 +65,14 @@ export const registerSaveTaskCommand = (
                 // Get function arguments by finding the function in the functions list
                 const functions = await cli.functionsList(workspacePath);
                 const targetFunction = functions.find(f => f.name === functionName);
-                const args = targetFunction?.args;
-                if (!args) {
-                    vscode.window.showErrorMessage(`Failed to get arguments for function '${functionName}'`);
+                
+                if (!targetFunction) {
+                    vscode.window.showErrorMessage(`Function "${functionName}" not found.`);
                     return;
                 }
-
+                
+                const args = targetFunction.args || [];
+                
                 if (token.isCancellationRequested) {
                     return;
                 }
@@ -77,7 +80,7 @@ export const registerSaveTaskCommand = (
                 progress.report({ message: 'Collecting argument values...' });
 
                 // Collect arguments and build task
-                const result = await collectArgumentsForTask(functionName!, args);
+                const result = await collectArgumentsForTask(targetFunction);
                 if (result.cancelled) {
                     return;
                 }
@@ -109,82 +112,6 @@ export const registerSaveTaskCommand = (
     context.subscriptions.push(disposable);
 };
 
-/**
- * Collects argument values from user input
- * @param args The function arguments to collect values for
- * @returns Object containing collected argument values and cancellation status
- */
-const collectArgumentValues = async (args: readonly FunctionArgument[]): Promise<CollectArgumentsResult> => {
-    const argValues: Record<string, string> = {};
-
-    for (const arg of args) {
-        const value = await vscode.window.showInputBox({
-            prompt: `Enter value for --${arg.name} (${arg.type})${arg.required ? ' [required]' : ''}`,
-            ignoreFocusOut: true,
-            validateInput: input => arg.required && !input ? 'This value is required.' : undefined
-        });
-
-        if (arg.required && !value) {
-            vscode.window.showErrorMessage(`Value required for argument --${arg.name}`);
-            return { argValues: {}, cancelled: true };
-        }
-
-        if (value) {
-            argValues[arg.name] = value;
-        }
-    }
-
-    return { argValues, cancelled: false };
-};
-
-/**
- * Selects optional arguments from a list
- * @param optionalArgs The optional arguments to choose from
- * @returns Selected optional arguments
- */
-const selectOptionalArguments = async (optionalArgs: readonly FunctionArgument[]): Promise<readonly FunctionArgument[]> => {
-    if (optionalArgs.length === 0) {
-        return [];
-    }
-
-    const argsPicks: readonly ArgumentPick[] = optionalArgs.map(arg => ({
-        label: `${arg.name} (${arg.type})`,
-        description: 'Optional',
-        detail: `Type: ${arg.type}`
-    }));
-
-    const selected = await vscode.window.showQuickPick(argsPicks, {
-        placeHolder: 'Select optional arguments to provide values for',
-        canPickMany: true
-    });
-
-    if (!selected) {
-        return [];
-    }
-
-    const selectedNames = selected.map(arg => arg.label.split(' ')[0]);
-    return optionalArgs.filter(arg => selectedNames.includes(arg.name));
-};
-
-/**
- * Builds command arguments array from collected values
- * @param functionName The function name to call
- * @param argValues The collected argument values
- * @returns Command arguments array
- */
-const buildCommandArgs = (functionName: string, argValues: Record<string, string>): readonly string[] => {
-    const commandArgs = ['dagger', 'call', functionName];
-
-    // Add all collected arguments to the command array
-    Object.entries(argValues).forEach(([name, value]) => {
-        commandArgs.push(`--${name}`, value);
-    });
-
-    return commandArgs;
-};
-
-
-
 interface TaskCreationResult {
     readonly taskName: string;
     readonly command: string;
@@ -193,14 +120,37 @@ interface TaskCreationResult {
 
 /**
  * Collects function argument values and builds the command for saving as a task
- * @param functionName The name of the function to call
- * @param args The function arguments
+ * @param func The function information including name, module, and arguments
  * @returns Task creation result with command string
  */
 const collectArgumentsForTask = async (
-    functionName: string,
-    args: readonly FunctionArgument[]
+    func: FunctionInfo
 ): Promise<TaskCreationResult> => {
+    const { name: functionName, args, module: moduleName } = func;
+    
+    // Handle the case where there are no arguments
+    if (args.length === 0) {
+        // Build the command using the utility function that handles module names properly
+        const commandArgs = buildCommandArgs(functionName, {}, moduleName);
+        const command = commandArgs.join(' ');
+        
+        // Get task name from user with default
+        const defaultTaskName = `dagger-${functionName}`;
+        const taskName = await vscode.window.showInputBox({
+            prompt: 'Enter a name for this VS Code task',
+            value: defaultTaskName,
+            validateInput: (input) => {
+                return input ? undefined : 'Task name is required';
+            }
+        });
+        
+        if (!taskName) {
+            return { taskName: '', command: '', cancelled: true };
+        }
+        
+        return { taskName, command, cancelled: false };
+    }
+    
     // Separate required and optional arguments
     const requiredArgs = args.filter(arg => arg.required);
     const optionalArgs = args.filter(arg => !arg.required);
@@ -218,8 +168,8 @@ const collectArgumentsForTask = async (
         return { taskName: '', command: '', cancelled: true };
     }
 
-    // Build the command
-    const commandArgs = buildCommandArgs(functionName, argValues);
+    // Build the command using the utility function that handles module names properly
+    const commandArgs = buildCommandArgs(functionName, argValues, moduleName);
     const command = commandArgs.join(' ');
 
     // Get task name from user with default

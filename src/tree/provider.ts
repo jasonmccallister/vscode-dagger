@@ -246,7 +246,8 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                             }
 
                             // Use the module property directly, which should be set correctly by functionsList
-                            const moduleName = fn.module || 'default';
+                            // For parent modules, the module name will be empty
+                            const moduleName = fn.isParentModule ? '' : (fn.module || '');
 
                             // Add function to its module group
                             if (!moduleMap.has(moduleName)) {
