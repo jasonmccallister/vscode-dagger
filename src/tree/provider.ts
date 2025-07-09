@@ -15,7 +15,7 @@ interface TreeViewConfig {
 
 // Constants to eliminate magic strings and numbers
 const TREE_VIEW_ID = 'daggerTreeView';
-const FUNCTION_ICON_NAME = 'symbol-function';
+const FUNCTION_ICON_NAME = 'symbol-namespace';
 const ARGUMENT_ICON_NAME = 'symbol-parameter';
 const ACTION_ICON_NAME = 'arrow-right';
 const MODULE_ICON_NAME = 'package'; // Icon for module (package represents something modular)
