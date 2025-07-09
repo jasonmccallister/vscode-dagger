@@ -256,7 +256,7 @@ export default class Cli {
                         module: moduleKebabName, // Use cleaned, kebab-case module name
                         isParentModule,
                         parentModule: parentModule ? this.camelCaseToKebabCase(parentModule) : undefined, // Convert parent to kebab-case too
-                        returnType: this.getFriendlyTypeName(func.returnType.kind), // Add return type 
+                        returnType: this.getFriendlyTypeName(func.returnType), // Pass entire returnType object
                         args: func.args.map(arg => {
                             // Primary method: Use the optional property if available
                             // Fallback: Check description for [required] if optional property is not set
@@ -266,7 +266,7 @@ export default class Cli {
 
                             return {
                                 name: this.camelCaseToKebabCase(arg.name),
-                                type: this.getFriendlyTypeName(arg.typeDef.kind),
+                                type: this.getFriendlyTypeName(arg.typeDef),
                                 required: isRequired
                             };
                         })
@@ -387,6 +387,9 @@ export default class Cli {
                         returnType {
                           kind
                           optional
+                          asObject {
+                            name
+                          }
                         }
                         args {
                           name
@@ -491,6 +494,9 @@ export default class Cli {
                         returnType {
                             kind
                             optional
+                            asObject {
+                              name
+                            }
                         }
                         args {
                             name
@@ -601,7 +607,7 @@ export default class Cli {
                 module: moduleKebabName, // Use kebab-case module name or empty string for parent modules
                 isParentModule: isParentModule, // Indicate if this is a parent module function
                 parentModule: undefined, // We don't have context for determining parent here
-                returnType: this.getFriendlyTypeName(func.returnType.kind), // Add return type
+                returnType: this.getFriendlyTypeName(func.returnType), // Pass entire returnType object
                 args: func.args.map((arg: any) => {
                     const isRequired = arg.typeDef.optional === undefined
                         ? arg.description?.includes('[required]') || false
@@ -609,7 +615,7 @@ export default class Cli {
 
                     return {
                         name: this.camelCaseToKebabCase(arg.name),
-                        type: this.getFriendlyTypeName(arg.typeDef.kind),
+                        type: this.getFriendlyTypeName(arg.typeDef),
                         required: isRequired
                     };
                 })
@@ -773,65 +779,85 @@ export default class Cli {
 
     /**
      * Converts GraphQL type names to friendly type names.
-     * @param graphQLType The GraphQL type name (e.g., OBJECT_STRING, OBJECT_BOOLEAN)
-     * @returns A friendly type name (e.g., string, boolean, object)
+     * @param typeInfo The GraphQL type info object or string
+     * @returns A friendly type name (e.g., string, boolean, object, Container, Directory)
      * @private
      */
-    private getFriendlyTypeName(graphQLType: string): string {
-        // Handle null or undefined
-        if (!graphQLType) {
-            return 'unknown';
-        }
+    private getFriendlyTypeName(typeInfo: any): string {
+        // If typeInfo is a string, use legacy behavior
+        if (typeof typeInfo === 'string') {
+            const graphQLType = typeInfo;
+            // Handle null or undefined
+            if (!graphQLType) {
+                return 'unknown';
+            }
 
-        // Handle common GraphQL type prefixes
-        if (graphQLType.startsWith('OBJECT_')) {
-            const typeWithoutPrefix = graphQLType.substring(7).toLowerCase();
+            // Handle common GraphQL type prefixes
+            if (graphQLType.startsWith('OBJECT_')) {
+                const typeWithoutPrefix = graphQLType.substring(7).toLowerCase();
 
-            // Map specific type names
-            switch (typeWithoutPrefix) {
-                case 'string':
+                // Map specific type names
+                switch (typeWithoutPrefix) {
+                    case 'string':
+                        return 'string';
+                    case 'int':
+                    case 'integer':
+                        return 'number';
+                    case 'float':
+                    case 'double':
+                        return 'number';
+                    case 'boolean':
+                        return 'boolean';
+                    case 'object':
+                        return 'object';
+                    case 'array':
+                        return 'array';
+                    case 'list':
+                        return 'array';
+                    case 'map':
+                        return 'object';
+                    case 'void':
+                    case 'nil':
+                    case 'null':
+                        return 'null';
+                    default:
+                        return typeWithoutPrefix;
+                }
+            }
+
+            // Handle GraphQL scalar types
+            switch (graphQLType.toUpperCase()) {
+                case 'STRING':
                     return 'string';
-                case 'int':
-                case 'integer':
+                case 'INT':
+                case 'INTEGER':
+                case 'FLOAT':
                     return 'number';
-                case 'float':
-                case 'double':
-                    return 'number';
-                case 'boolean':
+                case 'BOOLEAN':
                     return 'boolean';
-                case 'object':
-                    return 'object';
-                case 'array':
-                    return 'array';
-                case 'list':
-                    return 'array';
-                case 'map':
-                    return 'object';
-                case 'void':
-                case 'nil':
-                case 'null':
-                    return 'null';
+                case 'ID':
+                    return 'string';
                 default:
-                    return typeWithoutPrefix;
+                    // If we can't map it, just lowercase the original type
+                    return graphQLType.toLowerCase();
             }
         }
-
-        // Handle GraphQL scalar types
-        switch (graphQLType.toUpperCase()) {
-            case 'STRING':
-                return 'string';
-            case 'INT':
-            case 'INTEGER':
-            case 'FLOAT':
-                return 'number';
-            case 'BOOLEAN':
-                return 'boolean';
-            case 'ID':
-                return 'string';
-            default:
-                // If we can't map it, just lowercase the original type
-                return graphQLType.toLowerCase();
+        
+        // If typeInfo is an object with asObject.name, use that
+        if (typeInfo && typeof typeInfo === 'object') {
+            // If we have asObject.name, use that as it's more specific
+            if (typeInfo.asObject && typeInfo.asObject.name) {
+                return typeInfo.asObject.name;
+            }
+            
+            // Otherwise, fall back to the kind
+            if (typeInfo.kind) {
+                return this.getFriendlyTypeName(typeInfo.kind);
+            }
         }
+        
+        // Default fallback
+        return 'unknown';
     }
 
     /**

@@ -331,7 +331,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                 if (fn.description) {
                     tooltip += `\n\nDescription:\n${fn.description}`;
                 }
-                tooltip += `\n\nReturns: ${fn.returnType}`;
+                tooltip += `\n\nReturns: ${fn.returnType || 'unknown'}`;
                 functionItem.tooltip = tooltip;
 
                 // Pre-load function arguments as children
@@ -383,7 +383,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                     if (fn.description) {
                         tooltip += `\n\nDescription:\n${fn.description}`;
                     }
-                    tooltip += `\n\nReturns: ${fn.returnType}`;
+                    tooltip += `\n\nReturns: ${fn.returnType || 'unknown'}`;
                     functionItem.tooltip = tooltip;
 
                     // Pre-load function arguments as children
@@ -456,7 +456,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                     if (fn.description) {
                         tooltip += `\n\nDescription:\n${fn.description}`;
                     }
-                    tooltip += `\n\nReturns: ${fn.returnType}`;
+                    tooltip += `\n\nReturns: ${fn.returnType || 'unknown'}`;
                     functionItem.tooltip = tooltip;
 
                     // Pre-load function arguments as children
