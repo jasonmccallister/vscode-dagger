@@ -298,17 +298,37 @@ describe('Call Command Tests', () => {
             mockCli.isDaggerProject.resolves(true);
             mockCli.setWorkspacePath.returns();
             
+            // Create a function info object for the tree item
+            const treeItemFunctionInfo: FunctionInfo = {
+                name: 'test-function',
+                description: 'Test function with arguments',
+                functionId: 'func1',
+                module: 'test-module',
+                isParentModule: false,
+                parentModule: undefined,
+                returnType: 'container',
+                args: [
+                    {
+                        name: 'arg1',
+                        type: 'string',
+                        required: true
+                    },
+                    {
+                        name: 'arg2',
+                        type: 'number',
+                        required: false
+                    }
+                ]
+            };
+            
             // Create a mock TreeItem with argument children
             const mockTreeItem = new DaggerTreeItem(
-                'test-function',
+                treeItemFunctionInfo,
                 'function',
-                vscode.TreeItemCollapsibleState.Collapsed,
-                undefined,
-                'test-module',
-                'func1'
+                vscode.TreeItemCollapsibleState.Collapsed
             );
             
-            // Add argument children
+            // Add argument children (even though not used directly now, we keep them for test clarity)
             mockTreeItem.children = [
                 new DaggerTreeItem(
                     '--arg1 (string) [required]',

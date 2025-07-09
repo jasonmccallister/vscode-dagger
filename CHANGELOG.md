@@ -19,3 +19,6 @@ All notable changes to the "vscode-dagger" extension will be documented in this 
 - **UI Improvement**: Functions without arguments are no longer expandable in the tree view
 - **Performance**: Optimized tree view creation by directly using FunctionInfo objects
 - **Performance**: Improved call command to avoid redundant API calls when function information is already available
+- **Performance**: Updated selectFunction to return full FunctionInfo objects rather than just basic properties
+- **Code Improvement**: Removed redundant properties from TreeItem and streamlined data access through FunctionInfo objects
+- **Code Improvement**: Removed FunctionQuickPickItem interface to simplify data flow and use FunctionInfo directly
