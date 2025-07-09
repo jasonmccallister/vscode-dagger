@@ -20,7 +20,8 @@ describe('Tree Provider', () => {
                     module: 'default',
                     args: [],
                     isParentModule: false,
-                    parentModule: undefined
+                    parentModule: undefined,
+                    returnType: 'container'
                 });
             },
         };
@@ -29,8 +30,8 @@ describe('Tree Provider', () => {
     it('should load data with test items on construction', async () => {
         // Arrange: mock functionsList to return test items
         const testFunctions: FunctionInfo[] = [
-            { name: 'testFunc1', description: 'desc1', functionId: 'func1', module: 'default', args: [], isParentModule: false, parentModule: undefined },
-            { name: 'testFunc2', description: 'desc2', functionId: 'func2', module: 'default', args: [], isParentModule: false, parentModule: undefined }
+            { name: 'testFunc1', description: 'desc1', functionId: 'func1', module: 'default', args: [], isParentModule: false, parentModule: undefined, returnType: 'container' },
+            { name: 'testFunc2', description: 'desc2', functionId: 'func2', module: 'default', args: [], isParentModule: false, parentModule: undefined, returnType: 'container' }
         ];
         mockCli.functionsList = async () => testFunctions;
         mockCli.isInstalled = async () => true;
@@ -52,12 +53,12 @@ describe('Tree Provider', () => {
         // Arrange: mock functionsList to return multiple modules including root module
         const testFunctions: FunctionInfo[] = [
             // Root module functions (empty module name)
-            { name: 'rootFunc1', description: 'Root function 1', functionId: 'root1', module: '', args: [], isParentModule: true, parentModule: undefined },
-            { name: 'rootFunc2', description: 'Root function 2', functionId: 'root2', module: '', args: [], isParentModule: true, parentModule: undefined },
+            { name: 'rootFunc1', description: 'Root function 1', functionId: 'root1', module: '', args: [], isParentModule: true, parentModule: undefined, returnType: 'container' },
+            { name: 'rootFunc2', description: 'Root function 2', functionId: 'root2', module: '', args: [], isParentModule: true, parentModule: undefined, returnType: 'container' },
             // Submodule functions
-            { name: 'subFunc1', description: 'Sub function 1', functionId: 'sub1', module: 'submodule1', args: [], isParentModule: false, parentModule: undefined },
-            { name: 'subFunc2', description: 'Sub function 2', functionId: 'sub2', module: 'submodule1', args: [], isParentModule: false, parentModule: undefined },
-            { name: 'otherFunc', description: 'Other function', functionId: 'other1', module: 'other-module', args: [], isParentModule: false, parentModule: undefined }
+            { name: 'subFunc1', description: 'Sub function 1', functionId: 'sub1', module: 'submodule1', args: [], isParentModule: false, parentModule: undefined, returnType: 'container' },
+            { name: 'subFunc2', description: 'Sub function 2', functionId: 'sub2', module: 'submodule1', args: [], isParentModule: false, parentModule: undefined, returnType: 'container' },
+            { name: 'otherFunc', description: 'Other function', functionId: 'other1', module: 'other-module', args: [], isParentModule: false, parentModule: undefined, returnType: 'container' }
         ];
         mockCli.functionsList = async () => testFunctions;
         mockCli.isInstalled = async () => true;

@@ -15,7 +15,8 @@ const mockSubmoduleFunction: FunctionInfo = {
     args: [],  // Function with no arguments
     description: 'Test function',
     isParentModule: false,
-    parentModule: undefined
+    parentModule: undefined,
+    returnType: 'container' // Add return type
 };
 
 const mockParentModuleFunction: FunctionInfo = {
@@ -25,7 +26,8 @@ const mockParentModuleFunction: FunctionInfo = {
     args: [],  // Function with no arguments
     description: 'Parent module function',
     isParentModule: true,
-    parentModule: undefined
+    parentModule: undefined,
+    returnType: 'string' // Add return type
 };
 
 describe('Save Task Command', () => {

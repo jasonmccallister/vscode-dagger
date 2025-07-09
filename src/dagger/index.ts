@@ -36,6 +36,7 @@ export interface FunctionInfo {
     module: string;
     isParentModule: boolean;
     parentModule?: string;
+    returnType: string; // Add return type information
     args: FunctionArgument[];
 }
 
@@ -255,6 +256,7 @@ export default class Cli {
                         module: moduleKebabName, // Use cleaned, kebab-case module name
                         isParentModule,
                         parentModule: parentModule ? this.camelCaseToKebabCase(parentModule) : undefined, // Convert parent to kebab-case too
+                        returnType: this.getFriendlyTypeName(func.returnType.kind), // Add return type 
                         args: func.args.map(arg => {
                             // Primary method: Use the optional property if available
                             // Fallback: Check description for [required] if optional property is not set
@@ -382,6 +384,10 @@ export default class Cli {
                         id
                         name
                         description
+                        returnType {
+                          kind
+                          optional
+                        }
                         args {
                           name
                           description
@@ -482,6 +488,10 @@ export default class Cli {
                         id
                         name
                         description
+                        returnType {
+                            kind
+                            optional
+                        }
                         args {
                             name
                             description
@@ -591,6 +601,7 @@ export default class Cli {
                 module: moduleKebabName, // Use kebab-case module name or empty string for parent modules
                 isParentModule: isParentModule, // Indicate if this is a parent module function
                 parentModule: undefined, // We don't have context for determining parent here
+                returnType: this.getFriendlyTypeName(func.returnType.kind), // Add return type
                 args: func.args.map((arg: any) => {
                     const isRequired = arg.typeDef.optional === undefined
                         ? arg.description?.includes('[required]') || false

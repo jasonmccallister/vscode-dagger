@@ -218,7 +218,8 @@ export const collectAndRunFunctionOld = async (
         module: moduleName || '',
         description: '',
         isParentModule: false,
-        parentModule: undefined
+        parentModule: undefined,
+        returnType: 'void' // Default return type when creating manually
     };
     
     return collectAndRunFunction(context, functionInfo);

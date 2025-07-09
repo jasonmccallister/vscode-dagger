@@ -80,12 +80,14 @@ describe('Dagger CLI Wrapper', () => {
                                 id: 'func1',
                                 name: 'buildImage',
                                 description: 'Builds an image',
+                                returnType: { kind: 'OBJECT_CONTAINER', optional: false },
                                 args: []
                             },
                             {
                                 id: 'func4',
                                 name: 'generateDocs',
                                 description: 'Generates documentation in the parent module',
+                                returnType: { kind: 'OBJECT_DIRECTORY', optional: false },
                                 args: []
                             }
                         ]
@@ -100,6 +102,7 @@ describe('Dagger CLI Wrapper', () => {
                                 id: 'func2',
                                 name: 'installBinary',
                                 description: 'Installs CLI binary',
+                                returnType: { kind: 'OBJECT_FILE', optional: false },
                                 args: []
                             }
                         ]
@@ -114,6 +117,7 @@ describe('Dagger CLI Wrapper', () => {
                                 id: 'func3',
                                 name: 'generateDocs',
                                 description: 'Generates documentation',
+                                returnType: { kind: 'OBJECT_STRING', optional: false },
                                 args: []
                             }
                         ]

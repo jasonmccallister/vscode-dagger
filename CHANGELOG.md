@@ -13,3 +13,4 @@ All notable changes to the "vscode-dagger" extension will be documented in this 
 - **Cloud Integration**: Authentication and token management for Dagger Cloud
 - **Terminal Integration**: Custom terminal profile for Dagger commands
 - **Cache Management**: Clear cached function data with the clear cache command
+- **Return Type Display**: Function return types are now captured and displayed in tooltips

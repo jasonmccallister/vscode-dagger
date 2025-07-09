@@ -102,7 +102,8 @@ describe('Call Command Tests', () => {
                     module: 'test-module',
                     args: [],
                     isParentModule: false,
-                    parentModule: undefined
+                    parentModule: undefined,
+                    returnType: 'container'
                 },
                 {
                     name: 'test-function-2', 
@@ -111,7 +112,8 @@ describe('Call Command Tests', () => {
                     module: 'test-module',
                     args: [],
                     isParentModule: false,
-                    parentModule: undefined
+                    parentModule: undefined,
+                    returnType: 'directory'
                 }
             ];
 
@@ -122,7 +124,8 @@ describe('Call Command Tests', () => {
                 module: 'test-module',
                 args: [],
                 isParentModule: false,
-                parentModule: undefined
+                parentModule: undefined,
+                returnType: 'container'
             });
 
             // Mock VS Code APIs
@@ -190,7 +193,8 @@ describe('Call Command Tests', () => {
                 module: 'test-module',
                 args: [],
                 isParentModule: false,
-                parentModule: undefined
+                parentModule: undefined,
+                returnType: 'container'
             };
 
             // Create a mock TreeItem
@@ -246,7 +250,8 @@ describe('Call Command Tests', () => {
                 module: '', // Empty module name for parent modules
                 args: [],
                 isParentModule: true,
-                parentModule: undefined
+                parentModule: undefined,
+                returnType: 'string'
             };
 
             // Create a mock TreeItem

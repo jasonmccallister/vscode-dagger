@@ -25,7 +25,7 @@ describe('Dagger CLI Caching', () => {
             { name: 'arg2', type: 'number', required: false }
         ],
         isParentModule: false,
-        parentModule: undefined
+        returnType: 'container'
     };
 
     // Create a mock settings class that allows setting enableCache for testing
