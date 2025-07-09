@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import Cli from '../dagger';
+import Cli, { FunctionInfo } from '../dagger';
 import { COMMAND as INIT_COMMAND } from '../commands/init';
 import { COMMAND as REFRESH_COMMAND } from '../commands/refresh';
 import { DaggerSettings } from '../settings';
@@ -63,28 +63,50 @@ export class DaggerTreeItem extends vscode.TreeItem {
     readonly originalName: string;
     readonly moduleName?: string;
     readonly functionId?: string;
+    readonly functionInfo?: FunctionInfo;
 
     constructor(
-        label: string,
+        labelOrFunctionInfo: string | FunctionInfo,
         type: ItemType,
         collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.None,
         command?: vscode.Command,
         moduleName?: string,
         functionId?: string
     ) {
+        // Handle both string labels and FunctionInfo objects
+        let label: string;
+        let derivedModuleName: string | undefined = moduleName;
+        let derivedFunctionId: string | undefined = functionId;
+        let derivedFunctionInfo: FunctionInfo | undefined;
+        
+        if (typeof labelOrFunctionInfo === 'string') {
+            // Handle string label (for backward compatibility)
+            label = labelOrFunctionInfo;
+        } else {
+            // Handle FunctionInfo object
+            derivedFunctionInfo = labelOrFunctionInfo;
+            label = derivedFunctionInfo.name;
+            derivedModuleName = derivedFunctionInfo.module;
+            derivedFunctionId = derivedFunctionInfo.functionId;
+        }
+
+        // Call super with the label and collapsible state
         super(label, collapsibleState);
+        
+        // Set properties after calling super
         this.type = type;
         this.originalName = label;
-        this.moduleName = moduleName;
-        this.functionId = functionId;
+        this.moduleName = derivedModuleName;
+        this.functionId = derivedFunctionId;
+        this.functionInfo = derivedFunctionInfo;
 
         // Generate a unique ID for this item based on its type
-        if (type === 'function' && functionId) {
+        if (type === 'function' && this.functionId) {
             // Use function ID from API for uniqueness
-            this.id = functionId;
-        } else if (type === 'module' && moduleName) {
+            this.id = this.functionId;
+        } else if (type === 'module' && this.moduleName) {
             // Use module name for module items
-            this.id = `module:${moduleName}`;
+            this.id = `module:${this.moduleName}`;
         }
 
         // Set command if provided
@@ -97,6 +119,17 @@ export class DaggerTreeItem extends vscode.TreeItem {
             case 'function':
                 this.iconPath = new vscode.ThemeIcon(FUNCTION_ICON_NAME);
                 this.tooltip = `Function: ${label}`;
+                
+                // If we have a FunctionInfo object, set a more detailed tooltip
+                if (this.functionInfo) {
+                    let tooltip = `Function: ${label}`;
+                    if (this.functionInfo.description) {
+                        tooltip += `\n\nDescription:\n${this.functionInfo.description}`;
+                    }
+                    tooltip += `\n\nReturns: ${this.functionInfo.returnType || 'unknown'}`;
+                    this.tooltip = tooltip;
+                }
+                
                 this.contextValue = 'function';
                 break;
             case 'module':
@@ -309,14 +342,11 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                     continue;
                 }
 
-                // Create function item with functionId for uniqueness
+                // Create function item with FunctionInfo
                 const functionItem = new DaggerTreeItem(
-                    functionName,
+                    fn, // Pass the FunctionInfo object directly
                     'function',
-                    fn.args && fn.args.length > 0 ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None,
-                    undefined, // Don't set command here - we'll set it after creating the item
-                    moduleName, // Pass module name
-                    functionId  // Pass function ID
+                    fn.args && fn.args.length > 0 ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None
                 );
 
                 // Set the command after creating the item so we can pass the item itself
@@ -325,14 +355,6 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                     title: 'Call Function',
                     arguments: [functionItem] // Pass the tree item itself
                 };
-
-                // Set tooltip with full information
-                let tooltip = `Function: ${functionName}`;
-                if (fn.description) {
-                    tooltip += `\n\nDescription:\n${fn.description}`;
-                }
-                tooltip += `\n\nReturns: ${fn.returnType || 'unknown'}`;
-                functionItem.tooltip = tooltip;
 
                 // Pre-load function arguments as children
                 if (fn.args && fn.args.length > 0) {
@@ -361,14 +383,11 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                         continue;
                     }
 
-                    // Create function item for root module
+                    // Create function item for root module with FunctionInfo
                     const functionItem = new DaggerTreeItem(
-                        functionName,
+                        fn, // Pass FunctionInfo directly
                         'function',
-                        fn.args && fn.args.length > 0 ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None,
-                        undefined,
-                        '', // Empty module name for root functions
-                        functionId
+                        fn.args && fn.args.length > 0 ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None
                     );
 
                     // Set the command
@@ -377,14 +396,6 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                         title: 'Call Function',
                         arguments: [functionItem]
                     };
-
-                    // Set tooltip
-                    let tooltip = `Function: ${functionName}`;
-                    if (fn.description) {
-                        tooltip += `\n\nDescription:\n${fn.description}`;
-                    }
-                    tooltip += `\n\nReturns: ${fn.returnType || 'unknown'}`;
-                    functionItem.tooltip = tooltip;
 
                     // Pre-load function arguments as children
                     if (fn.args && fn.args.length > 0) {
@@ -434,14 +445,17 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                         return new DaggerTreeItem(`${displayName} (error: no ID)`, 'empty');
                     }
 
-                    // Create function item with functionId for uniqueness
+                    // Create a modified function info to use a display name without the module prefix
+                    const modifiedFn = {
+                        ...fn,
+                        name: displayName // Override the name with display name
+                    };
+                    
+                    // Create function item with FunctionInfo
                     const functionItem = new DaggerTreeItem(
-                        displayName,
+                        modifiedFn, // Pass modified FunctionInfo
                         'function',
-                        fn.args && fn.args.length > 0 ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None,
-                        undefined, // Don't set command here - we'll set it after creating the item
-                        moduleName,  // Pass module name
-                        functionId   // Pass function ID
+                        fn.args && fn.args.length > 0 ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None
                     );
 
                     // Set the command after creating the item so we can pass the item itself

@@ -360,5 +360,74 @@ describe('Call Command Tests', () => {
             assert.strictEqual(functionInfo.args[1].type, 'number', 'Second arg type should match');
             assert.strictEqual(functionInfo.args[1].required, false, 'Second arg required should match');
         });
+
+        it('should use tree item functionInfo without fetching function when it is available', async () => {
+            // Setup
+            mockCli.isDaggerProject.resolves(true);
+            mockCli.setWorkspacePath.returns();
+            
+            // Create a function info object to attach to the tree item
+            const treeItemFunctionInfo: FunctionInfo = {
+                name: 'test-function',
+                description: 'Test function',
+                functionId: 'func1',
+                module: 'test-module',
+                isParentModule: false,
+                parentModule: undefined,
+                returnType: 'container',
+                args: [
+                    {
+                        name: 'arg1',
+                        type: 'string',
+                        required: true
+                    },
+                    {
+                        name: 'arg2',
+                        type: 'number',
+                        required: false
+                    }
+                ]
+            };
+
+            // Create a mock TreeItem with direct functionInfo
+            const mockTreeItem = new DaggerTreeItem(
+                treeItemFunctionInfo,
+                'function',
+                vscode.TreeItemCollapsibleState.Collapsed
+            );
+            
+            // No need to add argument children as this test verifies using the functionInfo directly
+
+            // Mock VS Code APIs
+            const withProgressStub = sandbox.stub(vscode.window, 'withProgress');
+
+            // Mock progress callback
+            withProgressStub.callsFake(async (_, task) => {
+                const mockProgress = {
+                    report: sandbox.stub()
+                };
+                return await task(mockProgress, {} as vscode.CancellationToken);
+            });
+
+            // Mock collectAndRunFunction
+            mockUtils.collectAndRunFunction.resolves({ success: true, argValues: { arg1: 'value1' } });
+            mockUtils.showSaveTaskPrompt.resolves();
+
+            // Execute command with TreeItem input that has functionInfo
+            await commandCallback(mockTreeItem);
+
+            // Verify that getFunction was NOT called
+            assert.strictEqual(mockCli.getFunction.called, false, 'getFunction should not be called when tree item has functionInfo');
+            
+            // Verify collectAndRunFunction was called with the expected arguments
+            assert.ok(mockUtils.collectAndRunFunction.called, 'collectAndRunFunction should be called');
+            
+            const callArgs = mockUtils.collectAndRunFunction.getCall(0).args;
+            assert.strictEqual(callArgs[0], mockContext, 'First arg should be the context');
+            
+            // Check that the function info object was passed directly
+            const functionInfo = callArgs[1];
+            assert.strictEqual(functionInfo, treeItemFunctionInfo, 'FunctionInfo object should be passed directly');
+        });
     });
 });

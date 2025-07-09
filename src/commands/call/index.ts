@@ -80,8 +80,13 @@ export const registerCallCommand = (
                 
                 // Get function details from the Dagger CLI if needed
                 if (functionId) {
+                    // If we have a tree item with its functionInfo property set, use that directly
+                    if (input instanceof DaggerTreeItem && input.functionInfo) {
+                        functionInfo = input.functionInfo;
+                        console.log(`Using functionInfo directly from tree item for ${functionName}`);
+                    }
                     // If we have a tree item with children and it's a function type, we don't need to fetch the function details again
-                    if (input instanceof DaggerTreeItem && input.type === 'function' && hasArgumentChildren) {
+                    else if (input instanceof DaggerTreeItem && input.type === 'function' && hasArgumentChildren) {
                         // We can construct a simplified FunctionInfo object from the tree item
                         functionInfo = {
                             name: functionName || '',
