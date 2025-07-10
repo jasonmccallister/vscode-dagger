@@ -87,7 +87,7 @@ export const registerCallCommand = (
             // Pass the cancellation token to allow cancellation during argument collection
             const { success, argValues } = await collectAndRunFunction(
               context,
-              functionInfo,
+              functionInfo
             );
 
             // If cancelled or not successful, don't show save task prompt

@@ -1,41 +1,45 @@
-import * as vscode from 'vscode';
-import Cli from '../../dagger';
-import { DaggerSettings } from '../../settings';
+import * as vscode from "vscode";
+import Cli from "../../dagger";
+import { DaggerSettings } from "../../settings";
 
-type CloudResponse = 'Visit dagger.cloud' | 'Open Settings' | 'Cancel';
+type CloudResponse = "Visit dagger.cloud" | "Open Settings" | "Cancel";
 
-const COMMAND = 'dagger.setupCloud';
+const COMMAND = "dagger.setupCloud";
 
 interface TokenSources {
-    readonly envToken: string | undefined;
-    readonly secretToken: string;
-    readonly currentToken: string;
+  readonly envToken: string | undefined;
+  readonly secretToken: string;
+  readonly currentToken: string;
 }
 
 export const registerCloudCommand = (
-    context: vscode.ExtensionContext,
-    _cli: Cli,
-    settings: DaggerSettings
+  context: vscode.ExtensionContext,
+  _cli: Cli,
+  settings: DaggerSettings
 ): void => {
-    const disposable = vscode.commands.registerCommand(COMMAND, async () => {
-        const tokens = await getTokenSources();
-        const message = getCloudMessage(tokens);
-        const options = getResponseOptions(tokens);
+  const disposable = vscode.commands.registerCommand(COMMAND, async () => {
+    const tokens = await getTokenSources();
+    const message = getCloudMessage(tokens);
+    const options = getResponseOptions(tokens);
 
-        const response = await vscode.window.showInformationMessage(
-            message,
-            ...options
-        ) as CloudResponse | undefined;
+    const response = (await vscode.window.showInformationMessage(
+      message,
+      ...options
+    )) as CloudResponse | undefined;
 
-        await handleCloudResponse(response, tokens);
-        
-        // If user interacts with cloud setup, mark notification as dismissed
-        if (response && response !== 'Cancel') {
-            await settings.update('cloudNotificationDismissed', true, vscode.ConfigurationTarget.Global);
-        }
-    });
+    await handleCloudResponse(response, tokens);
 
-    context.subscriptions.push(disposable);
+    // If user interacts with cloud setup, mark notification as dismissed
+    if (response && response !== "Cancel") {
+      await settings.update(
+        "cloudNotificationDismissed",
+        true,
+        vscode.ConfigurationTarget.Global
+      );
+    }
+  });
+
+  context.subscriptions.push(disposable);
 };
 
 /**
@@ -43,25 +47,29 @@ export const registerCloudCommand = (
  * @returns Object containing tokens from different sources
  */
 const getTokenSources = async (): Promise<TokenSources> => {
-    // We access current token from configuration directly 
-    // because cloudToken is not part of our settings interface
-    const config = vscode.workspace.getConfiguration('dagger');
-    const currentToken = config.get<string>('cloudToken', '');
-    const envToken = process.env.DAGGER_CLOUD_TOKEN;
+  // We access current token from configuration directly
+  // because cloudToken is not part of our settings interface
+  const config = vscode.workspace.getConfiguration("dagger");
+  const currentToken = config.get<string>("cloudToken", "");
+  const envToken = process.env.DAGGER_CLOUD_TOKEN;
 
-    let secretToken = '';
-    try {
-        const session = await vscode.authentication.getSession('dagger', ['cloudToken'], { createIfNone: false });
-        secretToken = session?.accessToken ?? '';
-    } catch {
-        secretToken = '';
-    }
+  let secretToken = "";
+  try {
+    const session = await vscode.authentication.getSession(
+      "dagger",
+      ["cloudToken"],
+      { createIfNone: false }
+    );
+    secretToken = session?.accessToken ?? "";
+  } catch {
+    secretToken = "";
+  }
 
-    return {
-        envToken,
-        secretToken,
-        currentToken
-    };
+  return {
+    envToken,
+    secretToken,
+    currentToken,
+  };
 };
 
 /**
@@ -70,13 +78,13 @@ const getTokenSources = async (): Promise<TokenSources> => {
  * @returns Array of response options
  */
 const getResponseOptions = (_tokens: TokenSources): CloudResponse[] => {
-    const options: CloudResponse[] = ['Cancel'];
+  const options: CloudResponse[] = ["Cancel"];
 
-    // Add options in reverse order so they appear in the desired order
-    options.unshift('Visit dagger.cloud');
-    options.unshift('Open Settings');
+  // Add options in reverse order so they appear in the desired order
+  options.unshift("Visit dagger.cloud");
+  options.unshift("Open Settings");
 
-    return options;
+  return options;
 };
 
 /**
@@ -85,21 +93,21 @@ const getResponseOptions = (_tokens: TokenSources): CloudResponse[] => {
  * @returns Message to display to the user
  */
 const getCloudMessage = (tokens: TokenSources): string => {
-    const { envToken, secretToken, currentToken } = tokens;
+  const { envToken, secretToken, currentToken } = tokens;
 
-    if (envToken) {
-        return 'Dagger Cloud token found in environment variable DAGGER_CLOUD_TOKEN';
-    }
+  if (envToken) {
+    return "Dagger Cloud token found in environment variable DAGGER_CLOUD_TOKEN";
+  }
 
-    if (secretToken) {
-        return 'Dagger Cloud token found in VS Code secrets storage';
-    }
+  if (secretToken) {
+    return "Dagger Cloud token found in VS Code secrets storage";
+  }
 
-    if (currentToken) {
-        return 'Dagger Cloud token found in VS Code settings';
-    }
+  if (currentToken) {
+    return "Dagger Cloud token found in VS Code settings";
+  }
 
-    return 'Connect to Dagger Cloud for enhanced features';
+  return "Connect to Dagger Cloud for enhanced features";
 };
 
 /**
@@ -108,20 +116,23 @@ const getCloudMessage = (tokens: TokenSources): string => {
  * @param tokens The token sources
  */
 const handleCloudResponse = async (
-    response: CloudResponse | undefined,
-    _tokens: TokenSources
+  response: CloudResponse | undefined,
+  _tokens: TokenSources
 ): Promise<void> => {
-    if (!response || response === 'Cancel') {
-        return;
-    }
+  if (!response || response === "Cancel") {
+    return;
+  }
 
-    if (response === 'Visit dagger.cloud') {
-        await vscode.env.openExternal(vscode.Uri.parse('https://dagger.cloud'));
-        return;
-    }
+  if (response === "Visit dagger.cloud") {
+    await vscode.env.openExternal(vscode.Uri.parse("https://dagger.cloud"));
+    return;
+  }
 
-    if (response === 'Open Settings') {
-        await vscode.commands.executeCommand('workbench.action.openSettings', 'dagger.cloudToken');
-        return;
-    }
+  if (response === "Open Settings") {
+    await vscode.commands.executeCommand(
+      "workbench.action.openSettings",
+      "dagger.cloudToken"
+    );
+    return;
+  }
 };
