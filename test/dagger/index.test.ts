@@ -61,4 +61,99 @@ describe('Dagger CLI Wrapper', () => {
             }
         });
     });
+
+    // Additional test cases
+    
+    describe('fetchFunctionsList module relationship detection', () => {
+        it('should correctly identify parent-child module relationships', async () => {
+            // Create a mock for queryModuleFunctions to return test data
+            const mockQueryModuleFunctions = sinon.stub(cli, 'queryModuleFunctions');
+            
+            // Mock response with parent-child module hierarchy
+            mockQueryModuleFunctions.resolves([
+                {
+                    name: 'DaggerDev',
+                    asObject: {
+                        name: 'DaggerDev',
+                        functions: [
+                            {
+                                id: 'func1',
+                                name: 'buildImage',
+                                description: 'Builds an image',
+                                returnType: { kind: 'OBJECT_CONTAINER', optional: false },
+                                args: []
+                            },
+                            {
+                                id: 'func4',
+                                name: 'generateDocs',
+                                description: 'Generates documentation in the parent module',
+                                returnType: { kind: 'OBJECT_DIRECTORY', optional: false },
+                                args: []
+                            }
+                        ]
+                    }
+                },
+                {
+                    name: 'DaggerDevCli',
+                    asObject: {
+                        name: 'DaggerDevCli',
+                        functions: [
+                            {
+                                id: 'func2',
+                                name: 'installBinary',
+                                description: 'Installs CLI binary',
+                                returnType: { kind: 'OBJECT_FILE', optional: false },
+                                args: []
+                            }
+                        ]
+                    }
+                },
+                {
+                    name: 'DaggerDevDocs',
+                    asObject: {
+                        name: 'DaggerDevDocs',
+                        functions: [
+                            {
+                                id: 'func3',
+                                name: 'generateDocs',
+                                description: 'Generates documentation',
+                                returnType: { kind: 'OBJECT_STRING', optional: false },
+                                args: []
+                            }
+                        ]
+                    }
+                }
+            ]);
+            
+            // Mock queryDirectoryId to return a test ID
+            const mockQueryDirectoryId = sinon.stub(cli, 'queryDirectoryId');
+            mockQueryDirectoryId.resolves('dir-123');
+            
+            // Call the method under test
+            const functions = await (cli as any).fetchFunctionsList('/test/workspace');
+            
+            // Verify the results
+            assert.strictEqual(functions.length, 4, 'Should return 4 function objects');
+            
+            // Check parent module detection - parent modules now have empty module name
+            const parentModule = functions.find((f: FunctionInfo) => 
+                f.isParentModule && f.name.includes('generate'));
+            assert.ok(parentModule, 'Should find the parent module function');
+            assert.strictEqual(parentModule?.module, '', 'Parent module should have an empty string as module name');
+            assert.strictEqual(parentModule?.isParentModule, true, 'Parent module should be identified as a parent module');
+            assert.strictEqual(parentModule?.parentModule, undefined, 'Parent module should not have a parent');
+            
+            // Check submodules - they should have clean names now (without the parent prefix)
+            // Note: The module name is now expected to be 'cli' and 'docs' not 'dagger-dev-cli' and 'dagger-dev-docs'
+            const cliModule = functions.find((f: FunctionInfo) => f.module === 'cli');
+            assert.ok(cliModule, 'Should find the cli module function');
+            assert.strictEqual(cliModule?.isParentModule, false, 'Cli should not be a parent module');
+            assert.strictEqual(cliModule?.parentModule, 'dagger-dev', 'Cli should have dagger-dev as parent');
+            
+            const docsModule = functions.find((f: FunctionInfo) => f.module === 'docs');
+            assert.ok(docsModule, 'Should find the docs module function');
+            assert.strictEqual(docsModule?.isParentModule, false, 'Docs should not be a parent module');
+            assert.strictEqual(docsModule?.parentModule, 'dagger-dev', 'Docs should have dagger-dev as parent');
+        });
+    });
 });

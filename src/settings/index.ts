@@ -1,126 +1,143 @@
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
 /**
  * Interface defining the Dagger extension settings
  */
 export interface DaggerSettings {
-    /**
-     * Whether to enable caching of Dagger functions
-     * Default: true (caching enabled)
-     */
-    readonly enableCache: boolean;
+  /**
+   * Whether to enable caching of Dagger functions
+   * Default: true (caching enabled)
+   */
+  readonly enableCache: boolean;
 
-    /**
-     * Method to use when installing Dagger CLI
-     * Default: 'brew'
-     */
-    readonly installMethod: 'brew' | 'curl';
+  /**
+   * Method to use when installing Dagger CLI
+   * Default: 'brew'
+   */
+  readonly installMethod: "brew" | "curl";
 
-    /**
-     * Whether the Dagger Cloud setup notification has been permanently dismissed
-     * Default: false
-     */
-    readonly cloudNotificationDismissed: boolean;
+  /**
+   * Whether the Dagger Cloud setup notification has been permanently dismissed
+   * Default: false
+   */
+  readonly cloudNotificationDismissed: boolean;
 
-    /**
-     * Whether the save task notification has been permanently dismissed
-     * Default: false
-     */
-    readonly saveTaskPromptDismissed: boolean;
+  /**
+   * Whether the save task notification has been permanently dismissed
+   * Default: false
+   */
+  readonly saveTaskPromptDismissed: boolean;
 
-    /**
-     * Run Dagger function calls in the background unless there is an error
-     * Default: false
-     */
-    readonly runFunctionCallsInBackground: boolean;
+  /**
+   * Run Dagger function calls in the background unless there is an error
+   * Default: false
+   */
+  readonly runFunctionCallsInBackground: boolean;
 
-    /**
-     * Reload settings from VS Code configuration
-     */
-    reload(): void;
+  /**
+   * Reload settings from VS Code configuration
+   */
+  reload(): void;
 
-    /**
-     * Update a setting value
-     * @param section The setting name to update
-     * @param value The new value
-     * @param target The configuration target (Global, Workspace, etc.)
-     */
-    update<T>(section: string, value: T, target: vscode.ConfigurationTarget): Thenable<void>;
+  /**
+   * Update a setting value
+   * @param section The setting name to update
+   * @param value The new value
+   * @param target The configuration target (Global, Workspace, etc.)
+   */
+  update<T>(
+    section: string,
+    value: T,
+    target: vscode.ConfigurationTarget
+  ): Thenable<void>;
 }
 
 /**
  * Implementation of DaggerSettings that reads from VS Code configuration
  */
 export class DaggerSettingsProvider implements DaggerSettings {
-    private _enableCache: boolean = true;
-    private _installMethod: 'brew' | 'curl' = 'brew';
-    private _cloudNotificationDismissed: boolean = false;
-    private _saveTaskPromptDismissed: boolean = false;
-    private _runFunctionCallsInBackground: boolean = false;
+  private _enableCache: boolean = true;
+  private _installMethod: "brew" | "curl" = "brew";
+  private _cloudNotificationDismissed: boolean = false;
+  private _saveTaskPromptDismissed: boolean = false;
+  private _runFunctionCallsInBackground: boolean = false;
 
-    constructor() {
-        this.reload();
-    }
+  constructor() {
+    this.reload();
+  }
 
-    /**
-     * Whether to enable caching of Dagger functions
-     */
-    public get enableCache(): boolean {
-        return this._enableCache;
-    }
+  /**
+   * Whether to enable caching of Dagger functions
+   */
+  public get enableCache(): boolean {
+    return this._enableCache;
+  }
 
-    /**
-     * Method to use when installing Dagger CLI
-     */
-    public get installMethod(): 'brew' | 'curl' {
-        return this._installMethod;
-    }
+  /**
+   * Method to use when installing Dagger CLI
+   */
+  public get installMethod(): "brew" | "curl" {
+    return this._installMethod;
+  }
 
-    /**
-     * Whether the Dagger Cloud setup notification has been permanently dismissed
-     */
-    public get cloudNotificationDismissed(): boolean {
-        return this._cloudNotificationDismissed;
-    }
+  /**
+   * Whether the Dagger Cloud setup notification has been permanently dismissed
+   */
+  public get cloudNotificationDismissed(): boolean {
+    return this._cloudNotificationDismissed;
+  }
 
-    /**
-     * Whether the save task notification has been permanently dismissed
-     */
-    public get saveTaskPromptDismissed(): boolean {
-        return this._saveTaskPromptDismissed;
-    }
+  /**
+   * Whether the save task notification has been permanently dismissed
+   */
+  public get saveTaskPromptDismissed(): boolean {
+    return this._saveTaskPromptDismissed;
+  }
 
-    /**
-     * Run Dagger function calls in the background unless there is an error
-     */
-    public get runFunctionCallsInBackground(): boolean {
-        return this._runFunctionCallsInBackground;
-    }
+  /**
+   * Run Dagger function calls in the background unless there is an error
+   */
+  public get runFunctionCallsInBackground(): boolean {
+    return this._runFunctionCallsInBackground;
+  }
 
-    /**
-     * Reloads settings from the VS Code configuration
-     */
-    public reload(): void {
-        const config = vscode.workspace.getConfiguration('dagger');
-        this._enableCache = config.get<boolean>('enableCache', true);
-        this._installMethod = config.get<'brew' | 'curl'>('installMethod', 'brew');
-        this._cloudNotificationDismissed = config.get<boolean>('cloudNotificationDismissed', false);
-        this._saveTaskPromptDismissed = config.get<boolean>('saveTaskPromptDismissed', false);
-        this._runFunctionCallsInBackground = config.get<boolean>('functionCalls.runInBackground', false);
-    }
+  /**
+   * Reloads settings from the VS Code configuration
+   */
+  public reload(): void {
+    const config = vscode.workspace.getConfiguration("dagger");
+    this._enableCache = config.get<boolean>("enableCache", true);
+    this._installMethod = config.get<"brew" | "curl">("installMethod", "brew");
+    this._cloudNotificationDismissed = config.get<boolean>(
+      "cloudNotificationDismissed",
+      false
+    );
+    this._saveTaskPromptDismissed = config.get<boolean>(
+      "saveTaskPromptDismissed",
+      false
+    );
+    this._runFunctionCallsInBackground = config.get<boolean>(
+      "functionCalls.runInBackground",
+      false
+    );
+  }
 
-    /**
-     * Updates a setting value in the VS Code configuration
-     * @param section The setting name to update
-     * @param value The new value
-     * @param target The configuration target (Global, Workspace, etc.)
-     */
-    public update<T>(section: string, value: T, target: vscode.ConfigurationTarget): Thenable<void> {
-        const config = vscode.workspace.getConfiguration('dagger');
-        return config.update(section, value, target).then(() => {
-            this.reload(); // Reload settings after update
-        });
-    }
+  /**
+   * Updates a setting value in the VS Code configuration
+   * @param section The setting name to update
+   * @param value The new value
+   * @param target The configuration target (Global, Workspace, etc.)
+   */
+  public update<T>(
+    section: string,
+    value: T,
+    target: vscode.ConfigurationTarget
+  ): Thenable<void> {
+    const config = vscode.workspace.getConfiguration("dagger");
+    return config.update(section, value, target).then(() => {
+      this.reload(); // Reload settings after update
+    });
+  }
 }
 
 // Global instance for use throughout the codebase
@@ -131,7 +148,7 @@ let _globalSettings: DaggerSettings | undefined;
  * @param settings The settings instance to use
  */
 export function setGlobalSettings(settings: DaggerSettings): void {
-    _globalSettings = settings;
+  _globalSettings = settings;
 }
 
 /**
@@ -139,5 +156,5 @@ export function setGlobalSettings(settings: DaggerSettings): void {
  * @returns The global settings instance, or undefined if not set
  */
 export function getGlobalSettings(): DaggerSettings | undefined {
-    return _globalSettings;
+  return _globalSettings;
 }

@@ -22,6 +22,7 @@ export interface ModuleFunction {
   id: string; // Add the function ID
   name: string;
   description?: string;
+  returnType: FunctionArgTypeDef; // Add return type information
   args: FunctionArg[];
 }
 

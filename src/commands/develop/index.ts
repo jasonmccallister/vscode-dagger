@@ -1,23 +1,23 @@
-import * as vscode from 'vscode';
-import Cli from '../../dagger';
-import { showProjectSetupPrompt } from '../../prompt';
-import { executeInTerminal } from '../../utils/terminal';
+import * as vscode from "vscode";
+import Cli from "../../dagger";
+import { showProjectSetupPrompt } from "../../prompt";
+import { executeInTerminal } from "../../utils/terminal";
 
-const COMMAND = 'dagger.develop';
+const COMMAND = "dagger.develop";
 
 export const registerDevelopCommand = (
-    context: vscode.ExtensionContext,
-    cli: Cli,
-    _workspacePath: string
+  context: vscode.ExtensionContext,
+  cli: Cli,
+  _workspacePath: string
 ): void => {
-    const disposable = vscode.commands.registerCommand(COMMAND, async () => {
-        if (!(await cli.isDaggerProject())) {
-            await showProjectSetupPrompt();
-            return;
-        }
+  const disposable = vscode.commands.registerCommand(COMMAND, async () => {
+    if (!(await cli.isDaggerProject())) {
+      await showProjectSetupPrompt();
+      return;
+    }
 
-        executeInTerminal('dagger develop');
-    });
+    executeInTerminal("dagger develop");
+  });
 
-    context.subscriptions.push(disposable);
+  context.subscriptions.push(disposable);
 };

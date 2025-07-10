@@ -1,6 +1,6 @@
-import * as vscode from 'vscode';
-import { execFileSync } from 'child_process';
-import { ICON_PATH_BLACK, ICON_PATH_WHITE } from '../const';
+import * as vscode from "vscode";
+import { execFileSync } from "child_process";
+import { ICON_PATH_BLACK, ICON_PATH_WHITE } from "../const";
 
 /**
  * Function type for finding the Dagger binary path
@@ -12,11 +12,11 @@ export type DaggerPathFinder = () => string;
  * @returns The path to the Dagger binary or empty string if not found
  */
 export const findDaggerPath = (): string => {
-    try {
-        return execFileSync('which', ['dagger'], { encoding: 'utf8' }).trim();
-    } catch (err) {
-        return '';
-    }
+  try {
+    return execFileSync("which", ["dagger"], { encoding: "utf8" }).trim();
+  } catch (err) {
+    return "";
+  }
 };
 
 /**
@@ -27,33 +27,45 @@ export const findDaggerPath = (): string => {
  * @param pathFinder - Optional function to find the Dagger binary path
  */
 export const registerTerminalProvider = (
-    context: vscode.ExtensionContext,
-    pathFinder: DaggerPathFinder = findDaggerPath
+  context: vscode.ExtensionContext,
+  pathFinder: DaggerPathFinder = findDaggerPath
 ): void => {
-    const iconPath = {
-        light: vscode.Uri.file(context.asAbsolutePath(ICON_PATH_BLACK)),
-        dark: vscode.Uri.file(context.asAbsolutePath(ICON_PATH_WHITE))
-    };
+  // Create properly formatted URIs for the icon paths
+  const iconPath = {
+    light: vscode.Uri.file(context.asAbsolutePath(ICON_PATH_BLACK)),
+    dark: vscode.Uri.file(context.asAbsolutePath(ICON_PATH_WHITE)),
+  };
 
-    const daggerPath = pathFinder();
-    
-    if (!daggerPath) {
-        vscode.window.showWarningMessage('Dagger binary not found in PATH. The Dagger Shell will not launch.');
-        return;
-    }
+  const daggerPath = pathFinder();
 
-    const terminalProvider: vscode.TerminalProfileProvider = {
-        provideTerminalProfile: async (_token: vscode.CancellationToken): Promise<vscode.TerminalProfile | undefined> => {
-            return new vscode.TerminalProfile({
-                name: 'Dagger Shell',
-                iconPath,
-                isTransient: true,
-                shellPath: daggerPath,
-            });
-        }
-    };
-
-    context.subscriptions.push(
-        vscode.window.registerTerminalProfileProvider('dagger.terminal-profile', terminalProvider)
+  if (!daggerPath) {
+    vscode.window.showWarningMessage(
+      "Dagger binary not found in PATH. The Dagger Shell will not launch."
     );
+    return;
+  }
+
+  // Create the terminal provider that returns a terminal options object
+  // instead of using TerminalProfile directly
+  const terminalProvider: vscode.TerminalProfileProvider = {
+    provideTerminalProfile: async (_token: vscode.CancellationToken) => {
+      // Return a plain object that VS Code will use to create a terminal
+      // This avoids using vscode.TerminalProfile which requires the nativeWindowHandle API
+      return {
+        options: {
+          name: "Dagger",
+          iconPath, // Use the ThemeIcon object with both light and dark variants
+          isTransient: true,
+          shellPath: daggerPath,
+        },
+      } as any; // Cast to any to avoid type errors
+    },
+  };
+
+  context.subscriptions.push(
+    vscode.window.registerTerminalProfileProvider(
+      "dagger.terminal-profile",
+      terminalProvider
+    )
+  );
 };
