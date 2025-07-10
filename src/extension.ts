@@ -36,7 +36,7 @@ export async function activate(context: vscode.ExtensionContext) {
     });
 
     // only register install command if no CLI is found
-    commandManager.register(false);
+    commandManager.register();
 
     // Register configuration change listener to reload settings
     context.subscriptions.push(
@@ -73,7 +73,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }
 
     // Dagger is properly installed, proceed with full activation
-    commandManager.register(true);
+    commandManager.register();
 
     // register the terminal profile provider
     registerTerminalProvider(context);

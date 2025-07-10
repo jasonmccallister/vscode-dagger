@@ -28,14 +28,12 @@ type Options = {
 export default class CommandManager {
   static options: Options;
 
-  constructor(private options: Options) {}
+  constructor(private options: Options) {
+    // always register the install command
+    registerInstallCommand(this.options.context, this.options.settings);
+  }
 
-  public register(all: boolean = true) {
-    if (!all) {
-      registerInstallCommand(this.options.context, this.options.settings);
-      return;
-    }
-
+  public register(): void {
     // Register all commands
     registerCallCommand(
       this.options.context,
