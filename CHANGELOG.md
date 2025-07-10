@@ -22,3 +22,4 @@ All notable changes to the "vscode-dagger" extension will be documented in this 
 - **Performance**: Updated selectFunction to return full FunctionInfo objects rather than just basic properties
 - **Code Improvement**: Removed redundant properties from TreeItem and streamlined data access through FunctionInfo objects
 - **Code Improvement**: Removed FunctionQuickPickItem interface to simplify data flow and use FunctionInfo directly
+- **UX Improvement**: Made function call operations cancellable to allow users to abort long-running operations

@@ -117,7 +117,7 @@ export const buildCommandArgs = (
  */
 export const collectAndRunFunction = async (
     _context: vscode.ExtensionContext,
-    functionInfo: FunctionInfo
+    functionInfo: FunctionInfo,
 ): Promise<{ success: boolean, argValues: Record<string, string> }> => {
     const { name: functionName, args, module: moduleName } = functionInfo;
     

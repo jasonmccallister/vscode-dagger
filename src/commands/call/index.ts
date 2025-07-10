@@ -18,7 +18,7 @@ export const registerCallCommand = (
 ): void => {
   const disposable = vscode.commands.registerCommand(
     COMMAND,
-    async (input?: DaggerTreeItem | string) => {
+    async (input?: DaggerTreeItem) => {
       if (!(await cli.isDaggerProject())) {
         return showProjectSetupPrompt();
       }
@@ -26,10 +26,6 @@ export const registerCallCommand = (
       // Ensure CLI has the workspace path set
       cli.setWorkspacePath(workspacePath);
 
-      let functionName: string | undefined;
-      let functionId: string | undefined;
-      let moduleName: string | undefined;
-      let hasArgumentChildren = false;
       let functionInfo: FunctionInfo | undefined;
 
       // No input, prompt user to select a function
@@ -40,85 +36,46 @@ export const registerCallCommand = (
         if (!functionInfo) {
           return; // Selection cancelled
         }
-
-        // Extract the basic properties from the functionInfo object
-        functionName = functionInfo.name;
-        functionId = functionInfo.functionId;
-        moduleName = functionInfo.module;
-        console.log(
-          `Quick pick function selected: ID=${functionId}, name=${functionName}, module=${moduleName}`
-        );
       }
 
       // Determine function selection method
-      if (input instanceof DaggerTreeItem && input.functionInfo?.functionId) {
-        // Function selected from tree view - use the full functionInfo object
+      if (input instanceof DaggerTreeItem && input.functionInfo !== undefined) {
         functionInfo = input.functionInfo;
-        functionId = functionInfo.functionId;
-        functionName = input.originalName;
-        moduleName = functionInfo.module;
-        // Check if this tree item already has argument children
-        hasArgumentChildren = Boolean(
-          input.children && input.children.length > 0
-        );
-        console.log(
-          `Tree view function selected: ID=${functionId}, name=${functionName}, module=${moduleName}`
-        );
       }
 
-      if (typeof input === "string") {
-        // Function ID passed as string
-        functionId = input;
-        console.log(`Function ID passed as string: ${functionId}`);
+      // is there functionInfo
+      if (!functionInfo) {
+        vscode.window.showErrorMessage(
+          "No function selected. Please select a function to call."
+        );
+        return;
       }
 
       await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
           title: "Dagger",
-          cancellable: false,
+          cancellable: true, // Make the operation cancellable
         },
-        async (progress) => {
-          progress.report({ message: "Getting function arguments..." });
-
+        async (progress, token) => {
           try {
-            // Get function details from the Dagger CLI if needed
-            if (functionId) {
-              // If functionInfo is already set (from tree item or quick pick), use it directly
-              if (!functionInfo) {
-                // If we don't have functionInfo yet, we need to fetch it
-                progress.report({
-                  message: `Loading function (ID: ${functionId})...`,
-                });
-                console.log(
-                  `Retrieving function details for ID: ${functionId}`
-                );
+            // Check if the operation was cancelled
+            if (token.isCancellationRequested) {
+              console.log("Function call cancelled by user");
+              return undefined;
+            }
 
-                // Get function details
-                functionInfo = await cli.getFunction(functionId, workspacePath);
-                console.log(
-                  `Function details retrieved: ${
-                    functionInfo ? "success" : "failed"
-                  }`
-                );
+            let functionName: string = functionInfo?.name;
+            let moduleName: string = functionInfo?.module;
 
-                if (!functionInfo) {
-                  vscode.window.showErrorMessage(
-                    `Failed to get details for function with ID ${functionId}`
-                  );
-                  return;
-                }
-              }
+            progress.report({
+              message: `Loading function ${functionName}...`,
+            });
 
-              // Set properties from function info
-              functionName = functionInfo.name;
-              moduleName = functionInfo.module;
-              console.log(
-                `Using function name: ${functionName}, module: ${moduleName}`
-              );
-            } else {
-              vscode.window.showErrorMessage("No function selected");
-              return;
+            // Check if the operation was cancelled
+            if (token.isCancellationRequested) {
+              console.log("Function call cancelled by user after loading");
+              return undefined;
             }
 
             // Show prompting for input progress
@@ -127,13 +84,19 @@ export const registerCallCommand = (
             });
 
             // Use the shared helper to collect arguments and run the function
+            // Pass the cancellation token to allow cancellation during argument collection
             const { success, argValues } = await collectAndRunFunction(
               context,
-              functionInfo
+              functionInfo,
             );
 
+            // If cancelled or not successful, don't show save task prompt
+            if (token.isCancellationRequested || !success) {
+              return undefined;
+            }
+
             // if successful and the prompt is not dismissed
-            if (success && settings.saveTaskPromptDismissed !== true) {
+            if (settings.saveTaskPromptDismissed !== true) {
               await showSaveTaskPrompt(
                 functionName!,
                 argValues,
@@ -142,14 +105,21 @@ export const registerCallCommand = (
                 moduleName
               );
             }
+            return undefined;
           } catch (error) {
+            // Don't show error if the operation was cancelled
+            if (token.isCancellationRequested) {
+              console.log("Function call cancelled by user during execution");
+              return undefined;
+            }
+
             const errorMessage =
               error instanceof Error ? error.message : String(error);
             vscode.window.showErrorMessage(
               `Failed to get function details: ${errorMessage}`
             );
             console.error("Error in call command:", error);
-            return;
+            return undefined;
           }
         }
       );
