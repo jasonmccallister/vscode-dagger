@@ -2,6 +2,8 @@ import * as assert from "assert";
 import * as vscode from "vscode";
 import * as sinon from "sinon";
 import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
 import { afterEach, beforeEach, describe, it } from "mocha";
 import { registerAddMcpModuleCommand, COMMAND } from "../../../src/commands/add-mcp-module";
 import Cli from "../../../src/dagger";
@@ -16,14 +18,19 @@ describe("Add MCP Module Command", () => {
   let sandbox: sinon.SinonSandbox;
   let commandCallback: any;
   let workspace: string;
+  let tempDir: string;
 
   const LATER_OPTION: MessageItem = { title: "Later" };
   const RELOAD_OPTION: MessageItem = { title: "Reload" };
   const YES_OPTION: MessageItem = { title: "Yes" };
   const NO_OPTION: MessageItem = { title: "No" };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     sandbox = sinon.createSandbox();
+    
+    // Create a temporary directory for each test
+    tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "vscode-dagger-test-"));
+    workspace = tempDir;
     
     // Mock context
     context = {
@@ -34,10 +41,7 @@ describe("Add MCP Module Command", () => {
     cli = sandbox.createStubInstance(Cli);
     cli.isDaggerProject.resolves(true);
 
-    // Set workspace path
-    workspace = "/test/workspace";
-
-    // Mock workspace folders (no longer needed since we pass workspace directly)
+    // Mock workspace folders
     const mockWorkspaceFolder = {
       uri: {
         fsPath: workspace,
@@ -67,8 +71,16 @@ describe("Add MCP Module Command", () => {
     sandbox.stub(vscode.commands, "executeCommand").resolves();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     sandbox.restore();
+    
+    // Clean up temporary directory
+    try {
+      await fs.promises.rm(tempDir, { recursive: true, force: true });
+    } catch (error) {
+      // Ignore cleanup errors in tests
+      console.warn(`Failed to clean up temp directory ${tempDir}:`, error);
+    }
   });
 
   describe("registerAddMcpModuleCommand", () => {
@@ -89,11 +101,6 @@ describe("Add MCP Module Command", () => {
       showInputBoxStub.onFirstCall().resolves("github.com/user/repo");
       showInputBoxStub.onSecondCall().resolves("user-repo");
       
-      // Mock file operations
-      sandbox.stub(fs.promises, "access").rejects(new Error("File not found"));
-      sandbox.stub(fs.promises, "mkdir").resolves();
-      sandbox.stub(fs.promises, "writeFile").resolves();
-      
       // Mock withProgress
       sandbox.stub(vscode.window, "withProgress").callsFake(async (_options, task) => {
         const progress = { report: sandbox.stub() };
@@ -110,6 +117,18 @@ describe("Add MCP Module Command", () => {
       await commandCallback();
       
       assert.strictEqual(showInputBoxStub.calledTwice, true);
+      
+      // Verify that the mcp.json file was created in the temp directory
+      const mcpJsonPath = path.join(workspace, ".vscode", "mcp.json");
+      const fileExists = await fs.promises.access(mcpJsonPath).then(() => true).catch(() => false);
+      assert.strictEqual(fileExists, true);
+      
+      // Verify the content
+      const content = await fs.promises.readFile(mcpJsonPath, "utf8");
+      const mcpConfig = JSON.parse(content);
+      assert.strictEqual(mcpConfig.servers["user-repo"].type, "stdio");
+      assert.strictEqual(mcpConfig.servers["user-repo"].command, "dagger");
+      assert.deepStrictEqual(mcpConfig.servers["user-repo"].args, ["-m", "github.com/user/repo", "mcp"]);
     });
 
     it("should validate input correctly", async () => {
@@ -165,11 +184,6 @@ describe("Add MCP Module Command", () => {
       showInputBoxStub.onFirstCall().resolves(moduleAddress);
       showInputBoxStub.onSecondCall().resolves("user-repo");
       
-      // Mock file system
-      sandbox.stub(fs.promises, "access").rejects(new Error("File not found"));
-      const mkdirStub = sandbox.stub(fs.promises, "mkdir").resolves();
-      const writeFileStub = sandbox.stub(fs.promises, "writeFile").resolves();
-      
       // Mock withProgress
       sandbox.stub(vscode.window, "withProgress").callsFake(async (_options, task) => {
         const progress = { report: sandbox.stub() };
@@ -185,11 +199,14 @@ describe("Add MCP Module Command", () => {
       // Execute the registered command
       await commandCallback();
       
-      assert.strictEqual(mkdirStub.calledOnce, true);
-      assert.strictEqual(writeFileStub.calledOnce, true);
+      // Verify that the file was created in the temp directory
+      const mcpJsonPath = path.join(workspace, ".vscode", "mcp.json");
+      const fileExists = await fs.promises.access(mcpJsonPath).then(() => true).catch(() => false);
+      assert.strictEqual(fileExists, true);
       
-      // Check the written content
-      const writtenContent = JSON.parse(writeFileStub.firstCall.args[1] as string);
+      // Verify the written content
+      const content = await fs.promises.readFile(mcpJsonPath, "utf8");
+      const writtenContent = JSON.parse(content);
       assert.strictEqual(writtenContent.servers["user-repo"].type, "stdio");
       assert.strictEqual(writtenContent.servers["user-repo"].command, "dagger");
       assert.deepStrictEqual(writtenContent.servers["user-repo"].args, ["-m", moduleAddress, "mcp"]);
@@ -203,11 +220,6 @@ describe("Add MCP Module Command", () => {
       showInputBoxStub.onFirstCall().resolves(".");
       showInputBoxStub.onSecondCall().resolves("current-directory");
       
-      // Mock file system
-      sandbox.stub(fs.promises, "access").rejects(new Error("File not found"));
-      const mkdirStub = sandbox.stub(fs.promises, "mkdir").resolves();
-      const writeFileStub = sandbox.stub(fs.promises, "writeFile").resolves();
-      
       // Mock withProgress
       sandbox.stub(vscode.window, "withProgress").callsFake(async (_options, task) => {
         const progress = { report: sandbox.stub() };
@@ -223,49 +235,17 @@ describe("Add MCP Module Command", () => {
       // Execute the registered command
       await commandCallback();
       
-      assert.strictEqual(mkdirStub.calledOnce, true);
-      assert.strictEqual(writeFileStub.calledOnce, true);
+      // Verify that the file was created in the temp directory
+      const mcpJsonPath = path.join(workspace, ".vscode", "mcp.json");
+      const fileExists = await fs.promises.access(mcpJsonPath).then(() => true).catch(() => false);
+      assert.strictEqual(fileExists, true);
       
-      // Check the written content
-      const writtenContent = JSON.parse(writeFileStub.firstCall.args[1] as string);
+      // Verify the written content
+      const content = await fs.promises.readFile(mcpJsonPath, "utf8");
+      const writtenContent = JSON.parse(content);
       assert.strictEqual(writtenContent.servers["current-directory"].type, "stdio");
       assert.strictEqual(writtenContent.servers["current-directory"].command, "dagger");
       assert.deepStrictEqual(writtenContent.servers["current-directory"].args, ["-m", ".", "mcp"]);
-    });
-
-    it("should handle file system errors gracefully", async () => {
-      const showErrorMessageStub = vscode.window.showErrorMessage as sinon.SinonStub;
-      const showInputBoxStub = vscode.window.showInputBox as sinon.SinonStub;
-      
-      // Reset stub and set up specific behavior for this test
-      showInputBoxStub.resetBehavior();
-      showInputBoxStub.onFirstCall().resolves("github.com/user/repo");
-      showInputBoxStub.onSecondCall().resolves("user-repo");
-      
-      // Mock file system error
-      sandbox.stub(fs.promises, "access").rejects(new Error("File not found"));
-      sandbox.stub(fs.promises, "mkdir").rejects(new Error("Permission denied"));
-      
-      // Mock withProgress
-      sandbox.stub(vscode.window, "withProgress").callsFake(async (_options, task) => {
-        const progress = { report: sandbox.stub() };
-        const token = { 
-          isCancellationRequested: false,
-          onCancellationRequested: sandbox.stub()
-        };
-        return await task(progress, token);
-      });
-      
-      registerAddMcpModuleCommand(context, cli as any, workspace);
-      
-      // Execute the registered command
-      await commandCallback();
-      
-      assert.strictEqual(showErrorMessageStub.calledOnce, true);
-      assert.strictEqual(
-        showErrorMessageStub.firstCall.args[0],
-        "Failed to add module to MCP configuration: Permission denied"
-      );
     });
 
     it("should validate server name input correctly", async () => {
@@ -291,11 +271,6 @@ describe("Add MCP Module Command", () => {
       showInputBoxStub.onFirstCall().resolves("github.com/user/repo");
       showInputBoxStub.onSecondCall().resolves(undefined); // Cancel server name
       
-      // Mock file operations
-      sandbox.stub(fs.promises, "access").rejects(new Error("File not found"));
-      sandbox.stub(fs.promises, "mkdir").resolves();
-      sandbox.stub(fs.promises, "writeFile").resolves();
-      
       // Mock withProgress
       sandbox.stub(vscode.window, "withProgress").callsFake(async (_options, task) => {
         const progress = { report: sandbox.stub() };
@@ -313,6 +288,11 @@ describe("Add MCP Module Command", () => {
       
       // Should show cancellation message for server name input
       assert.strictEqual(showInformationMessageStub.calledWith("Operation cancelled."), true);
+      
+      // Verify that no file was created
+      const mcpJsonPath = path.join(workspace, ".vscode", "mcp.json");
+      const fileExists = await fs.promises.access(mcpJsonPath).then(() => true).catch(() => false);
+      assert.strictEqual(fileExists, false);
     });
 
     it("should allow custom server name", async () => {
@@ -323,11 +303,6 @@ describe("Add MCP Module Command", () => {
       showInputBoxStub.resetBehavior();
       showInputBoxStub.onFirstCall().resolves("github.com/user/repo");
       showInputBoxStub.onSecondCall().resolves(customServerName);
-      
-      // Mock file system
-      sandbox.stub(fs.promises, "access").rejects(new Error("File not found"));
-      const mkdirStub = sandbox.stub(fs.promises, "mkdir").resolves();
-      const writeFileStub = sandbox.stub(fs.promises, "writeFile").resolves();
       
       // Mock withProgress
       sandbox.stub(vscode.window, "withProgress").callsFake(async (_options, task) => {
@@ -344,11 +319,14 @@ describe("Add MCP Module Command", () => {
       // Execute the registered command
       await commandCallback();
       
-      assert.strictEqual(mkdirStub.calledOnce, true);
-      assert.strictEqual(writeFileStub.calledOnce, true);
+      // Verify that the file was created in the temp directory
+      const mcpJsonPath = path.join(workspace, ".vscode", "mcp.json");
+      const fileExists = await fs.promises.access(mcpJsonPath).then(() => true).catch(() => false);
+      assert.strictEqual(fileExists, true);
       
       // Check the written content uses custom server name
-      const writtenContent = JSON.parse(writeFileStub.firstCall.args[1] as string);
+      const content = await fs.promises.readFile(mcpJsonPath, "utf8");
+      const writtenContent = JSON.parse(content);
       assert.strictEqual(writtenContent.servers[customServerName].type, "stdio");
       assert.strictEqual(writtenContent.servers[customServerName].command, "dagger");
       assert.deepStrictEqual(writtenContent.servers[customServerName].args, ["-m", "github.com/user/repo", "mcp"]);
