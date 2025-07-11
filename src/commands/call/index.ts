@@ -57,21 +57,10 @@ export const registerCallCommand = (
           title: "Dagger",
           cancellable: true, // Make the operation cancellable
         },
-        async (progress, token) => {
+        async (_progress, token) => {
           try {
             let functionName: string = functionInfo?.name;
             let moduleName: string = functionInfo?.module;
-
-            // Check if the operation was cancelled
-            if (token.isCancellationRequested) {
-              console.log("Function call cancelled by user after loading");
-              return undefined;
-            }
-
-            // Show prompting for input progress
-            progress.report({
-              message: `Collecting input for function '${functionName}'...`,
-            });
 
             if (token.isCancellationRequested) {
               console.log("Function call cancelled by user");
@@ -80,13 +69,15 @@ export const registerCallCommand = (
 
             // Use the shared helper to collect arguments and run the function
             // Pass the cancellation token to allow cancellation during argument collection
-            const { success, argValues } = await collectAndRunFunction(
+            const { Result, argValues } = await collectAndRunFunction(
               context,
               functionInfo
             );
 
-            // If cancelled or not successful, don't show save task prompt
-            if (token.isCancellationRequested || !success) {
+            if (!Result.success) {
+              vscode.window.showErrorMessage(
+                `Function call failed with exit code ${Result.exitCode}`
+              );
               return undefined;
             }
 

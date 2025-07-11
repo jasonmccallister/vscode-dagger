@@ -55,6 +55,7 @@ export const registerTerminalProvider = (
         options: {
           name: "Dagger",
           iconPath, // Use the ThemeIcon object with both light and dark variants
+
           isTransient: true,
           shellPath: daggerPath,
         },

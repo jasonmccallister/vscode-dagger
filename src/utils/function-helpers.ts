@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { FunctionInfo, FunctionArgument } from "../dagger";
-import { executeInTerminal } from "./terminal";
+import { executeInTerminal, executeTaskAndWait, TaskExecutionResult } from "./terminal";
 import { DaggerSettings } from "../settings";
 import { saveTaskToTasksJson } from "../commands/save-task";
 
@@ -123,9 +123,9 @@ export const buildCommandArgs = (
  * @returns A promise that resolves to { success, argValues } where argValues are the used arguments
  */
 export const collectAndRunFunction = async (
-  _context: vscode.ExtensionContext,
+  context: vscode.ExtensionContext,
   functionInfo: FunctionInfo
-): Promise<{ success: boolean; argValues: Record<string, string> }> => {
+): Promise<{ Result: TaskExecutionResult; argValues: Record<string, string> }> => {
   const { name: functionName, args, module: moduleName } = functionInfo;
 
   // Separate required and optional arguments
@@ -142,7 +142,7 @@ export const collectAndRunFunction = async (
   const { argValues, cancelled } = await collectArgumentValues(allSelectedArgs);
 
   if (cancelled) {
-    return { success: false, argValues: {} };
+    return { Result: { success: false, exitCode: 1, execution: undefined }, argValues: {} };
   }
 
   let commandArgs: readonly string[];
@@ -153,9 +153,9 @@ export const collectAndRunFunction = async (
     commandArgs = buildCommandArgs(functionName, argValues, moduleName);
   }
 
-  executeInTerminal(commandArgs.join(" "));
+  const result = await executeTaskAndWait(context, commandArgs.join(" "));
 
-  return { success: true, argValues };
+  return { Result: { success: result.success, exitCode: result.exitCode, execution: result.execution }, argValues };
 };
 
 /**
