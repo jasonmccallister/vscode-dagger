@@ -145,8 +145,13 @@ export const collectAndRunFunction = async (
     return { success: false, argValues: {} };
   }
 
-  // Build and execute the command
-  const commandArgs = buildCommandArgs(functionName, argValues, moduleName);
+  let commandArgs: readonly string[];
+  // if this is the root module, don't include module name
+  if (functionInfo.parentModule === undefined) {
+    commandArgs = buildCommandArgs(functionName, argValues);
+  } else {
+    commandArgs = buildCommandArgs(functionName, argValues, moduleName);
+  }
 
   executeInTerminal(commandArgs.join(" "));
 

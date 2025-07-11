@@ -43,7 +43,7 @@ export const registerCallCommand = (
         functionInfo = input.functionInfo;
       }
 
-      // is there functionInfo
+      // we should have a functionInfo at this point
       if (!functionInfo) {
         vscode.window.showErrorMessage(
           "No function selected. Please select a function to call."
