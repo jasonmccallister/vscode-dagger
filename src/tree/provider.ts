@@ -131,15 +131,14 @@ export class DaggerTreeItem extends vscode.TreeItem {
     switch (type) {
       case "function":
         this.iconPath = new vscode.ThemeIcon(FUNCTION_ICON_NAME);
-        this.tooltip = `Function: ${label}`;
 
         // If we have a FunctionInfo object, set a more detailed tooltip
         if (this.functionInfo) {
-          let tooltip = `Function: ${label}`;
+          let tooltip: string = '';
           if (this.functionInfo.description) {
-            tooltip += `\n\nDescription:\n${this.functionInfo.description}`;
+            tooltip += `${this.functionInfo.description}`;
           }
-          tooltip += `\n\nReturns: ${
+          tooltip += `\nReturns: ${
             this.functionInfo.returnType || "unknown"
           }`;
           this.tooltip = tooltip;

@@ -125,6 +125,13 @@ export const registerCallCommand = (
 };
 
 /**
+ * Interface for quick pick items that carry function info
+ */
+interface FunctionQuickPickItem extends vscode.QuickPickItem {
+  functionInfo: FunctionInfo;
+}
+
+/**
  * Loads functions and shows quick pick for selection
  * @param cli The Dagger CLI instance
  * @param workspacePath The workspace path
@@ -143,11 +150,12 @@ const selectFunction = async (
     return undefined;
   }
 
-  // Create QuickPickItems for display with index references to original functions
-  const functionItems = functions.map((fn, index) => ({
+  // Create QuickPickItems with embedded function info
+  const functionItems: FunctionQuickPickItem[] = functions.map((fn) => ({
     label: fn.name,
-    description: `(${fn.module}) ${fn.description ? " " + fn.description : ""}`,
-    detail: String(index), // Store the index to retrieve the original FunctionInfo
+    description: `${fn.module ? `(${fn.module}) ` : ""}${fn.description ? fn.description : ""}`,
+    detail: fn.returnType ? `Returns: ${fn.returnType}` : undefined,
+    functionInfo: fn, // Store the actual function info object
   }));
 
   const pick = await vscode.window.showQuickPick(functionItems, {
@@ -158,7 +166,6 @@ const selectFunction = async (
     return undefined;
   }
 
-  // Return the original FunctionInfo object using the stored index
-  const index = pick.detail ? parseInt(pick.detail, 10) : -1;
-  return index >= 0 ? functions[index] : undefined;
+  // Return the embedded FunctionInfo object
+  return pick.functionInfo;
 };
