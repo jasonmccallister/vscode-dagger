@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { FunctionInfo, FunctionArgument } from "../dagger";
-import { executeInTerminal, executeTaskAndWait, TaskExecutionResult } from "./terminal";
+import { executeTaskAndWait, TaskExecutionResult } from "./terminal";
 import { DaggerSettings } from "../settings";
 import { saveTaskToTasksJson } from "../commands/save-task";
 
@@ -123,9 +123,15 @@ export const buildCommandArgs = (
  * @returns A promise that resolves to { success, argValues } where argValues are the used arguments
  */
 export const collectAndRunFunction = async (
-  context: vscode.ExtensionContext,
+  token: vscode.CancellationToken,
+  _context: vscode.ExtensionContext,
+  settings: DaggerSettings,
+  workspacePath: string,
   functionInfo: FunctionInfo
-): Promise<{ Result: TaskExecutionResult; argValues: Record<string, string> }> => {
+): Promise<{
+  Result: TaskExecutionResult;
+  argValues: Record<string, string>;
+}> => {
   const { name: functionName, args, module: moduleName } = functionInfo;
 
   // Separate required and optional arguments
@@ -142,7 +148,10 @@ export const collectAndRunFunction = async (
   const { argValues, cancelled } = await collectArgumentValues(allSelectedArgs);
 
   if (cancelled) {
-    return { Result: { success: false, exitCode: 1, execution: undefined }, argValues: {} };
+    return {
+      Result: { success: false, exitCode: 1, execution: undefined },
+      argValues: {},
+    };
   }
 
   let commandArgs: readonly string[];
@@ -153,9 +162,20 @@ export const collectAndRunFunction = async (
     commandArgs = buildCommandArgs(functionName, argValues, moduleName);
   }
 
-  const result = await executeTaskAndWait(context, commandArgs.join(" "));
+  const result = await executeTaskAndWait(token, commandArgs.join(" "), {
+    runInBackground: settings.runFunctionCallsInBackground,
+    taskName: `dagger`,
+    workingDirectory: workspacePath,
+  });
 
-  return { Result: { success: result.success, exitCode: result.exitCode, execution: result.execution }, argValues };
+  return {
+    Result: {
+      success: result.success,
+      exitCode: result.exitCode,
+      execution: result.execution,
+    },
+    argValues,
+  };
 };
 
 /**

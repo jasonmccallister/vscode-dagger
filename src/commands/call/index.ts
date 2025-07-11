@@ -57,10 +57,14 @@ export const registerCallCommand = (
           title: "Dagger",
           cancellable: true, // Make the operation cancellable
         },
-        async (_progress, token) => {
+        async (progress, token) => {
           try {
             let functionName: string = functionInfo?.name;
             let moduleName: string = functionInfo?.module;
+            
+            progress.report({
+              message: `Running function \`${functionName}\`${functionInfo.parentModule ? ` in module ${functionInfo.module}` : ""}`,
+            });
 
             if (token.isCancellationRequested) {
               console.log("Function call cancelled by user");
@@ -70,7 +74,10 @@ export const registerCallCommand = (
             // Use the shared helper to collect arguments and run the function
             // Pass the cancellation token to allow cancellation during argument collection
             const { Result, argValues } = await collectAndRunFunction(
+              token,
               context,
+              settings,
+              workspacePath,
               functionInfo
             );
 

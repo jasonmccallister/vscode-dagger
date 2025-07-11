@@ -123,26 +123,29 @@ export interface TaskExecutionResult {
  * @returns Promise with execution results including status and exit code
  */
 export const executeTaskAndWait = async (
-  context: vscode.ExtensionContext,
+  token: vscode.CancellationToken,
   command: string,
   options?: {
     runInBackground?: boolean;
     taskName?: string;
+    workingDirectory?: string;
   }
 ): Promise<TaskExecutionResult> => {
   return new Promise((resolve, reject) => {
-    const { runInBackground = false, taskName = TERMINAL_CONFIG.NAME } =
+    // Check if already cancelled
+    if (token.isCancellationRequested) {
+      reject(new Error("Task execution was cancelled"));
+      return;
+    }
+
+    const { runInBackground = false, taskName = TERMINAL_CONFIG.NAME, workingDirectory } =
       options || {};
 
-    const iconPath = {
-      light: vscode.Uri.file(context.asAbsolutePath(ICON_PATH_BLACK)),
-      dark: vscode.Uri.file(context.asAbsolutePath(ICON_PATH_WHITE)),
-    };
-
-    const taskExecution = new vscode.ShellExecution(command);
+    const taskExecution = new vscode.ShellExecution(command, {
+      cwd: workingDirectory,
+    });
     const taskDefinition: vscode.TaskDefinition = {
       type: "shell",
-      iconPath, // Use the icon path for the task
     };
 
     const task = new vscode.Task(
@@ -165,11 +168,29 @@ export const executeTaskAndWait = async (
     task.isBackground = runInBackground;
     task.group = vscode.TaskGroup.Build; // Group the task under Build
 
+    let taskExecutionHandle: vscode.TaskExecution | undefined;
+
+    // Set up cancellation token listener
+    const cancellationDisposable = token.onCancellationRequested(() => {
+      // Clean up event listeners
+      processEndDisposable.dispose();
+      taskEndDisposable.dispose();
+      cancellationDisposable.dispose();
+      
+      // Terminate the task if it's running
+      if (taskExecutionHandle) {
+        taskExecutionHandle.terminate();
+      }
+      
+      reject(new Error("Task execution was cancelled"));
+    });
+
     // Set up event listeners before executing the task
     const processEndDisposable = vscode.tasks.onDidEndTaskProcess((event) => {
       if (event.execution.task === task) {
         processEndDisposable.dispose();
         taskEndDisposable.dispose();
+        cancellationDisposable.dispose();
 
         resolve({
           success: event.exitCode === 0,
@@ -185,6 +206,7 @@ export const executeTaskAndWait = async (
         // (e.g., tasks that don't execute an underlying process)
         processEndDisposable.dispose();
         taskEndDisposable.dispose();
+        cancellationDisposable.dispose();
 
         resolve({
           success: true, // We can't determine success without exit code
@@ -196,12 +218,14 @@ export const executeTaskAndWait = async (
 
     // Execute the task
     vscode.tasks.executeTask(task).then(
-      () => {
-        // Task started successfully, now we wait for completion via events
+      (execution) => {
+        // Store the execution handle for potential cancellation
+        taskExecutionHandle = execution;
       },
       (error) => {
         processEndDisposable.dispose();
         taskEndDisposable.dispose();
+        cancellationDisposable.dispose();
         reject(new Error(`Failed to execute task: ${error.message}`));
       }
     );
