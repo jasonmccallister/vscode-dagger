@@ -16,8 +16,9 @@ The VS Code extension for [Dagger](https://dagger.io). Built for developers who 
 
 <video src="https://github.com/user-attachments/assets/a840ea0e-d7f2-451b-bca4-adba985b31c4"></video>
 
-### 🤖 AI-Powered Documentation
-Ask questions about Dagger docs directly in VS Code using [Github Copilot chat using](https://docs.github.com/en/copilot/how-tos/chat/asking-github-copilot-questions-in-your-ide) `@dagger`.
+### AI Integration
+- 🛠️ **MCP Module Management:** Interactively add a Dagger Module as an MCP server and register with VS Code.
+- 🤖 **AI-Powered Documentation:** Ask questions about Dagger docs directly in VS Code using [Github Copilot chat using](https://docs.github.com/en/copilot/how-tos/chat/asking-github-copilot-questions-in-your-ide) `@dagger`.
 
 <video src="https://github.com/user-attachments/assets/87284fe0-508e-4f3b-984a-b9c0b616e788"></video>
 
