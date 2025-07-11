@@ -25,7 +25,7 @@ The VS Code extension for [Dagger](https://dagger.io). Built for developers who 
 ### Development Workflow
 
 - 🏗️ **Project Initialization:** Initialize new Dagger projects or work with existing ones. Includes an interactive setup prompt.
-- 🛠️ **Development Workflow:* Use `dagger develop`, install modules, and run commands with proper environment setup from the IDE.
+- 🛠️ **Development Workflow:** Use `dagger develop`, install modules, and run commands with proper environment setup from the IDE.
 
 ### ⚙️ CLI Management
 Install, update, or uninstall the Dagger CLI with one click. Supports macOS, Linux, and Windows.
@@ -56,6 +56,16 @@ Access the following commands from the Command Palette (`Ctrl+Shift+P` or `Cmd+S
 - **Dagger: Call Function** - Execute a Dagger function
 - **Dagger: Clear Cache** - Remove cached function data
 - **Dagger: View Functions** - Browse available functions
+- **Dagger: Install CLI** - Install the Dagger CLI
+- **Dagger: Update CLI** - Update the Dagger CLI to the latest version
+- **Dagger: Uninstall CLI** - Uninstall the Dagger CLI
+- **Dagger: Add MCP Module** - Register a Dagger Module as an MCP server
+- **Dagger: Develop Local Modules** - Start the Dagger development workflow
+- **Dagger: Ask Dagger** - Use AI to ask questions about Dagger documentation
+- **Dagger: Save as Task** - Save a function call as a reusable VS Code task
+- **Dagger: Install a module** - Install a Dagger module (local or remote)
+- **Dagger: Add module MCP:** - Add a Dagger module as an MCP server and register it with VS Code
+- **Dagger: Open a Shell** - Open a terminal into Dagger Shell
 
 ## Contributing
 
