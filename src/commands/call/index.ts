@@ -59,18 +59,8 @@ export const registerCallCommand = (
         },
         async (progress, token) => {
           try {
-            // Check if the operation was cancelled
-            if (token.isCancellationRequested) {
-              console.log("Function call cancelled by user");
-              return undefined;
-            }
-
             let functionName: string = functionInfo?.name;
             let moduleName: string = functionInfo?.module;
-
-            progress.report({
-              message: `Loading function ${functionName}...`,
-            });
 
             // Check if the operation was cancelled
             if (token.isCancellationRequested) {
@@ -82,6 +72,11 @@ export const registerCallCommand = (
             progress.report({
               message: `Collecting input for function '${functionName}'...`,
             });
+
+            if (token.isCancellationRequested) {
+              console.log("Function call cancelled by user");
+              return undefined;
+            }
 
             // Use the shared helper to collect arguments and run the function
             // Pass the cancellation token to allow cancellation during argument collection

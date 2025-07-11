@@ -204,11 +204,18 @@ export const showSaveTaskPrompt = async (
     if (!taskName) {
       return;
     }
+
     // Build the command
+    // TODO(jasonmccallister): handle the logic for parent modules to ensure the command is not appended
+    // with the parent module name if its the root or only module
     const commandArgs = buildCommandArgs(functionName, argValues, moduleName);
-    const command = commandArgs.join(" ");
+
     // Save the task using existing logic
-    await saveTaskToTasksJson(taskName.trim(), command, workspacePath);
+    await saveTaskToTasksJson(
+      taskName.trim(),
+      commandArgs.join(" "),
+      workspacePath
+    );
     vscode.window.showInformationMessage(
       `Task "${taskName.trim()}" saved! You can run it from the Run Task menu.`
     );
@@ -219,30 +226,4 @@ export const showSaveTaskPrompt = async (
       vscode.ConfigurationTarget.Global
     );
   }
-  // 'Not now' does nothing (prompt will show again next time)
-};
-
-/**
- * @deprecated Use collectAndRunFunction with FunctionInfo parameter instead
- * Backward compatibility function for the old signature
- */
-export const collectAndRunFunctionOld = async (
-  context: vscode.ExtensionContext,
-  functionName: string,
-  args: readonly FunctionArgument[],
-  moduleName?: string
-): Promise<{ success: boolean; argValues: Record<string, string> }> => {
-  // Create a simplified FunctionInfo object
-  const functionInfo: FunctionInfo = {
-    name: functionName,
-    functionId: "", // Not needed for this function
-    args: [...args], // Create a copy of the readonly array
-    module: moduleName || "",
-    description: "",
-    isParentModule: false,
-    parentModule: undefined,
-    returnType: "void", // Default return type when creating manually
-  };
-
-  return collectAndRunFunction(context, functionInfo);
 };
