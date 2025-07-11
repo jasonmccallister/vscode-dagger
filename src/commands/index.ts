@@ -8,6 +8,7 @@ import { registerDevelopCommand } from "./develop";
 import { registerFunctionsCommand } from "./functions";
 import { registerInitCommand } from "./init";
 import { registerInstallModuleCommand } from "./install-module";
+import { registerAddMcpModuleCommand } from "./add-mcp-module";
 import { registerResetCommand } from "./reset";
 import { registerSaveTaskCommand } from "./save-task";
 import { registerShellCommand } from "./shell";
@@ -55,6 +56,7 @@ export default class CommandManager {
     registerFunctionsCommand(this.options.context);
     registerInitCommand(this.options.context, this.options.cli);
     registerInstallModuleCommand(this.options.context, this.options.cli);
+    registerAddMcpModuleCommand(this.options.context, this.options.cli, this.options.workspacePath);
     registerResetCommand(this.options.context, this.options.settings);
     registerSaveTaskCommand(
       this.options.context,

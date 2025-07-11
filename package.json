@@ -98,6 +98,12 @@
         "shortTitle": "Install Module"
       },
       {
+        "command": "dagger.addMcpModule",
+        "title": "Add module MCP",
+        "category": "Dagger",
+        "shortTitle": "Add module MCP"
+      },
+      {
         "command": "dagger.setupCloud",
         "title": "Setup Cloud",
         "category": "Dagger",

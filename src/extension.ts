@@ -35,9 +35,6 @@ export async function activate(context: vscode.ExtensionContext) {
       settings,
     });
 
-    // only register install command if no CLI is found
-    commandManager.register();
-
     // Register configuration change listener to reload settings
     context.subscriptions.push(
       vscode.workspace.onDidChangeConfiguration((event) => {
