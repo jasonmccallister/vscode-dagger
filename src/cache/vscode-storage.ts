@@ -15,7 +15,14 @@ export class VSCodeWorkspaceCache implements CliCache {
    * @returns The SHA256 hash as a hex string
    */
   private generateSHA256(data: any): string {
-    const serialized = JSON.stringify(data, Object.keys(data).sort());
+    let serialized: string;
+    if (typeof data === "object" && data !== null) {
+      const keys = Object.keys(data).sort();
+      const values = keys.map((k) => (data as any)[k]);
+      serialized = JSON.stringify({ keys, values });
+    } else {
+      serialized = JSON.stringify(data);
+    }
     return crypto.createHash("sha256").update(serialized).digest("hex");
   }
 
