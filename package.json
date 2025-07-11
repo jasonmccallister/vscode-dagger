@@ -93,13 +93,13 @@
       },
       {
         "command": "dagger.installModule",
-        "title": "Install a Module",
+        "title": "Install a module",
         "category": "Dagger",
-        "shortTitle": "Install Module"
+        "shortTitle": "Install module"
       },
       {
         "command": "dagger.addMcpModule",
-        "title": "Add module MCP",
+        "title": "Add a module as MCP server",
         "category": "Dagger",
         "shortTitle": "Add module MCP"
       },
@@ -117,31 +117,31 @@
       },
       {
         "command": "dagger.version",
-        "title": "Show Version",
+        "title": "Show version",
         "category": "Dagger",
         "shortTitle": "Version"
       },
       {
         "command": "dagger.update",
-        "title": "Check for Updates",
+        "title": "Check for updates",
         "category": "Dagger",
         "shortTitle": "Update"
       },
       {
         "command": "dagger.reset",
-        "title": "Reset Preferences",
+        "title": "Reset preferences",
         "category": "Dagger",
         "shortTitle": "Reset"
       },
       {
         "command": "dagger.shell",
-        "title": "Open a Shell",
+        "title": "Open a shell",
         "category": "Dagger",
         "shortTitle": "Shell"
       },
       {
         "command": "dagger.refresh",
-        "title": "Refresh Functions",
+        "title": "Refresh functions",
         "category": "Dagger",
         "icon": "$(refresh)"
       }
