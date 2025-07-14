@@ -40,6 +40,9 @@ export interface FunctionInfo {
   args: FunctionArgument[];
 }
 
+// add tooltip method to FunctionInfo
+
+
 export default class Cli {
   private readonly command = "dagger";
   private workspacePath?: string;

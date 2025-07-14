@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import { ICON_PATH_BLACK, ICON_PATH_WHITE } from "../const";
-import { getGlobalSettings } from "../settings";
 
 const TERMINAL_CONFIG = {
   NAME: "Dagger",
@@ -13,15 +12,35 @@ const TERMINAL_CONFIG = {
 } as const;
 
 /**
- * @deprecated use executeTaskAndWait instead
+ * Creates a terminal instance named "Dagger"
+ * @param context The extension context to access resources
+ * @returns A terminal instance named "Dagger"
+ */
+export const createTerminal = (context: vscode.ExtensionContext): vscode.Terminal => {
+  return vscode.window.createTerminal({
+    name: TERMINAL_CONFIG.NAME,
+    iconPath: {
+      light: vscode.Uri.file(path.join(context.extensionPath, ICON_PATH_BLACK)),
+      dark: vscode.Uri.file(path.join(context.extensionPath, ICON_PATH_WHITE)),
+    },
+  });
+};
+
+/**
  * Executes a command in the Dagger terminal
  */
-export const executeInTerminal = async (command: string): Promise<void> => {
-  // Get global settings
-  const settings = getGlobalSettings();
-
-  // Default to false if settings are not available
-  const runInBackground = settings?.runFunctionCallsInBackground ?? false;
+export const executeInTerminal = async (
+  context: vscode.ExtensionContext,
+  command: string,
+  isInteractive: boolean = false
+): Promise<void> => {
+  // if this is interactive
+  if (isInteractive) {
+    const terminal = createTerminal(context);
+    terminal.show();
+    terminal.sendText(command);
+    return;
+  }
 
   const taskExecution = new vscode.ShellExecution(command);
   const taskDefinition: vscode.TaskDefinition = {
@@ -37,57 +56,15 @@ export const executeInTerminal = async (command: string): Promise<void> => {
   );
 
   task.presentationOptions = {
-    reveal: runInBackground
-      ? vscode.TaskRevealKind.Silent
-      : vscode.TaskRevealKind.Always,
+    reveal: vscode.TaskRevealKind.Always,
     panel: vscode.TaskPanelKind.Shared,
     showReuseMessage: false,
     clear: false,
   };
   task.detail = command;
-  task.isBackground = runInBackground;
 
   vscode.tasks.executeTask(task).then(
-    () => {
-      // only show the window if runInBackground is false
-      if (!runInBackground) {
-        vscode.window
-          .showInformationMessage(`${command}`, "View Output")
-          .then((selection) => {
-            if (selection === "View Output") {
-              const daggerTerminal = vscode.window.terminals.find(
-                (t) => t.name === TERMINAL_CONFIG.NAME
-              );
-              if (daggerTerminal) {
-                daggerTerminal.show();
-                return;
-              }
-
-              // Get extension path for icons
-              const extension = vscode.extensions.getExtension(
-                "jasonmccallister.vscode-dagger"
-              );
-              const extensionPath = extension?.extensionPath;
-
-              const newTerminal = vscode.window.createTerminal({
-                name: TERMINAL_CONFIG.NAME,
-                iconPath: extensionPath
-                  ? {
-                      light: vscode.Uri.file(
-                        path.join(extensionPath, ICON_PATH_BLACK)
-                      ),
-                      dark: vscode.Uri.file(
-                        path.join(extensionPath, ICON_PATH_WHITE)
-                      ),
-                    }
-                  : undefined,
-              });
-              newTerminal.show();
-              newTerminal.sendText(command);
-            }
-          });
-      }
-    },
+    () => {},
     (error) => {
       console.error(`Failed to execute command in terminal: ${command}`, error);
       vscode.window.showErrorMessage(
@@ -138,8 +115,11 @@ export const executeTaskAndWait = async (
       return;
     }
 
-    const { runInBackground = false, taskName = TERMINAL_CONFIG.NAME, workingDirectory } =
-      options || {};
+    const {
+      runInBackground = false,
+      taskName = TERMINAL_CONFIG.NAME,
+      workingDirectory,
+    } = options || {};
 
     const taskExecution = new vscode.ShellExecution(command, {
       cwd: workingDirectory,
@@ -176,12 +156,12 @@ export const executeTaskAndWait = async (
       processEndDisposable.dispose();
       taskEndDisposable.dispose();
       cancellationDisposable.dispose();
-      
+
       // Terminate the task if it's running
       if (taskExecutionHandle) {
         taskExecutionHandle.terminate();
       }
-      
+
       reject(new Error("Task execution was cancelled"));
     });
 

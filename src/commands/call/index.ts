@@ -55,13 +55,13 @@ export const registerCallCommand = (
         {
           location: vscode.ProgressLocation.Notification,
           title: "Dagger",
-          cancellable: true, // Make the operation cancellable
+          cancellable: true,
         },
         async (progress, token) => {
           try {
             let functionName: string = functionInfo?.name;
             let moduleName: string = functionInfo?.module;
-            
+
             progress.report({
               message: `Running function \`${functionName}\`${functionInfo.parentModule ? ` in module ${functionInfo.module}` : ""}`,
             });
@@ -73,13 +73,14 @@ export const registerCallCommand = (
 
             // Use the shared helper to collect arguments and run the function
             // Pass the cancellation token to allow cancellation during argument collection
-            const { Result, argValues } = await collectAndRunFunction(
-              token,
-              context,
-              settings,
-              workspacePath,
-              functionInfo
-            );
+            const { Result, commandArgs, argValues } =
+              await collectAndRunFunction(
+                token,
+                context,
+                settings,
+                workspacePath,
+                functionInfo
+              );
 
             if (!Result.success) {
               vscode.window.showErrorMessage(
@@ -98,6 +99,7 @@ export const registerCallCommand = (
                 moduleName
               );
             }
+
             return undefined;
           } catch (error) {
             // Don't show error if the operation was cancelled

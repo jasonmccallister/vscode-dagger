@@ -1,6 +1,10 @@
 import * as vscode from "vscode";
 import { FunctionInfo, FunctionArgument } from "../dagger";
-import { executeTaskAndWait, TaskExecutionResult } from "./terminal";
+import {
+  createTerminal,
+  executeTaskAndWait,
+  TaskExecutionResult,
+} from "./terminal";
 import { DaggerSettings } from "../settings";
 import { saveTaskToTasksJson } from "../commands/save-task";
 
@@ -92,7 +96,7 @@ export const buildCommandArgs = (
   functionName: string,
   argValues: Record<string, string>,
   moduleName?: string
-): readonly string[] => {
+): string[] => {
   // Start with base command
   const commandArgs = ["dagger", "call"];
 
@@ -124,12 +128,13 @@ export const buildCommandArgs = (
  */
 export const collectAndRunFunction = async (
   token: vscode.CancellationToken,
-  _context: vscode.ExtensionContext,
+  context: vscode.ExtensionContext,
   settings: DaggerSettings,
   workspacePath: string,
   functionInfo: FunctionInfo
 ): Promise<{
   Result: TaskExecutionResult;
+  commandArgs: string[];
   argValues: Record<string, string>;
 }> => {
   const { name: functionName, args, module: moduleName } = functionInfo;
@@ -150,16 +155,78 @@ export const collectAndRunFunction = async (
   if (cancelled) {
     return {
       Result: { success: false, exitCode: 1, execution: undefined },
+      commandArgs: [],
       argValues: {},
     };
   }
 
-  let commandArgs: readonly string[];
+  let commandArgs: string[];
   // if this is the root module, don't include module name
   if (functionInfo.parentModule === undefined) {
     commandArgs = buildCommandArgs(functionName, argValues);
   } else {
     commandArgs = buildCommandArgs(functionName, argValues, moduleName);
+  }
+
+  // check the return type and prompt the user to handle different cases
+  switch (functionInfo.returnType) {
+    case "Container":
+      const openInTerminal = await vscode.window.showInformationMessage(
+        `The function ${functionName} returns a container. Do you want to open it in a terminal?`,
+        { modal: false },
+        "Open",
+        "Cancel"
+      );
+
+      if (openInTerminal === "Open") {
+        // add terminal at the end of the commandArgs
+        commandArgs.push("terminal");
+        createTerminal(context).sendText(commandArgs.join(" "), true);
+      }
+      break;
+    case "File":
+      // ask the user if the want to export the file to the workspace
+      const exportFile = await vscode.window.showInformationMessage(
+        `Function ${functionName} returns a file. Do you want to export the file?`,
+        { modal: false },
+        "Export",
+        "Cancel"
+      );
+
+      if (exportFile === "Export") {
+        const exportLocation = await vscode.window.showInputBox({
+          prompt:
+            "Enter the export location and filename (default: ./bin/filename)",
+          value: "./bin/filename",
+        });
+
+        if (exportLocation !== undefined) {
+          commandArgs.push("export", `--path=${exportLocation}`);
+        }
+      }
+
+      break;
+
+    case "Directory":
+      // ask the user if they want to export the directory to the workspace
+      const exportDirectory = await vscode.window.showInformationMessage(
+        `Function ${functionName} returns a directory. Do you want to export the directory?`,
+        { modal: false },
+        "Export",
+        "Cancel"
+      );
+
+      if (exportDirectory === "Export") {
+        const exportLocation = await vscode.window.showInputBox({
+          prompt: "Enter the export location (default: ./dist/)",
+          value: "./dist/",
+        });
+
+        if (exportLocation !== undefined) {
+          commandArgs.push("export", `--path=${exportLocation}`);
+        }
+      }
+      break;
   }
 
   const result = await executeTaskAndWait(token, commandArgs.join(" "), {
@@ -174,6 +241,7 @@ export const collectAndRunFunction = async (
       exitCode: result.exitCode,
       execution: result.execution,
     },
+    commandArgs,
     argValues,
   };
 };

@@ -16,7 +16,7 @@ export const registerDevelopCommand = (
       return;
     }
 
-    executeInTerminal("dagger develop");
+    executeInTerminal(context, "dagger develop");
   });
 
   context.subscriptions.push(disposable);
