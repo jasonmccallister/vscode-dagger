@@ -11,7 +11,7 @@ export interface InstallResult {
 }
 
 export const checkInstallation = async (
-  platform: string
+  platform: string,
 ): Promise<InstallResult> => {
   // Check if binary exists
   let hasCorrectBinary = false;

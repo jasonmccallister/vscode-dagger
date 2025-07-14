@@ -19,7 +19,10 @@
     "docker",
     "pipelines",
     "devops",
-    "workflows"
+    "workflows",
+    "functions",
+    "mcp",
+    "terminal"
   ],
   "icon": "images/icon.png",
   "repository": {
@@ -257,7 +260,7 @@
     "publish": "vsce publish --no-dependencies",
     "publish:ovsx": "ovsx publish --no-dependencies",
     "package:vsix": "vsce package --no-dependencies",
-    "format": "yarn exec prettier --write ./src"
+    "format": "yarn run prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"src/**/*.json\" \"src/**/*.md\""
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",

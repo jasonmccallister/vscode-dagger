@@ -20,7 +20,7 @@ interface McpConfig {
 export const registerAddMcpModuleCommand = (
   context: vscode.ExtensionContext,
   cli: Cli,
-  workspace: string
+  workspace: string,
 ): void => {
   context.subscriptions.push(
     vscode.commands.registerCommand(COMMAND, async () => {
@@ -31,7 +31,8 @@ export const registerAddMcpModuleCommand = (
 
       // Prompt user for module address
       const moduleAddress = await vscode.window.showInputBox({
-        placeHolder: "github.com/user/repo, https://github.com/user/repo.git, or . for current directory",
+        placeHolder:
+          "github.com/user/repo, https://github.com/user/repo.git, or . for current directory",
         prompt:
           "Enter the Dagger module address (Git URL, GitHub repository, or . for current directory)",
         validateInput: (value) => {
@@ -45,11 +46,16 @@ export const registerAddMcpModuleCommand = (
           const isGitUrl =
             trimmedValue.startsWith("http") || trimmedValue.startsWith("git@");
           const isGithubShorthand = /^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/.test(
-            trimmedValue
+            trimmedValue,
           );
           const isGithubPath = trimmedValue.startsWith("github.com/");
 
-          if (!isCurrentDir && !isGitUrl && !isGithubShorthand && !isGithubPath) {
+          if (
+            !isCurrentDir &&
+            !isGitUrl &&
+            !isGithubShorthand &&
+            !isGithubPath
+          ) {
             return "Please provide a valid Git URL, GitHub repository, or . for current directory";
           }
 
@@ -59,13 +65,13 @@ export const registerAddMcpModuleCommand = (
 
       if (!moduleAddress) {
         vscode.window.showInformationMessage(
-          'Operation cancelled. You can add MCP modules later by running the "Dagger: Add module MCP" command.'
+          'Operation cancelled. You can add MCP modules later by running the "Dagger: Add module MCP" command.',
         );
         return;
       }
 
       await addModuleToMcpConfig(moduleAddress.trim(), workspace);
-    })
+    }),
   );
 };
 
@@ -76,7 +82,7 @@ export const registerAddMcpModuleCommand = (
  */
 const addModuleToMcpConfig = async (
   moduleAddress: string,
-  workspace: string
+  workspace: string,
 ): Promise<void> => {
   await vscode.window.withProgress(
     {
@@ -112,19 +118,20 @@ const addModuleToMcpConfig = async (
         // Prompt user for server name with generated name as default
         const serverName = await vscode.window.showInputBox({
           placeHolder: generatedServerName,
-          prompt: "Enter a name for the MCP server (press Enter to use the default)",
+          prompt:
+            "Enter a name for the MCP server (press Enter to use the default)",
           value: generatedServerName,
           validateInput: (value) => {
             const trimmedValue = value?.trim();
             if (!trimmedValue || trimmedValue.length === 0) {
               return "Server name cannot be empty.";
             }
-            
+
             // Check for valid server name characters
             if (!/^[a-zA-Z0-9_-]+$/.test(trimmedValue)) {
               return "Server name can only contain letters, numbers, underscores, and hyphens.";
             }
-            
+
             return null;
           },
         });
@@ -142,7 +149,7 @@ const addModuleToMcpConfig = async (
             `MCP server "${finalServerName}" already exists. Do you want to overwrite it?`,
             { modal: true },
             "Yes",
-            "No"
+            "No",
           );
 
           if (overwrite !== "Yes") {
@@ -170,17 +177,17 @@ const addModuleToMcpConfig = async (
         await fs.promises.writeFile(
           mcpJsonPath,
           JSON.stringify(mcpConfig, null, 2),
-          "utf8"
+          "utf8",
         );
 
         vscode.window.showInformationMessage(
-          `Successfully added "${finalServerName}" to MCP configuration at ${mcpJsonPath}`
+          `Successfully added "${finalServerName}" to MCP configuration at ${mcpJsonPath}`,
         );
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(
-          `Failed to add module to MCP configuration: ${errorMessage}`
+          `Failed to add module to MCP configuration: ${errorMessage}`,
         );
         console.error("Error adding module to MCP configuration:", error);
       }
@@ -189,13 +196,13 @@ const addModuleToMcpConfig = async (
       const reload = await vscode.window.showInformationMessage(
         "MCP configuration updated. Would you like to reload VS Code to apply the changes?",
         "Reload",
-        "Later"
+        "Later",
       );
-      
+
       if (reload === "Reload") {
         vscode.commands.executeCommand("workbench.action.reloadWindow");
       }
-    }
+    },
   );
 };
 

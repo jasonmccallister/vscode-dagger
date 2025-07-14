@@ -40,35 +40,39 @@ export default class CommandManager {
       this.options.context,
       this.options.cli,
       this.options.workspacePath,
-      this.options.settings
+      this.options.settings,
     );
     registerClearCacheCommand(this.options.context, this.options.cli);
     registerCloudCommand(
       this.options.context,
       this.options.cli,
-      this.options.settings
+      this.options.settings,
     );
     registerDevelopCommand(
       this.options.context,
       this.options.cli,
-      this.options.workspacePath
+      this.options.workspacePath,
     );
     registerFunctionsCommand(this.options.context);
     registerInitCommand(this.options.context, this.options.cli);
     registerInstallModuleCommand(this.options.context, this.options.cli);
-    registerAddMcpModuleCommand(this.options.context, this.options.cli, this.options.workspacePath);
+    registerAddMcpModuleCommand(
+      this.options.context,
+      this.options.cli,
+      this.options.workspacePath,
+    );
     registerResetCommand(this.options.context, this.options.settings);
     registerSaveTaskCommand(
       this.options.context,
       this.options.cli,
-      this.options.workspacePath
+      this.options.workspacePath,
     );
     registerShellCommand(this.options.context, this.options.workspacePath);
     registerUninstallCommand(this.options.context, this.options.settings);
     registerUpdateCommand(
       this.options.context,
       this.options.cli,
-      this.options.settings
+      this.options.settings,
     );
     registerVersionCommand(this.options.context, this.options.cli);
 
@@ -85,7 +89,7 @@ export default class CommandManager {
       showCloudIntegrationPrompt(
         this.options.context,
         this.options.cli,
-        this.options.settings
+        this.options.settings,
       );
     }
   }

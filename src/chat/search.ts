@@ -18,7 +18,7 @@ export interface SearchResponse {
 export type SearchDocsFn = (query: string) => Promise<SearchResponse | string>;
 
 export const searchDocs: SearchDocsFn = async (
-  query: string
+  query: string,
 ): Promise<SearchResponse | string> => {
   try {
     const searchUrl = `${baseUrl}?q=${encodeURIComponent(query)}`;
@@ -49,7 +49,7 @@ export const searchDocs: SearchDocsFn = async (
         !Array.isArray(data.data)
       ) {
         throw new Error(
-          "Invalid response structure - missing required fields (query, count, data)"
+          "Invalid response structure - missing required fields (query, count, data)",
         );
       }
 
@@ -61,7 +61,7 @@ export const searchDocs: SearchDocsFn = async (
             typeof item.url === "string" &&
             typeof item.snippet === "string"
           );
-        }
+        },
       );
 
       const validatedResponse: SearchResponse = {
@@ -74,7 +74,7 @@ export const searchDocs: SearchDocsFn = async (
       clearTimeout(timeoutId);
       if (fetchError instanceof Error && fetchError.name === "AbortError") {
         throw new Error(
-          "Request timeout - the search service is taking too long to respond"
+          "Request timeout - the search service is taking too long to respond",
         );
       }
       throw fetchError;

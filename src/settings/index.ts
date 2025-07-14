@@ -48,7 +48,7 @@ export interface DaggerSettings {
   update<T>(
     section: string,
     value: T,
-    target: vscode.ConfigurationTarget
+    target: vscode.ConfigurationTarget,
   ): Thenable<void>;
 }
 
@@ -110,15 +110,15 @@ export class DaggerSettingsProvider implements DaggerSettings {
     this._installMethod = config.get<"brew" | "curl">("installMethod", "brew");
     this._cloudNotificationDismissed = config.get<boolean>(
       "cloudNotificationDismissed",
-      false
+      false,
     );
     this._saveTaskPromptDismissed = config.get<boolean>(
       "saveTaskPromptDismissed",
-      false
+      false,
     );
     this._runFunctionCallsInBackground = config.get<boolean>(
       "functionCalls.runInBackground",
-      false
+      false,
     );
   }
 
@@ -131,7 +131,7 @@ export class DaggerSettingsProvider implements DaggerSettings {
   public update<T>(
     section: string,
     value: T,
-    target: vscode.ConfigurationTarget
+    target: vscode.ConfigurationTarget,
   ): Thenable<void> {
     const config = vscode.workspace.getConfiguration("dagger");
     return config.update(section, value, target).then(() => {

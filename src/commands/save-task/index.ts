@@ -12,7 +12,7 @@ export const COMMAND = "dagger.saveTask";
 export const registerSaveTaskCommand = (
   context: vscode.ExtensionContext,
   cli: Cli,
-  workspacePath: string
+  workspacePath: string,
 ): void => {
   const disposable = vscode.commands.registerCommand(
     COMMAND,
@@ -31,7 +31,7 @@ export const registerSaveTaskCommand = (
         const functions = await cli.functionsList(workspacePath);
         if (!functions || functions.length === 0) {
           vscode.window.showErrorMessage(
-            "No functions found in this Dagger project."
+            "No functions found in this Dagger project.",
           );
           return;
         }
@@ -43,7 +43,7 @@ export const registerSaveTaskCommand = (
           {
             placeHolder: "Select a function to save as a task",
             ignoreFocusOut: true,
-          }
+          },
         );
         if (!pick) {
           return; // User cancelled
@@ -64,12 +64,12 @@ export const registerSaveTaskCommand = (
             // Get function arguments by finding the function in the functions list
             const functions = await cli.functionsList(workspacePath);
             const targetFunction = functions.find(
-              (f) => f.name === functionName
+              (f) => f.name === functionName,
             );
 
             if (!targetFunction) {
               vscode.window.showErrorMessage(
-                `Function "${functionName}" not found.`
+                `Function "${functionName}" not found.`,
               );
               return;
             }
@@ -98,7 +98,7 @@ export const registerSaveTaskCommand = (
             await saveTaskToTasksJson(
               result.taskName,
               result.command,
-              workspacePath
+              workspacePath,
             );
 
             progress.report({ message: "Task saved successfully" });
@@ -108,7 +108,7 @@ export const registerSaveTaskCommand = (
             if (shouldRun) {
               await runTask(result.taskName);
             }
-          }
+          },
         );
       } catch (error) {
         const errorMessage =
@@ -116,7 +116,7 @@ export const registerSaveTaskCommand = (
         vscode.window.showErrorMessage(`Failed to save task: ${errorMessage}`);
         console.error("Error saving task:", error);
       }
-    }
+    },
   );
 
   context.subscriptions.push(disposable);
@@ -134,7 +134,7 @@ interface TaskCreationResult {
  * @returns Task creation result with command string
  */
 const collectArgumentsForTask = async (
-  func: FunctionInfo
+  func: FunctionInfo,
 ): Promise<TaskCreationResult> => {
   const { name: functionName, args, module: moduleName } = func;
 
@@ -215,10 +215,10 @@ const collectArgumentsForTask = async (
 export const saveTaskToTasksJson = async (
   taskName: string,
   command: string,
-  workspacePath: string
+  workspacePath: string,
 ): Promise<void> => {
   const workspaceFolder = vscode.workspace.getWorkspaceFolder(
-    vscode.Uri.file(workspacePath)
+    vscode.Uri.file(workspacePath),
   );
   if (!workspaceFolder) {
     throw new Error("No workspace folder found");
@@ -242,7 +242,7 @@ export const saveTaskToTasksJson = async (
   // Read existing tasks.json if it exists
   try {
     const existingContent = await vscode.workspace.fs.readFile(
-      vscode.Uri.file(tasksJsonPath)
+      vscode.Uri.file(tasksJsonPath),
     );
     const existingText = Buffer.from(existingContent).toString("utf8");
     tasksConfig = JSON.parse(existingText);
@@ -276,7 +276,7 @@ export const saveTaskToTasksJson = async (
 
   // Remove any existing task with the same label
   tasksConfig.tasks = tasksConfig.tasks.filter(
-    (task: any) => task.label !== taskName
+    (task: any) => task.label !== taskName,
   );
 
   // Add the new task
@@ -286,7 +286,7 @@ export const saveTaskToTasksJson = async (
   const updatedContent = JSON.stringify(tasksConfig, null, 2);
   await vscode.workspace.fs.writeFile(
     vscode.Uri.file(tasksJsonPath),
-    Buffer.from(updatedContent, "utf8")
+    Buffer.from(updatedContent, "utf8"),
   );
 };
 
@@ -299,7 +299,7 @@ const askToRunTask = async (taskName: string): Promise<boolean> => {
   const choice = await vscode.window.showInformationMessage(
     `Task "${taskName}" has been saved successfully. Would you like to run it now?`,
     "Yes",
-    "No"
+    "No",
   );
   return choice === "Yes";
 };
@@ -316,7 +316,7 @@ const runTask = async (taskName: string): Promise<void> => {
     await vscode.tasks.executeTask(task);
   } else {
     vscode.window.showErrorMessage(
-      `Task "${taskName}" not found. You may need to reload the window for new tasks to be available.`
+      `Task "${taskName}" not found. You may need to reload the window for new tasks to be available.`,
     );
   }
 };

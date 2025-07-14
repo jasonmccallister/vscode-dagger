@@ -26,7 +26,7 @@ const TREE_VIEW_OPTIONS = {
 
 export const registerTreeView = (
   context: vscode.ExtensionContext,
-  config: TreeViewConfig
+  config: TreeViewConfig,
 ): void => {
   const workspacePath =
     config.workspacePath ??
@@ -52,10 +52,10 @@ export const registerTreeView = (
       } catch (error) {
         console.error("Failed to reload Dagger functions:", error);
         vscode.window.showErrorMessage(
-          "Failed to reload Dagger functions. Check the console for details"
+          "Failed to reload Dagger functions. Check the console for details",
         );
       }
-    }
+    },
   );
 
   context.subscriptions.push(treeView, refreshCommand);
@@ -78,7 +78,7 @@ export class DaggerTreeItem extends vscode.TreeItem {
       .TreeItemCollapsibleState.None,
     command?: vscode.Command,
     moduleName?: string,
-    functionId?: string
+    functionId?: string,
   ) {
     // Handle both string labels and FunctionInfo objects
     let label: string;
@@ -134,13 +134,11 @@ export class DaggerTreeItem extends vscode.TreeItem {
 
         // If we have a FunctionInfo object, set a more detailed tooltip
         if (this.functionInfo) {
-          let tooltip: string = '';
+          let tooltip: string = "";
           if (this.functionInfo.description) {
             tooltip += `${this.functionInfo.description}`;
           }
-          tooltip += `\nReturns: ${
-            this.functionInfo.returnType || "unknown"
-          }`;
+          tooltip += `\nReturns: ${this.functionInfo.returnType || "unknown"}`;
           this.tooltip = tooltip;
         }
 
@@ -205,7 +203,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
             {
               command: "dagger.install",
               title: "Install Dagger CLI",
-            }
+            },
           ),
         ];
         this.refresh();
@@ -222,7 +220,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
             {
               command: INIT_COMMAND,
               title: "Initialize Dagger Project",
-            }
+            },
           ),
         ];
         this.refresh();
@@ -255,7 +253,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
             try {
               // Get all functions
               const functions = await this.cli.functionsList(
-                this.workspacePath
+                this.workspacePath,
               );
 
               // Clear the timeout since we're done loading
@@ -274,7 +272,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                       arguments: [
                         vscode.Uri.parse("https://docs.dagger.io/quickstart"),
                       ],
-                    }
+                    },
                   ),
                 ];
                 this.refresh();
@@ -344,7 +342,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
 
           // Final progress report to indicate completion
           progress.report({ message: "Dagger functions loaded successfully" });
-        }
+        },
       );
     } catch (error) {
       console.error("Failed to load Dagger functions:", error);
@@ -358,7 +356,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
    * @param moduleMap Map of module names to function arrays
    */
   private async buildTreeItems(
-    moduleMap: Map<string, Array<{ fn: any; index: number }>>
+    moduleMap: Map<string, Array<{ fn: any; index: number }>>,
   ): Promise<void> {
     // If there's only one module, don't nest under module
     if (moduleMap.size === 1) {
@@ -382,7 +380,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
           "function",
           fn.args && fn.args.length > 0
             ? vscode.TreeItemCollapsibleState.Collapsed
-            : vscode.TreeItemCollapsibleState.None
+            : vscode.TreeItemCollapsibleState.None,
         );
 
         // Set the command after creating the item so we can pass the item itself
@@ -400,8 +398,8 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                 `--${arg.name} (${arg.type})${
                   arg.required ? " [required]" : ""
                 }`,
-                "argument"
-              )
+                "argument",
+              ),
           );
         }
 
@@ -419,7 +417,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
 
           if (!functionId) {
             console.warn(
-              `Root module function ${functionName} has no ID, skipping`
+              `Root module function ${functionName} has no ID, skipping`,
             );
             continue;
           }
@@ -430,7 +428,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
             "function",
             fn.args && fn.args.length > 0
               ? vscode.TreeItemCollapsibleState.Collapsed
-              : vscode.TreeItemCollapsibleState.None
+              : vscode.TreeItemCollapsibleState.None,
           );
 
           // Set the command
@@ -448,8 +446,8 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                   `--${arg.name} (${arg.type})${
                     arg.required ? " [required]" : ""
                   }`,
-                  "argument"
-                )
+                  "argument",
+                ),
             );
           }
 
@@ -474,7 +472,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
           "module",
           vscode.TreeItemCollapsibleState.Expanded,
           undefined, // No command for module
-          moduleName // Pass module name
+          moduleName, // Pass module name
         );
 
         // Add functions as children of the module
@@ -488,7 +486,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
 
           if (!functionId) {
             console.warn(
-              `Function ${displayName} in module ${moduleName} has no ID, skipping`
+              `Function ${displayName} in module ${moduleName} has no ID, skipping`,
             );
             return new DaggerTreeItem(`${displayName} (error: no ID)`, "empty");
           }
@@ -505,7 +503,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
             "function",
             fn.args && fn.args.length > 0
               ? vscode.TreeItemCollapsibleState.Collapsed
-              : vscode.TreeItemCollapsibleState.None
+              : vscode.TreeItemCollapsibleState.None,
           );
 
           // Set the command after creating the item so we can pass the item itself
@@ -531,8 +529,8 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                   `--${arg.name} (${arg.type})${
                     arg.required ? " [required]" : ""
                   }`,
-                  "argument"
-                )
+                  "argument",
+                ),
             );
           }
 
@@ -561,7 +559,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
       vscode.window.showErrorMessage(
         `Failed to reload Dagger functions: ${
           error instanceof Error ? error.message : "Unknown error"
-        }`
+        }`,
       );
     }
   }
@@ -595,7 +593,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
       return this.items.find(
         (item) =>
           item.type === "module" &&
-          item.originalName === element.functionInfo?.module
+          item.originalName === element.functionInfo?.module,
       );
     }
 

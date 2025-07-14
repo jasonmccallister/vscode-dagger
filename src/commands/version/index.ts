@@ -5,7 +5,7 @@ const COMMAND = "dagger.version";
 
 export const registerVersionCommand = (
   context: vscode.ExtensionContext,
-  cli: Cli
+  cli: Cli,
 ): void => {
   const disposable = vscode.commands.registerCommand(
     COMMAND,
@@ -21,17 +21,17 @@ export const registerVersionCommand = (
 
         if (!result.success) {
           vscode.window.showErrorMessage(
-            `Failed to get Dagger version: ${result.stderr}`
+            `Failed to get Dagger version: ${result.stderr}`,
           );
           return;
         }
 
         // Show the version in an information message
         vscode.window.showInformationMessage(
-          `Dagger Version: ${result.stdout}`
+          `Dagger Version: ${result.stdout}`,
         );
       });
-    }
+    },
   );
 
   context.subscriptions.push(disposable);

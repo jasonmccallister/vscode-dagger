@@ -23,17 +23,17 @@ export class ChatParticipant {
     | vscode.ThemeIcon
     | { light: vscode.Uri; dark: vscode.Uri };
   private readonly _searchDocs: (
-    query: string
+    query: string,
   ) => Promise<ISearchResponse | string>;
 
   constructor(
     searchDocsDep: (
-      query: string
+      query: string,
     ) => Promise<ISearchResponse | string> = defaultSearchDocs,
     iconPath?:
       | string
       | vscode.ThemeIcon
-      | { light: vscode.Uri; dark: vscode.Uri }
+      | { light: vscode.Uri; dark: vscode.Uri },
   ) {
     this._searchDocs = searchDocsDep;
     this.iconPath =
@@ -90,7 +90,7 @@ export class ChatParticipant {
  */
 export const createChatParticipantWithResults = (
   searchData: ISearchResponse,
-  iconPath?: string | vscode.ThemeIcon
+  iconPath?: string | vscode.ThemeIcon,
 ): { participant: ChatParticipant; formattedResults: string } => {
   const participant = new ChatParticipant(undefined, iconPath);
   const formattedResults = participant.processSearchResults(searchData);
@@ -105,7 +105,7 @@ export const chatRequestHandler: vscode.ChatRequestHandler = async (
   request: vscode.ChatRequest,
   _context: vscode.ChatContext,
   stream: vscode.ChatResponseStream,
-  token: vscode.CancellationToken
+  token: vscode.CancellationToken,
 ) => {
   // 1. Summarize the user's question into a search query
   let searchQuery = request.prompt.trim();
@@ -141,7 +141,7 @@ export const chatRequestHandler: vscode.ChatRequestHandler = async (
     | vscode.ThemeIcon
     | vscode.Uri
     | { light: vscode.Uri; dark: vscode.Uri } = new vscode.ThemeIcon(
-    CHAT_PARTICIPANT_ICON_DEFAULT
+    CHAT_PARTICIPANT_ICON_DEFAULT,
   );
   const ext = vscode.extensions.getExtension(EXTENSION_ID);
   if (ext) {
@@ -175,7 +175,7 @@ ${participant.formatSearchResults(result)}`;
         const chatResponse = await request.model.sendRequest(
           messages,
           {},
-          token
+          token,
         );
         for await (const fragment of chatResponse.text) {
           stream.markdown(fragment);
@@ -219,7 +219,7 @@ ${participant.formatSearchResults(result)}`;
     stream.markdown(result);
   } else {
     stream.markdown(
-      "Sorry, I could not find relevant documentation for your question."
+      "Sorry, I could not find relevant documentation for your question.",
     );
     if (result.data && result.data.length > 0) {
       let docList = "Here are a few pages that might be helpful:\n";

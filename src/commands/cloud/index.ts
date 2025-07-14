@@ -15,7 +15,7 @@ interface TokenSources {
 export const registerCloudCommand = (
   context: vscode.ExtensionContext,
   _cli: Cli,
-  settings: DaggerSettings
+  settings: DaggerSettings,
 ): void => {
   const disposable = vscode.commands.registerCommand(COMMAND, async () => {
     const tokens = await getTokenSources();
@@ -24,7 +24,7 @@ export const registerCloudCommand = (
 
     const response = (await vscode.window.showInformationMessage(
       message,
-      ...options
+      ...options,
     )) as CloudResponse | undefined;
 
     await handleCloudResponse(response, tokens);
@@ -34,7 +34,7 @@ export const registerCloudCommand = (
       await settings.update(
         "cloudNotificationDismissed",
         true,
-        vscode.ConfigurationTarget.Global
+        vscode.ConfigurationTarget.Global,
       );
     }
   });
@@ -58,7 +58,7 @@ const getTokenSources = async (): Promise<TokenSources> => {
     const session = await vscode.authentication.getSession(
       "dagger",
       ["cloudToken"],
-      { createIfNone: false }
+      { createIfNone: false },
     );
     secretToken = session?.accessToken ?? "";
   } catch {
@@ -117,7 +117,7 @@ const getCloudMessage = (tokens: TokenSources): string => {
  */
 const handleCloudResponse = async (
   response: CloudResponse | undefined,
-  _tokens: TokenSources
+  _tokens: TokenSources,
 ): Promise<void> => {
   if (!response || response === "Cancel") {
     return;
@@ -131,7 +131,7 @@ const handleCloudResponse = async (
   if (response === "Open Settings") {
     await vscode.commands.executeCommand(
       "workbench.action.openSettings",
-      "dagger.cloudToken"
+      "dagger.cloudToken",
     );
     return;
   }

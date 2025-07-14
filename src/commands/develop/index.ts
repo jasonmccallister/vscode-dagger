@@ -8,7 +8,7 @@ const COMMAND = "dagger.develop";
 export const registerDevelopCommand = (
   context: vscode.ExtensionContext,
   cli: Cli,
-  _workspacePath: string
+  _workspacePath: string,
 ): void => {
   const disposable = vscode.commands.registerCommand(COMMAND, async () => {
     if (!(await cli.isDaggerProject())) {

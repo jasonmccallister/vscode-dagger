@@ -10,7 +10,7 @@ const COMMAND = "dagger.update";
 export const registerUpdateCommand = (
   context: vscode.ExtensionContext,
   cli: Cli,
-  settings: DaggerSettings
+  settings: DaggerSettings,
 ): void => {
   context.subscriptions.push(
     vscode.commands.registerCommand(COMMAND, async () => {
@@ -27,7 +27,7 @@ export const registerUpdateCommand = (
             const versionResult = await cli.run(["version"]);
             if (!versionResult.success) {
               vscode.window.showErrorMessage(
-                `Failed to get current Dagger version: ${versionResult.stderr}`
+                `Failed to get current Dagger version: ${versionResult.stderr}`,
               );
               return;
             }
@@ -37,7 +37,7 @@ export const registerUpdateCommand = (
               versionResult.stdout.match(/v(\d+\.\d+\.\d+)/);
             if (!currentVersionMatch) {
               vscode.window.showErrorMessage(
-                "Could not parse current Dagger version"
+                "Could not parse current Dagger version",
               );
               return;
             }
@@ -55,7 +55,7 @@ export const registerUpdateCommand = (
               progress.report({ message: "Checking Homebrew for updates..." });
 
               const brewResult = await runCommand(
-                "brew outdated dagger/tap/dagger"
+                "brew outdated dagger/tap/dagger",
               );
               if (brewResult.success && brewResult.stdout.trim()) {
                 hasUpdate = true;
@@ -84,17 +84,17 @@ export const registerUpdateCommand = (
               await handleUpdate(latestVersion, currentVersion, updateCommand);
             } else {
               vscode.window.showInformationMessage(
-                `Dagger is already up to date (v${currentVersion})`
+                `Dagger is already up to date (v${currentVersion})`,
               );
             }
           } catch (error) {
             vscode.window.showErrorMessage(
-              `Error checking for Dagger updates: ${error}`
+              `Error checking for Dagger updates: ${error}`,
             );
           }
-        }
+        },
       );
-    })
+    }),
   );
 };
 
@@ -107,12 +107,12 @@ export const registerUpdateCommand = (
 const handleUpdate = async (
   latestVersion: string,
   currentVersion: string,
-  updateCommand: string
+  updateCommand: string,
 ): Promise<void> => {
   const updateOption = await vscode.window.showInformationMessage(
     `A new version of Dagger is available: v${latestVersion} (currently v${currentVersion})`,
     "Update Now",
-    "Later"
+    "Later",
   );
 
   if (updateOption === "Update Now") {
@@ -129,14 +129,14 @@ const handleUpdate = async (
           const result = await runCommand(updateCommand);
           if (result.success) {
             vscode.window.showInformationMessage(
-              `Dagger updated to v${latestVersion} successfully!`
+              `Dagger updated to v${latestVersion} successfully!`,
             );
 
             // Suggest a window reload to ensure the extension picks up the new version
             const reloadOption = await vscode.window.showInformationMessage(
               "Reload window to ensure extension picks up the new Dagger version?",
               "Reload",
-              "Later"
+              "Later",
             );
 
             if (reloadOption === "Reload") {
@@ -144,20 +144,20 @@ const handleUpdate = async (
             }
           } else {
             vscode.window.showErrorMessage(
-              `Failed to update Dagger: ${result.stderr}`
+              `Failed to update Dagger: ${result.stderr}`,
             );
           }
         } catch (error) {
           vscode.window.showErrorMessage(`Error updating Dagger: ${error}`);
         }
-      }
+      },
     );
   }
 };
 
 // Helper function to run shell commands
 function runCommand(
-  command: string
+  command: string,
 ): Promise<{ success: boolean; stdout: string; stderr: string }> {
   return new Promise((resolve) => {
     exec(command, (error, stdout, stderr) => {

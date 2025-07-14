@@ -28,7 +28,7 @@ export const findDaggerPath = (): string => {
  */
 export const registerTerminalProvider = (
   context: vscode.ExtensionContext,
-  pathFinder: DaggerPathFinder = findDaggerPath
+  pathFinder: DaggerPathFinder = findDaggerPath,
 ): void => {
   // Create properly formatted URIs for the icon paths
   const iconPath = {
@@ -40,7 +40,7 @@ export const registerTerminalProvider = (
 
   if (!daggerPath) {
     vscode.window.showWarningMessage(
-      "Dagger binary not found in PATH. The Dagger Shell will not launch."
+      "Dagger binary not found in PATH. The Dagger Shell will not launch.",
     );
     return;
   }
@@ -66,7 +66,7 @@ export const registerTerminalProvider = (
   context.subscriptions.push(
     vscode.window.registerTerminalProfileProvider(
       "dagger.terminal-profile",
-      terminalProvider
-    )
+      terminalProvider,
+    ),
   );
 };

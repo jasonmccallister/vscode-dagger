@@ -7,7 +7,7 @@ const shellCommand = "dagger shell";
 
 export const registerShellCommand = (
   context: vscode.ExtensionContext,
-  workspacePath: string
+  workspacePath: string,
 ): void => {
   const disposable = vscode.commands.registerCommand(COMMAND, async () => {
     await vscode.window.withProgress(
@@ -20,7 +20,7 @@ export const registerShellCommand = (
         progress.report({ message: `Opening ${EXTENSION_NAME} shell...` });
 
         const existingTerminal = vscode.window.terminals.find(
-          (t) => t.name === EXTENSION_NAME
+          (t) => t.name === EXTENSION_NAME,
         );
         if (existingTerminal) {
           existingTerminal.show();
@@ -32,17 +32,17 @@ export const registerShellCommand = (
           name: EXTENSION_NAME,
           iconPath: {
             light: vscode.Uri.file(
-              path.join(context.extensionPath, ICON_PATH_BLACK)
+              path.join(context.extensionPath, ICON_PATH_BLACK),
             ),
             dark: vscode.Uri.file(
-              path.join(context.extensionPath, ICON_PATH_WHITE)
+              path.join(context.extensionPath, ICON_PATH_WHITE),
             ),
           },
           cwd: workspacePath,
         });
         newTerminal.show();
         newTerminal.sendText(shellCommand);
-      }
+      },
     );
   });
 
@@ -54,7 +54,7 @@ export const registerShellCommand = (
       if (terminal.name === EXTENSION_NAME) {
         terminal.show();
       }
-    }
+    },
   );
   context.subscriptions.push(showDaggerShellTerminal);
 };

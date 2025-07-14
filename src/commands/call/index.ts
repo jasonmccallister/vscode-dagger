@@ -14,7 +14,7 @@ export const registerCallCommand = (
   context: vscode.ExtensionContext,
   cli: Cli,
   workspacePath: string,
-  settings: DaggerSettings
+  settings: DaggerSettings,
 ): void => {
   const disposable = vscode.commands.registerCommand(
     COMMAND,
@@ -46,7 +46,7 @@ export const registerCallCommand = (
       // we should have a functionInfo at this point
       if (!functionInfo) {
         vscode.window.showErrorMessage(
-          "No function selected. Please select a function to call."
+          "No function selected. Please select a function to call.",
         );
         return;
       }
@@ -79,12 +79,12 @@ export const registerCallCommand = (
                 context,
                 settings,
                 workspacePath,
-                functionInfo
+                functionInfo,
               );
 
             if (!Result.success) {
               vscode.window.showErrorMessage(
-                `Function call failed with exit code ${Result.exitCode}`
+                `Function call failed with exit code ${Result.exitCode}`,
               );
               return undefined;
             }
@@ -96,7 +96,7 @@ export const registerCallCommand = (
                 argValues,
                 workspacePath,
                 settings,
-                moduleName
+                moduleName,
               );
             }
 
@@ -111,14 +111,14 @@ export const registerCallCommand = (
             const errorMessage =
               error instanceof Error ? error.message : String(error);
             vscode.window.showErrorMessage(
-              `Failed to get function details: ${errorMessage}`
+              `Failed to get function details: ${errorMessage}`,
             );
             console.error("Error in call command:", error);
             return undefined;
           }
-        }
+        },
       );
-    }
+    },
   );
 
   context.subscriptions.push(disposable);
@@ -139,13 +139,13 @@ interface FunctionQuickPickItem extends vscode.QuickPickItem {
  */
 const selectFunction = async (
   cli: Cli,
-  workspacePath: string
+  workspacePath: string,
 ): Promise<FunctionInfo | undefined> => {
   const functions = await cli.functionsList(workspacePath);
 
   if (functions.length === 0) {
     vscode.window.showInformationMessage(
-      "No Dagger functions found in this project."
+      "No Dagger functions found in this project.",
     );
     return undefined;
   }

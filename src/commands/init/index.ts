@@ -21,7 +21,7 @@ const SDK_OPTIONS: readonly SdkOption[] = [
 
 export const registerInitCommand = (
   context: vscode.ExtensionContext,
-  cli: Cli
+  cli: Cli,
 ): void => {
   const disposable = vscode.commands.registerCommand(COMMAND, async () => {
     // Check if this workspace is already a Dagger project
@@ -67,14 +67,14 @@ const handleExistingProject = async (cli: Cli): Promise<void> => {
     'This workspace is already a Dagger project. Do you want to run the "Dagger: Develop" command instead?',
     { modal: true },
     "Yes",
-    "No"
+    "No",
   )) as DevelopChoice | undefined;
 
   if (choice === "Yes") {
     await cli.run(["develop"]);
   } else {
     vscode.window.showInformationMessage(
-      'You can run the "Dagger: Develop" command to start developing your Dagger project.'
+      'You can run the "Dagger: Develop" command to start developing your Dagger project.',
     );
   }
 };
@@ -92,7 +92,7 @@ const initializeProject = async (cli: Cli, sdk: SdkOption): Promise<void> => {
 
     if (!result.success) {
       vscode.window.showErrorMessage(
-        `Failed to initialize Dagger project: ${result.stderr}`
+        `Failed to initialize Dagger project: ${result.stderr}`,
       );
       return;
     }
@@ -102,7 +102,7 @@ const initializeProject = async (cli: Cli, sdk: SdkOption): Promise<void> => {
       `Dagger project initialized with ${sdk.label} SDK! Would you like to see the available functions?`,
       { modal: true },
       "Yes",
-      "No"
+      "No",
     )) as FunctionsChoice | undefined;
 
     if (choice === "Yes") {
@@ -111,7 +111,7 @@ const initializeProject = async (cli: Cli, sdk: SdkOption): Promise<void> => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     vscode.window.showErrorMessage(
-      `Failed to initialize Dagger project: ${errorMessage}`
+      `Failed to initialize Dagger project: ${errorMessage}`,
     );
   }
 };

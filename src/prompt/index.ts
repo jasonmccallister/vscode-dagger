@@ -17,7 +17,7 @@ interface CloudTokenSources {
 export const showCloudIntegrationPrompt = async (
   context: vscode.ExtensionContext,
   cli: Cli,
-  settings: DaggerSettings
+  settings: DaggerSettings,
 ): Promise<void> => {
   const tokens = await getCloudTokenSources(context);
   const cliInstalled = await cli.isInstalled();
@@ -31,7 +31,7 @@ export const showCloudIntegrationPrompt = async (
     "Setup Dagger Cloud to get better observability and collaboration features for your Dagger projects.",
     "Sign up",
     "Learn More",
-    "Don't show again"
+    "Don't show again",
   )) as CloudPromptResponse | undefined;
 
   await handleCloudPromptResponse(response, settings);
@@ -43,7 +43,7 @@ export const showProjectSetupPrompt = async (): Promise<void> => {
     `This workspace is not a Dagger project. Please run the "Dagger: Init" command to initialize it.`,
     { modal: true },
     "Run Init",
-    "No"
+    "No",
   )) as InitChoice | undefined;
 
   if (choice === "Run Init") {
@@ -57,7 +57,7 @@ export const showProjectSetupPrompt = async (): Promise<void> => {
  * @returns Object containing available tokens
  */
 const getCloudTokenSources = async (
-  context: vscode.ExtensionContext
+  context: vscode.ExtensionContext,
 ): Promise<CloudTokenSources> => {
   const secretToken = await context.secrets.get("dagger.cloudToken");
   const envToken = process.env.DAGGER_CLOUD_TOKEN;
@@ -75,7 +75,7 @@ const getCloudTokenSources = async (
 const shouldShowCloudNotification = (
   settings: DaggerSettings,
   { secretToken, envToken }: CloudTokenSources,
-  cliInstalled: boolean
+  cliInstalled: boolean,
 ): boolean => {
   // Don't show if token is available or notification was dismissed or CLI not installed
   return (
@@ -93,7 +93,7 @@ const shouldShowCloudNotification = (
  */
 const handleCloudPromptResponse = async (
   response: CloudPromptResponse | undefined,
-  settings: DaggerSettings
+  settings: DaggerSettings,
 ): Promise<void> => {
   switch (response) {
     case "Sign up":
@@ -102,7 +102,7 @@ const handleCloudPromptResponse = async (
 
     case "Learn More":
       await vscode.env.openExternal(
-        vscode.Uri.parse("https://dagger.io/cloud")
+        vscode.Uri.parse("https://dagger.io/cloud"),
       );
       break;
 
@@ -110,7 +110,7 @@ const handleCloudPromptResponse = async (
       await settings.update(
         "cloudNotificationDismissed",
         true,
-        vscode.ConfigurationTarget.Global
+        vscode.ConfigurationTarget.Global,
       );
       break;
   }

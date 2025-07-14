@@ -42,7 +42,6 @@ export interface FunctionInfo {
 
 // add tooltip method to FunctionInfo
 
-
 export default class Cli {
   private readonly command = "dagger";
   private workspacePath?: string;
@@ -59,7 +58,7 @@ export default class Cli {
    */
   public async run(
     args: string[] = [],
-    options: RunOptions = {}
+    options: RunOptions = {},
   ): Promise<CommandResult> {
     const { timeout = 30_000, cwd } = options;
     const command = `${this.command} ${args.join(" ")}`;
@@ -119,9 +118,9 @@ export default class Cli {
               (error) => {
                 console.error(
                   "Error updating functions list cache in background:",
-                  error
+                  error,
                 );
-              }
+              },
             );
           }
         } catch (error) {
@@ -150,14 +149,14 @@ export default class Cli {
    * @private
    */
   private async fetchFunctionsList(
-    workspacePath: string
+    workspacePath: string,
   ): Promise<FunctionInfo[]> {
     let functions: FunctionInfo[] = [];
     try {
       const id = await this.queryDirectoryId(workspacePath);
       if (!id) {
         console.warn(
-          `Failed to get directory ID for workspace: ${workspacePath}`
+          `Failed to get directory ID for workspace: ${workspacePath}`,
         );
         return [];
       }
@@ -165,7 +164,7 @@ export default class Cli {
       const objects = await this.queryModuleFunctions(id, workspacePath);
       if (!objects || objects.length === 0) {
         console.warn(
-          `No functions found in Dagger module for workspace: ${workspacePath}`
+          `No functions found in Dagger module for workspace: ${workspacePath}`,
         );
         return [];
       }
@@ -322,7 +321,7 @@ export default class Cli {
    */
   private async updateFunctionsListCache(
     workspacePath: string,
-    cacheKey: string
+    cacheKey: string,
   ): Promise<void> {
     // Skip if caching is disabled
     if (!this.settings.enableCache) {
@@ -335,12 +334,12 @@ export default class Cli {
         // Check if data has actually changed using SHA256 comparison
         const hasChanged = await this.cache.hasDataChanged(
           cacheKey,
-          freshFunctions
+          freshFunctions,
         );
         if (hasChanged) {
           await this.cache.set(cacheKey, freshFunctions);
           console.log(
-            "Updated functions list cache in background - data changed"
+            "Updated functions list cache in background - data changed",
           );
         } else {
           console.log("Skipped functions list cache update - data unchanged");
@@ -371,7 +370,7 @@ export default class Cli {
 
     try {
       const stats = await fs.promises.stat(
-        path.join(projectRoot, "dagger.json")
+        path.join(projectRoot, "dagger.json"),
       );
       return stats.isFile();
     } catch {
@@ -388,7 +387,7 @@ export default class Cli {
    * @returns The directory ID as a string, or undefined if not found
    */
   public async queryDirectoryId(
-    workspacePath: string
+    workspacePath: string,
   ): Promise<string | undefined> {
     const query = `
             query($path: String!) {
@@ -403,7 +402,7 @@ export default class Cli {
     const result = (await this.query(
       query,
       { path: workspacePath },
-      workspacePath
+      workspacePath,
     )) as DirectoryIdResult;
 
     return result?.host?.directory?.id;
@@ -419,7 +418,7 @@ export default class Cli {
    */
   public async queryModuleFunctions(
     directoryId: string,
-    workspacePath: string
+    workspacePath: string,
   ): Promise<ModuleObject[]> {
     const query = `
             query($id: DirectoryID!) {
@@ -460,7 +459,7 @@ export default class Cli {
     const result = (await this.query(
       query,
       { id: directoryId },
-      workspacePath
+      workspacePath,
     )) as ModuleResult;
     // Return the objects array directly, filtering out any null or undefined entries
     return (
@@ -490,12 +489,12 @@ export default class Cli {
    */
   public async queryFunctionByID(
     functionId: string,
-    workspacePath: string
+    workspacePath: string,
   ): Promise<FunctionInfo | undefined> {
     const cacheKey = this.createCacheKey(
       "function_by_id",
       functionId,
-      workspacePath
+      workspacePath,
     );
 
     // Check cache first (only if caching is enabled)
@@ -511,11 +510,11 @@ export default class Cli {
             this.updateFunctionByIDCache(
               functionId,
               workspacePath,
-              cacheKey
+              cacheKey,
             ).catch((error) => {
               console.error(
                 "Error updating function cache in background:",
-                error
+                error,
               );
             });
           }
@@ -530,7 +529,7 @@ export default class Cli {
     // No cache, cache miss, or caching disabled - fetch directly
     const functionInfo = await this.fetchFunctionByID(
       functionId,
-      workspacePath
+      workspacePath,
     );
 
     // Cache the result if caching is enabled
@@ -550,7 +549,7 @@ export default class Cli {
    */
   private async fetchFunctionByID(
     functionId: string,
-    workspacePath: string
+    workspacePath: string,
   ): Promise<FunctionInfo | undefined> {
     console.log(`fetchFunctionByID called with functionId: ${functionId}`);
 
@@ -583,14 +582,14 @@ export default class Cli {
       console.log(`Executing GraphQL query for function ID: ${functionId}`);
       const result = await this.query(query, { id: functionId }, workspacePath);
       console.log(
-        `Query result received: ${result ? "data returned" : "no data"}`
+        `Query result received: ${result ? "data returned" : "no data"}`,
       );
 
       const func = (result as any)?.loadFunctionFromID;
 
       if (!func) {
         console.warn(
-          `Function with ID ${functionId} not found in GraphQL response`
+          `Function with ID ${functionId} not found in GraphQL response`,
         );
         return undefined;
       }
@@ -600,7 +599,7 @@ export default class Cli {
           id: func.id,
           name: func.name,
           argsCount: func.args?.length || 0,
-        })}`
+        })}`,
       );
 
       // Extract module name from function name if it contains a dot
@@ -627,7 +626,7 @@ export default class Cli {
           // We need to analyze the original name to find the parent module name
           // First, find a function with this ID to get more context
           const matchingFunc = allFunctions.find(
-            (f) => f.functionId === parentModuleFunc.functionId
+            (f) => f.functionId === parentModuleFunc.functionId,
           );
 
           if (matchingFunc) {
@@ -637,7 +636,7 @@ export default class Cli {
             if (directoryId) {
               const objects = await this.queryModuleFunctions(
                 directoryId,
-                workspacePath
+                workspacePath,
               );
               if (objects && objects.length > 0) {
                 // Find parent modules (they have submodules)
@@ -730,7 +729,7 @@ export default class Cli {
   private async updateFunctionByIDCache(
     functionId: string,
     workspacePath: string,
-    cacheKey: string
+    cacheKey: string,
   ): Promise<void> {
     // Skip if caching is disabled
     if (!this.settings.enableCache) {
@@ -740,29 +739,29 @@ export default class Cli {
     try {
       const freshFunction = await this.fetchFunctionByID(
         functionId,
-        workspacePath
+        workspacePath,
       );
       if (this.cache && freshFunction) {
         // Check if data has actually changed using SHA256 comparison
         const hasChanged = await this.cache.hasDataChanged(
           cacheKey,
-          freshFunction
+          freshFunction,
         );
         if (hasChanged) {
           await this.cache.set(cacheKey, freshFunction);
           console.log(
-            `Updated function cache for ID: ${functionId} - data changed`
+            `Updated function cache for ID: ${functionId} - data changed`,
           );
         } else {
           console.log(
-            `Skipped function cache update for ID: ${functionId} - data unchanged`
+            `Skipped function cache update for ID: ${functionId} - data unchanged`,
           );
         }
       }
     } catch (error) {
       console.error(
         `Error updating function cache for ID ${functionId}:`,
-        error
+        error,
       );
     }
   }
@@ -776,16 +775,16 @@ export default class Cli {
    */
   public async getFunction(
     functionId: string,
-    workspacePath: string
+    workspacePath: string,
   ): Promise<FunctionInfo | undefined> {
     console.log(
-      `getFunction called with functionId: ${functionId}, workspacePath: ${workspacePath}`
+      `getFunction called with functionId: ${functionId}, workspacePath: ${workspacePath}`,
     );
 
     try {
       const functionInfo = await this.queryFunctionByID(
         functionId,
-        workspacePath
+        workspacePath,
       );
 
       if (!functionInfo) {
@@ -798,7 +797,7 @@ export default class Cli {
           name: functionInfo.name,
           module: functionInfo.module,
           argsCount: functionInfo.args?.length || 0,
-        })}`
+        })}`,
       );
 
       return functionInfo;
@@ -848,7 +847,7 @@ export default class Cli {
   private async query(
     query: string,
     variables: Record<string, unknown> = {},
-    path: string
+    path: string,
   ): Promise<unknown> {
     const varJson = JSON.stringify(variables);
     try {
@@ -859,7 +858,7 @@ export default class Cli {
           cwd: path,
           env: process.env,
           stdio: ["pipe", "pipe", "pipe"],
-        }
+        },
       );
 
       let stdout = "";
@@ -892,7 +891,7 @@ export default class Cli {
       console.error("Variables:", varJson);
       console.error("Working directory:", path);
       throw new Error(
-        `Failed to execute GraphQL query: ${error.message || error}`
+        `Failed to execute GraphQL query: ${error.message || error}`,
       );
     }
   }

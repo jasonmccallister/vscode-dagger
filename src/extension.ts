@@ -41,7 +41,7 @@ export async function activate(context: vscode.ExtensionContext) {
         if (event.affectsConfiguration("dagger")) {
           settings.reload();
         }
-      })
+      }),
     );
 
     // Register chat participant for chat UI
@@ -51,7 +51,7 @@ export async function activate(context: vscode.ExtensionContext) {
     ) {
       vscode.chat.createChatParticipant(
         CHAT_PARTICIPANT_ID,
-        chatRequestHandler
+        chatRequestHandler,
       );
     }
 
@@ -64,7 +64,7 @@ export async function activate(context: vscode.ExtensionContext) {
         context,
         commandManager.cli,
         installResult,
-        settings
+        settings,
       );
       return;
     }
@@ -76,7 +76,7 @@ export async function activate(context: vscode.ExtensionContext) {
     registerTerminalProvider(context);
   } catch (error) {
     vscode.window.showErrorMessage(
-      `Failed to activate Dagger extension: ${error}`
+      `Failed to activate Dagger extension: ${error}`,
     );
     // Install command already registered above
   }
@@ -86,7 +86,7 @@ const handleMissingInstallation = async (
   context: vscode.ExtensionContext,
   cli: Cli,
   installResult: InstallResult,
-  settings: DaggerSettingsProvider
+  settings: DaggerSettingsProvider,
 ): Promise<void> => {
   // Still register tree view to show installation status
   const workspacePath =
@@ -120,21 +120,21 @@ const handleMissingInstallation = async (
   // Show installation prompt with buttons
   const selectedButton = await vscode.window.showInformationMessage(
     `${EXTENSION_NAME} is not installed or not properly configured. Please select an installation method:`,
-    ...installButtons.map((button) => button.title)
+    ...installButtons.map((button) => button.title),
   );
 
   const selectedOption = installButtons.find(
-    (button) => button.title === selectedButton
+    (button) => button.title === selectedButton,
   );
   if (selectedOption) {
     await vscode.commands.executeCommand(
       selectedOption.command,
-      selectedOption.method
+      selectedOption.method,
     );
     return;
   }
 
   vscode.window.showWarningMessage(
-    `Install skipped, you can install using \`${EXTENSION_NAME}: Install CLI\`.`
+    `Install skipped, you can install using \`${EXTENSION_NAME}: Install CLI\`.`,
   );
 };

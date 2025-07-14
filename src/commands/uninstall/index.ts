@@ -6,7 +6,7 @@ const COMMAND = "dagger.uninstall";
 
 export const registerUninstallCommand = (
   context: vscode.ExtensionContext,
-  settings: DaggerSettings
+  settings: DaggerSettings,
 ): void => {
   const uninstallCommand = vscode.commands.registerCommand(
     COMMAND,
@@ -16,7 +16,7 @@ export const registerUninstallCommand = (
       const confirmUninstall = await vscode.window.showWarningMessage(
         "Are you sure you want to uninstall Dagger?",
         { modal: true },
-        "Yes"
+        "Yes",
       );
 
       if (confirmUninstall !== "Yes") {
@@ -28,7 +28,7 @@ export const registerUninstallCommand = (
       } catch (error) {
         vscode.window.showErrorMessage(`Failed to uninstall Dagger: ${error}`);
       }
-    }
+    },
   );
 
   context.subscriptions.push(uninstallCommand);
@@ -49,7 +49,7 @@ const handleUninstallation = async (installMethod: string): Promise<void> => {
       break;
     default:
       vscode.window.showErrorMessage(
-        "Unknown installation method found in settings. Unable to proceed with uninstallation."
+        "Unknown installation method found in settings. Unable to proceed with uninstallation.",
       );
       return;
   }
@@ -65,6 +65,6 @@ const handleUninstallation = async (installMethod: string): Promise<void> => {
   });
 
   vscode.window.showInformationMessage(
-    `Dagger has been uninstalled using ${methodLabel}`
+    `Dagger has been uninstalled using ${methodLabel}`,
   );
 };

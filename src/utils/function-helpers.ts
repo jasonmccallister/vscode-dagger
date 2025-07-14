@@ -25,7 +25,7 @@ interface CollectArgumentsResult {
  * @returns Object containing collected argument values and cancellation status
  */
 export const collectArgumentValues = async (
-  args: readonly FunctionArgument[]
+  args: readonly FunctionArgument[],
 ): Promise<CollectArgumentsResult> => {
   const argValues: Record<string, string> = {};
 
@@ -41,7 +41,7 @@ export const collectArgumentValues = async (
 
     if (arg.required && !value) {
       vscode.window.showErrorMessage(
-        `Value required for argument --${arg.name}`
+        `Value required for argument --${arg.name}`,
       );
       return { argValues: {}, cancelled: true };
     }
@@ -60,7 +60,7 @@ export const collectArgumentValues = async (
  * @returns Selected optional arguments
  */
 export const selectOptionalArguments = async (
-  optionalArgs: readonly FunctionArgument[]
+  optionalArgs: readonly FunctionArgument[],
 ): Promise<readonly FunctionArgument[]> => {
   if (optionalArgs.length === 0) {
     return [];
@@ -95,7 +95,7 @@ export const selectOptionalArguments = async (
 export const buildCommandArgs = (
   functionName: string,
   argValues: Record<string, string>,
-  moduleName?: string
+  moduleName?: string,
 ): string[] => {
   // Start with base command
   const commandArgs = ["dagger", "call"];
@@ -131,7 +131,7 @@ export const collectAndRunFunction = async (
   context: vscode.ExtensionContext,
   settings: DaggerSettings,
   workspacePath: string,
-  functionInfo: FunctionInfo
+  functionInfo: FunctionInfo,
 ): Promise<{
   Result: TaskExecutionResult;
   commandArgs: string[];
@@ -175,7 +175,7 @@ export const collectAndRunFunction = async (
         `The function ${functionName} returns a container. Do you want to open it in a terminal?`,
         { modal: false },
         "Open",
-        "Cancel"
+        "Cancel",
       );
 
       if (openInTerminal === "Open") {
@@ -190,7 +190,7 @@ export const collectAndRunFunction = async (
         `Function ${functionName} returns a file. Do you want to export the file?`,
         { modal: false },
         "Export",
-        "Cancel"
+        "Cancel",
       );
 
       if (exportFile === "Export") {
@@ -213,7 +213,7 @@ export const collectAndRunFunction = async (
         `Function ${functionName} returns a directory. Do you want to export the directory?`,
         { modal: false },
         "Export",
-        "Cancel"
+        "Cancel",
       );
 
       if (exportDirectory === "Export") {
@@ -259,7 +259,7 @@ export const showSaveTaskPrompt = async (
   argValues: Record<string, string>,
   workspacePath: string,
   settings: DaggerSettings,
-  moduleName?: string
+  moduleName?: string,
 ): Promise<void> => {
   // Use settings instead of directly accessing configuration
   if (settings.saveTaskPromptDismissed) {
@@ -270,7 +270,7 @@ export const showSaveTaskPrompt = async (
     `Would you like to save this Dagger function call as a VS Code task?`,
     "Save",
     "Not now",
-    "Don't show again"
+    "Don't show again",
   );
 
   if (choice === "Save") {
@@ -302,16 +302,16 @@ export const showSaveTaskPrompt = async (
     await saveTaskToTasksJson(
       taskName.trim(),
       commandArgs.join(" "),
-      workspacePath
+      workspacePath,
     );
     vscode.window.showInformationMessage(
-      `Task "${taskName.trim()}" saved! You can run it from the Run Task menu.`
+      `Task "${taskName.trim()}" saved! You can run it from the Run Task menu.`,
     );
   } else if (choice === "Don't show again") {
     await settings.update(
       "saveTaskPromptDismissed",
       true,
-      vscode.ConfigurationTarget.Global
+      vscode.ConfigurationTarget.Global,
     );
   }
 };

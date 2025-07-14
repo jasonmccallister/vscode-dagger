@@ -16,7 +16,9 @@ const TERMINAL_CONFIG = {
  * @param context The extension context to access resources
  * @returns A terminal instance named "Dagger"
  */
-export const createTerminal = (context: vscode.ExtensionContext): vscode.Terminal => {
+export const createTerminal = (
+  context: vscode.ExtensionContext,
+): vscode.Terminal => {
   return vscode.window.createTerminal({
     name: TERMINAL_CONFIG.NAME,
     iconPath: {
@@ -32,7 +34,7 @@ export const createTerminal = (context: vscode.ExtensionContext): vscode.Termina
 export const executeInTerminal = async (
   context: vscode.ExtensionContext,
   command: string,
-  isInteractive: boolean = false
+  isInteractive: boolean = false,
 ): Promise<void> => {
   // if this is interactive
   if (isInteractive) {
@@ -52,7 +54,7 @@ export const executeInTerminal = async (
     vscode.TaskScope.Workspace,
     TERMINAL_CONFIG.NAME,
     "shell",
-    taskExecution
+    taskExecution,
   );
 
   task.presentationOptions = {
@@ -68,9 +70,9 @@ export const executeInTerminal = async (
     (error) => {
       console.error(`Failed to execute command in terminal: ${command}`, error);
       vscode.window.showErrorMessage(
-        `Failed to execute command: ${error.message}`
+        `Failed to execute command: ${error.message}`,
       );
-    }
+    },
   );
 };
 
@@ -106,7 +108,7 @@ export const executeTaskAndWait = async (
     runInBackground?: boolean;
     taskName?: string;
     workingDirectory?: string;
-  }
+  },
 ): Promise<TaskExecutionResult> => {
   return new Promise((resolve, reject) => {
     // Check if already cancelled
@@ -133,7 +135,7 @@ export const executeTaskAndWait = async (
       vscode.TaskScope.Workspace,
       taskName,
       "shell",
-      taskExecution
+      taskExecution,
     );
 
     task.presentationOptions = {
@@ -207,7 +209,7 @@ export const executeTaskAndWait = async (
         taskEndDisposable.dispose();
         cancellationDisposable.dispose();
         reject(new Error(`Failed to execute task: ${error.message}`));
-      }
+      },
     );
   });
 };

@@ -31,7 +31,7 @@ const FOLLOWUP_SUGGESTIONS: FollowupSuggestion[] = [
  */
 const generateSearchResponse = async (
   query: string,
-  stream: vscode.ChatResponseStream
+  stream: vscode.ChatResponseStream,
 ): Promise<void> => {
   const searchUrl = `https://docs.dagger.io/search?q=${encodeURIComponent(query)}`;
 
@@ -43,7 +43,7 @@ const generateSearchResponse = async (
 
   // Send markdown response with search results
   stream.markdown(
-    `# Dagger Documentation Results\n\nI found information about "${query}" in the Dagger documentation.`
+    `# Dagger Documentation Results\n\nI found information about "${query}" in the Dagger documentation.`,
   );
 
   // Add a reference to the docs site
@@ -52,7 +52,7 @@ const generateSearchResponse = async (
 
   // Provide a link to the search results
   stream.markdown(
-    `\n\nView the search results here: [docs.dagger.io/search](${searchUrl})`
+    `\n\nView the search results here: [docs.dagger.io/search](${searchUrl})`,
   );
 
   // Add a button to open the search results in a browser
@@ -73,7 +73,7 @@ const createChatHandler = (): vscode.ChatRequestHandler => {
     request: vscode.ChatRequest,
     _context: vscode.ChatContext,
     stream: vscode.ChatResponseStream,
-    _token: vscode.CancellationToken
+    _token: vscode.CancellationToken,
   ) => {
     // Extract the query from the request
     const query = request.prompt;
@@ -96,7 +96,7 @@ const createFollowupProvider = (): vscode.ChatFollowupProvider => ({
  */
 const setupParticipantIcon = (
   participant: vscode.ChatParticipant,
-  context: vscode.ExtensionContext
+  context: vscode.ExtensionContext,
 ): void => {
   participant.iconPath = {
     light: vscode.Uri.file(path.join(context.extensionPath, ICON_PATH_BLACK)),

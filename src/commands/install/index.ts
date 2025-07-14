@@ -19,7 +19,7 @@ interface InstallResult {
 
 export const registerInstallCommand = (
   context: vscode.ExtensionContext,
-  settings: DaggerSettings
+  settings: DaggerSettings,
 ): void => {
   const installCommand = vscode.commands.registerCommand(
     COMMAND,
@@ -29,7 +29,7 @@ export const registerInstallCommand = (
 
         if (result.hasCorrectBinary) {
           vscode.window.showInformationMessage(
-            "Dagger is already installed and ready to use!"
+            "Dagger is already installed and ready to use!",
           );
           return;
         }
@@ -37,10 +37,10 @@ export const registerInstallCommand = (
         await handleInstallation(result, installationMethod, settings);
       } catch (error) {
         vscode.window.showErrorMessage(
-          `Failed to check installation: ${error}`
+          `Failed to check installation: ${error}`,
         );
       }
-    }
+    },
   );
 
   context.subscriptions.push(installCommand);
@@ -49,7 +49,7 @@ export const registerInstallCommand = (
 const handleInstallation = async (
   result: InstallResult,
   installationMethod?: string,
-  settings?: DaggerSettings
+  settings?: DaggerSettings,
 ): Promise<void> => {
   let command: string;
   let methodLabel: string;
@@ -67,7 +67,7 @@ const handleInstallation = async (
         break;
       default:
         vscode.window.showErrorMessage(
-          `Unknown installation method: ${installationMethod}`
+          `Unknown installation method: ${installationMethod}`,
         );
         return;
     }
@@ -85,7 +85,7 @@ const handleInstallation = async (
         break;
       default:
         vscode.window.showErrorMessage(
-          `Unknown installation method in settings: ${settings.installMethod}`
+          `Unknown installation method in settings: ${settings.installMethod}`,
         );
         return;
     }
@@ -119,12 +119,12 @@ const handleInstallation = async (
           await settings.update(
             "installMethod",
             installationMethod,
-            vscode.ConfigurationTarget.Global
+            vscode.ConfigurationTarget.Global,
           );
         }
 
         vscode.window.showInformationMessage(
-          `Dagger installed successfully using ${methodLabel}!`
+          `Dagger installed successfully using ${methodLabel}!`,
         );
 
         // Refresh the extension
@@ -132,7 +132,7 @@ const handleInstallation = async (
       } catch (error) {
         vscode.window.showErrorMessage(`Failed to install Dagger: ${error}`);
       }
-    }
+    },
   );
 };
 

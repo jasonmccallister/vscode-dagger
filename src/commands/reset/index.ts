@@ -7,14 +7,14 @@ const COMMAND = "dagger.reset";
 
 export const registerResetCommand = (
   context: vscode.ExtensionContext,
-  settings: DaggerSettings
+  settings: DaggerSettings,
 ): void => {
   const disposable = vscode.commands.registerCommand(COMMAND, async () => {
     const response = (await vscode.window.showWarningMessage(
       "Are you sure you want to reset your Dagger preferences?",
       { modal: true },
       "Yes",
-      "No"
+      "No",
     )) as ResetChoice | undefined;
 
     if (response === "Yes") {
@@ -32,19 +32,19 @@ export const registerResetCommand = (
  */
 const resetPreferences = async (
   context: vscode.ExtensionContext,
-  settings: DaggerSettings
+  settings: DaggerSettings,
 ): Promise<void> => {
   await Promise.all([
     context.secrets.delete("dagger.cloudToken"),
     settings.update(
       "cloudNotificationDismissed",
       false,
-      vscode.ConfigurationTarget.Global
+      vscode.ConfigurationTarget.Global,
     ),
     settings.update(
       "saveTaskPromptDismissed",
       false,
-      vscode.ConfigurationTarget.Global
+      vscode.ConfigurationTarget.Global,
     ),
   ]);
 
