@@ -206,7 +206,6 @@ export const collectAndRunFunction = async (
       }
 
       break;
-
     case "Directory":
       // ask the user if they want to export the directory to the workspace
       const exportDirectory = await vscode.window.showInformationMessage(
