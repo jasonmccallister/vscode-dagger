@@ -3,8 +3,7 @@ import { registerTreeView } from "./tree/provider";
 import { checkInstallation, InstallResult } from "./utils/installation";
 import Cli from "./dagger";
 import * as os from "os";
-import { chatRequestHandler } from "./chat/participant";
-import { CHAT_PARTICIPANT_ID, EXTENSION_NAME } from "./const";
+import { EXTENSION_NAME } from "./const";
 import CommandManager from "./commands";
 import { registerTerminalProvider } from "./terminal";
 import { VSCodeWorkspaceCache } from "./cache";
@@ -43,17 +42,6 @@ export async function activate(context: vscode.ExtensionContext) {
         }
       }),
     );
-
-    // Register chat participant for chat UI
-    if (
-      "chat" in vscode &&
-      typeof vscode.chat.createChatParticipant === "function"
-    ) {
-      vscode.chat.createChatParticipant(
-        CHAT_PARTICIPANT_ID,
-        chatRequestHandler,
-      );
-    }
 
     // Check installation status before setting up other commands and views
     const installResult = await checkInstallation(os.platform());

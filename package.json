@@ -40,14 +40,6 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
-    "chatParticipants": [
-      {
-        "id": "dagger",
-        "name": "dagger",
-        "fullName": "Dagger",
-        "description": "search documentation, ask questions, and get help with Dagger"
-      }
-    ],
     "commands": [
       {
         "command": "dagger.init",
@@ -187,14 +179,8 @@
         "dagger.saveTaskPromptDismissed": {
           "type": "boolean",
           "default": false,
-          "description": "Whether the save task notificaxtion has been permanently dismissed",
+          "description": "Whether the save task notification has been permanently dismissed",
           "scope": "application"
-        },
-        "dagger.functionCalls.runInBackground": {
-          "type": "boolean",
-          "default": false,
-          "description": "Run Dagger function calls in the background unless there is an error.",
-          "scope": "window"
         },
         "dagger.enableCache": {
           "type": "boolean",
