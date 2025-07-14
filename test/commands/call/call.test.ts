@@ -172,7 +172,8 @@ describe("Call Command Tests", () => {
 
       // Mock collectAndRunFunction
       mockUtils.collectAndRunFunction.resolves({
-        success: true,
+        Result: { success: true, exitCode: 0, execution: undefined },
+        commandArgs: ["dagger", "call", "test-function"],
         argValues: {},
       });
       mockUtils.showSaveTaskPrompt.resolves();
@@ -256,7 +257,8 @@ describe("Call Command Tests", () => {
 
       // Mock collectAndRunFunction
       mockUtils.collectAndRunFunction.resolves({
-        success: true,
+        Result: { success: true, exitCode: 0, execution: undefined },
+        commandArgs: ["dagger", "call", "test-function", "--arg1", "value1"],
         argValues: { arg1: "value1" },
       });
       mockUtils.showSaveTaskPrompt.resolves();
@@ -335,7 +337,8 @@ describe("Call Command Tests", () => {
 
       // Mock collectAndRunFunction
       mockUtils.collectAndRunFunction.resolves({
-        success: true,
+        Result: { success: true, exitCode: 0, execution: undefined },
+        commandArgs: ["dagger", "call", "parent-function"],
         argValues: {},
       });
       mockUtils.showSaveTaskPrompt.resolves();
@@ -417,7 +420,8 @@ describe("Call Command Tests", () => {
 
       // Mock collectAndRunFunction
       mockUtils.collectAndRunFunction.resolves({
-        success: true,
+        Result: { success: true, exitCode: 0, execution: undefined },
+        commandArgs: ["dagger", "call", "test-function", "--arg1", "value1"],
         argValues: { arg1: "value1" },
       });
       mockUtils.showSaveTaskPrompt.resolves();
@@ -440,13 +444,13 @@ describe("Call Command Tests", () => {
 
       const callArgs = mockUtils.collectAndRunFunction.getCall(0).args;
       assert.strictEqual(
-        callArgs[0],
+        callArgs[1],
         mockContext,
-        "First arg should be the context",
+        "Second arg should be the context",
       );
 
       // Check the constructed functionInfo object from the tree item
-      const functionInfo = callArgs[1];
+      const functionInfo = callArgs[4];
       assert.strictEqual(
         functionInfo.name,
         "test-function",
@@ -549,7 +553,8 @@ describe("Call Command Tests", () => {
 
       // Mock collectAndRunFunction
       mockUtils.collectAndRunFunction.resolves({
-        success: true,
+        Result: { success: true, exitCode: 0, execution: undefined },
+        commandArgs: ["dagger", "call", "test-function", "--arg1", "value1"],
         argValues: { arg1: "value1" },
       });
       mockUtils.showSaveTaskPrompt.resolves();
@@ -572,13 +577,13 @@ describe("Call Command Tests", () => {
 
       const callArgs = mockUtils.collectAndRunFunction.getCall(0).args;
       assert.strictEqual(
-        callArgs[0],
+        callArgs[1],
         mockContext,
-        "First arg should be the context",
+        "Second arg should be the context",
       );
 
       // Check that the function info object was passed directly
-      const functionInfo = callArgs[1];
+      const functionInfo = callArgs[4];
       assert.strictEqual(
         functionInfo,
         treeItemFunctionInfo,

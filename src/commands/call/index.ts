@@ -82,9 +82,9 @@ export const registerCallCommand = (
                 functionInfo,
               );
 
-            if (!Result.success) {
+            if (!Result?.success) {
               vscode.window.showErrorMessage(
-                `Function call failed with exit code ${Result.exitCode}`,
+                `Function call failed with exit code ${Result?.exitCode || 'unknown'}`,
               );
               return undefined;
             }
