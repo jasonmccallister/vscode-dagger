@@ -29,12 +29,6 @@ export interface DaggerSettings {
   readonly saveTaskPromptDismissed: boolean;
 
   /**
-   * Run Dagger function calls in the background unless there is an error
-   * Default: false
-   */
-  readonly runFunctionCallsInBackground: boolean;
-
-  /**
    * Reload settings from VS Code configuration
    */
   reload(): void;
@@ -95,13 +89,6 @@ export class DaggerSettingsProvider implements DaggerSettings {
   }
 
   /**
-   * Run Dagger function calls in the background unless there is an error
-   */
-  public get runFunctionCallsInBackground(): boolean {
-    return this._runFunctionCallsInBackground;
-  }
-
-  /**
    * Reloads settings from the VS Code configuration
    */
   public reload(): void {
@@ -114,10 +101,6 @@ export class DaggerSettingsProvider implements DaggerSettings {
     );
     this._saveTaskPromptDismissed = config.get<boolean>(
       "saveTaskPromptDismissed",
-      false,
-    );
-    this._runFunctionCallsInBackground = config.get<boolean>(
-      "functionCalls.runInBackground",
       false,
     );
   }

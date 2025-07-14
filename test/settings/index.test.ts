@@ -108,23 +108,6 @@ describe("DaggerSettings", () => {
     });
   });
 
-  describe("runFunctionCallsInBackground setting", () => {
-    it("should default to false when not configured", () => {
-      assert.strictEqual(settings.runFunctionCallsInBackground, false);
-    });
-
-    it("should load runFunctionCallsInBackground setting from configuration", () => {
-      mockConfiguration.get
-        .withArgs("functionCalls.runInBackground", false)
-        .returns(true);
-
-      // Reload settings
-      settings.reload();
-
-      assert.strictEqual(settings.runFunctionCallsInBackground, true);
-    });
-  });
-
   describe("reload method", () => {
     it("should reload all settings when called", () => {
       // First check default values
@@ -132,7 +115,6 @@ describe("DaggerSettings", () => {
       assert.strictEqual(settings.installMethod, "brew");
       assert.strictEqual(settings.cloudNotificationDismissed, false);
       assert.strictEqual(settings.saveTaskPromptDismissed, false);
-      assert.strictEqual(settings.runFunctionCallsInBackground, false);
 
       // Change configuration values
       mockConfiguration.get.withArgs("enableCache", true).returns(false);
@@ -155,7 +137,6 @@ describe("DaggerSettings", () => {
       assert.strictEqual(settings.installMethod, "curl");
       assert.strictEqual(settings.cloudNotificationDismissed, true);
       assert.strictEqual(settings.saveTaskPromptDismissed, true);
-      assert.strictEqual(settings.runFunctionCallsInBackground, true);
     });
   });
 

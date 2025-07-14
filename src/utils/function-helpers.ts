@@ -129,7 +129,7 @@ export const buildCommandArgs = (
 export const collectAndRunFunction = async (
   token: vscode.CancellationToken,
   context: vscode.ExtensionContext,
-  settings: DaggerSettings,
+  _settings: DaggerSettings,
   workspacePath: string,
   functionInfo: FunctionInfo,
 ): Promise<{
@@ -229,7 +229,6 @@ export const collectAndRunFunction = async (
   }
 
   const result = await executeTaskAndWait(token, commandArgs.join(" "), {
-    runInBackground: settings.runFunctionCallsInBackground,
     taskName: `dagger`,
     workingDirectory: workspacePath,
   });
