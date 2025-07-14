@@ -18,7 +18,6 @@ The VS Code extension for [Dagger](https://dagger.io). Built for developers who 
 
 ### AI Integration
 - 🛠️ **MCP Module Management:** Interactively add a Dagger Module as an MCP server and register with VS Code.
-- 🤖 **AI-Powered Documentation:** Ask questions about Dagger docs directly in VS Code using [Github Copilot chat using](https://docs.github.com/en/copilot/how-tos/chat/asking-github-copilot-questions-in-your-ide) `@dagger`.
 
 <video src="https://github.com/user-attachments/assets/87284fe0-508e-4f3b-984a-b9c0b616e788"></video>
 
@@ -34,12 +33,12 @@ Install, update, or uninstall the Dagger CLI with one click. Supports macOS, Lin
 
 ### Prerequisites
 - VS Code 1.101.0 or higher
-- Docker Desktop
+- Docker Desktop or a container runtime installed and running (e.g., [Podman](https://podman.io/), [nerdctl](https://github.com/containerd/nerdctl), or other Docker-like systems)
 
 ### Installation
 1. Install the extension from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=jasonmccallister.vscode-dagger).
 2. Open a workspace folder.
-3. Follow the CLI installation guide if prompted.
+3. Follow the installation guide if prompted.
 
 ### Quick Start
 1. Open the Dagger panel.
@@ -61,7 +60,6 @@ Access the following commands from the Command Palette (`Ctrl+Shift+P` or `Cmd+S
 - **Dagger: Uninstall CLI** - Uninstall the Dagger CLI
 - **Dagger: Add MCP Module** - Register a Dagger Module as an MCP server
 - **Dagger: Develop Local Modules** - Start the Dagger development workflow
-- **Dagger: Ask Dagger** - Use AI to ask questions about Dagger documentation
 - **Dagger: Save as Task** - Save a function call as a reusable VS Code task
 - **Dagger: Install a module** - Install a Dagger module (local or remote)
 - **Dagger: Add module MCP:** - Add a Dagger module as an MCP server and register it with VS Code
@@ -104,4 +102,4 @@ Licensed under the MIT License. See [LICENSE](LICENSE).
 
 ---
 
-**Made for the Dagger community**
+**Made with ❤️ for the Dagger community**
