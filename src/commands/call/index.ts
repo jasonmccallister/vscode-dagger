@@ -73,7 +73,7 @@ export const registerCallCommand = (
 
             // Use the shared helper to collect arguments and run the function
             // Pass the cancellation token to allow cancellation during argument collection
-            const { Result, commandArgs, argValues } =
+            const { Result, argValues } =
               await collectAndRunFunction(
                 token,
                 context,
