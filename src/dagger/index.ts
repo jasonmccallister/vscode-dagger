@@ -6,6 +6,7 @@ import * as vscode from "vscode";
 import { CliCache } from "../cache/types";
 import { DaggerSettings } from "../settings";
 import { DirectoryIdResult, ModuleResult, ModuleObject } from "./types";
+import { getReturnTypeName, getArgumentTypeName } from "./type-helpers";
 
 // Type definitions for the CLI interface
 export interface RunOptions {
@@ -68,12 +69,34 @@ export default class Cli {
         throw new Error(`Working directory does not exist: ${cwd}`);
       }
 
-      const stdout = childProcess.execSync(command, {
-        cwd: cwd ?? this.workspacePath ?? process.cwd(),
-        timeout,
-        env: process.env,
-        stdio: ["ignore", "pipe", "pipe"],
-      });
+      // Use login shell to ensure proper environment is loaded
+      const shell = process.env.SHELL || "/bin/bash";
+      const isFish = shell.includes("fish");
+
+      let stdout: Buffer;
+
+      if (isFish) {
+        // For fish shell, use the shell directly with login context
+        stdout = childProcess.execSync(`${shell} -l -c "${command}"`, {
+          cwd: cwd ?? this.workspacePath ?? process.cwd(),
+          timeout,
+          env: process.env,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+      } else {
+        // For other shells, use shell option with login flag
+        stdout = childProcess.execSync(command, {
+          cwd: cwd ?? this.workspacePath ?? process.cwd(),
+          timeout,
+          shell: `${shell} -l`,
+          env: {
+            ...process.env,
+            // Ensure PATH is properly set from the user's shell
+            PATH: process.env.PATH || "/usr/local/bin:/usr/bin:/bin",
+          },
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+      }
 
       return {
         code: 0,
@@ -83,6 +106,8 @@ export default class Cli {
         success: true,
       };
     } catch (error: any) {
+      console.error("Failed to run dagger command:", error);
+
       return {
         code: error.status || 1,
         stdout: error.stdout?.toString().trim() || "",
@@ -285,7 +310,7 @@ export default class Cli {
             parentModule: parentModule
               ? this.camelCaseToKebabCase(parentModule)
               : undefined, // Convert parent to kebab-case too
-            returnType: this.getFriendlyTypeName(func.returnType), // Pass entire returnType object
+            returnType: getReturnTypeName(func.returnType), // Use specialized return type helper
             args: func.args.map((arg) => {
               // Primary method: Use the optional property if available
               // Fallback: Check description for [required] if optional property is not set
@@ -296,7 +321,7 @@ export default class Cli {
 
               return {
                 name: this.camelCaseToKebabCase(arg.name),
-                type: this.getFriendlyTypeName(arg.typeDef),
+                type: getArgumentTypeName(arg.typeDef), // Use specialized argument type helper
                 required: isRequired,
               };
             }),
@@ -699,7 +724,7 @@ export default class Cli {
         module: moduleKebabName, // Use kebab-case module name or empty string for parent modules
         isParentModule: isParentModule, // Indicate if this is a parent module function
         parentModule: undefined, // We don't have context for determining parent here
-        returnType: this.getFriendlyTypeName(func.returnType), // Pass entire returnType object
+        returnType: getReturnTypeName(func.returnType), // Use specialized return type helper
         args: func.args.map((arg: any) => {
           const isRequired =
             arg.typeDef.optional === undefined
@@ -708,7 +733,7 @@ export default class Cli {
 
           return {
             name: this.camelCaseToKebabCase(arg.name),
-            type: this.getFriendlyTypeName(arg.typeDef),
+            type: getArgumentTypeName(arg.typeDef), // Use specialized argument type helper
             required: isRequired,
           };
         }),
@@ -851,15 +876,40 @@ export default class Cli {
   ): Promise<unknown> {
     const varJson = JSON.stringify(variables);
     try {
-      const child = require("child_process").spawn(
-        this.command,
-        ["query", "--var-json", varJson],
-        {
-          cwd: path,
-          env: process.env,
-          stdio: ["pipe", "pipe", "pipe"],
-        },
-      );
+      // Use login shell to ensure proper environment is loaded
+      const shell = process.env.SHELL || "/bin/bash";
+      const isFish = shell.includes("fish");
+
+      let child: any;
+
+      if (isFish) {
+        // For fish shell, use the shell directly with login context
+        child = require("child_process").spawn(
+          shell,
+          ["-l", "-c", `${this.command} query --var-json '${varJson}'`],
+          {
+            cwd: path,
+            env: process.env,
+            stdio: ["pipe", "pipe", "pipe"],
+          },
+        );
+      } else {
+        // For other shells, use shell option with login flag
+        child = require("child_process").spawn(
+          this.command,
+          ["query", "--var-json", varJson],
+          {
+            cwd: path,
+            shell: `${shell} -l`,
+            env: {
+              ...process.env,
+              // Ensure PATH is properly set from the user's shell
+              PATH: process.env.PATH || "/usr/local/bin:/usr/bin:/bin",
+            },
+            stdio: ["pipe", "pipe", "pipe"],
+          },
+        );
+      }
 
       let stdout = "";
       let stderr = "";
@@ -877,6 +927,7 @@ export default class Cli {
       await new Promise((resolve, reject) => {
         child.on("close", (code: number) => {
           if (code !== 0) {
+            console.error("GraphQL query failed:", stderr);
             reject(new Error(stderr || `Dagger exited with code ${code}`));
           } else {
             resolve(undefined);
@@ -894,89 +945,6 @@ export default class Cli {
         `Failed to execute GraphQL query: ${error.message || error}`,
       );
     }
-  }
-
-  /**
-   * Converts GraphQL type names to friendly type names.
-   * @param typeInfo The GraphQL type info object or string
-   * @returns A friendly type name (e.g., string, boolean, object, Container, Directory)
-   * @private
-   */
-  private getFriendlyTypeName(typeInfo: any): string {
-    // If typeInfo is a string, use legacy behavior
-    if (typeof typeInfo === "string") {
-      const graphQLType = typeInfo;
-      // Handle null or undefined
-      if (!graphQLType) {
-        return "unknown";
-      }
-
-      // Handle common GraphQL type prefixes
-      if (graphQLType.startsWith("OBJECT_")) {
-        const typeWithoutPrefix = graphQLType.substring(7).toLowerCase();
-
-        // Map specific type names
-        switch (typeWithoutPrefix) {
-          case "string":
-            return "string";
-          case "int":
-          case "integer":
-            return "number";
-          case "float":
-          case "double":
-            return "number";
-          case "boolean":
-            return "boolean";
-          case "object":
-            return "object";
-          case "array":
-            return "array";
-          case "list":
-            return "array";
-          case "map":
-            return "object";
-          case "void":
-          case "nil":
-          case "null":
-            return "null";
-          default:
-            return typeWithoutPrefix;
-        }
-      }
-
-      // Handle GraphQL scalar types
-      switch (graphQLType.toUpperCase()) {
-        case "STRING":
-          return "string";
-        case "INT":
-        case "INTEGER":
-        case "FLOAT":
-          return "number";
-        case "BOOLEAN":
-          return "boolean";
-        case "ID":
-          return "string";
-        default:
-          // If we can't map it, just lowercase the original type
-          return graphQLType.toLowerCase();
-      }
-    }
-
-    // If typeInfo is an object with asObject.name, use that
-    if (typeInfo && typeof typeInfo === "object") {
-      // If we have asObject.name, use that as it's more specific
-      if (typeInfo.asObject && typeInfo.asObject.name) {
-        return typeInfo.asObject.name;
-      }
-
-      // Otherwise, fall back to the kind
-      if (typeInfo.kind) {
-        return this.getFriendlyTypeName(typeInfo.kind);
-      }
-    }
-
-    // Default fallback
-    return "unknown";
   }
 
   /**
