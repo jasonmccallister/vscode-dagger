@@ -53,102 +53,16 @@ export const registerCallCommand = (
         return;
       }
 
-      let message = `\`${functionInfo.name}\` returns a ${functionInfo.returnType}.`;
-      let commandToAppend = [];
-      let showProgress = true;
+      const token = new vscode.CancellationTokenSource().token;
 
-      switch (functionInfo.returnType) {
-        case "Container":
-          const containerAction = await vscode.window.showInformationMessage(
-            `${message} Do you want to run it in a terminal or expose it as a service?`,
-            "Open Terminal",
-            "Expose Service",
-          );
-
-          if (!containerAction) {
-            console.log("No action selected for container function");
-            break;
-          }
-
-          switch (containerAction) {
-            case "Open Terminal":
-              console.log(
-                `Running function \`${functionInfo.name}\` in terminal...`,
-              );
-
-              commandToAppend.push(`terminal`);
-
-              showProgress = false; // No progress needed for terminal
-
-              break;
-            case "Expose Service":
-              console.log(
-                `Exposing function \`${functionInfo.name}\` as a service...`,
-              );
-
-              const ports = await vscode.window.showInputBox({
-                prompt: `Enter ports to expose for function \`${functionInfo.name}\` (comma-separated, e.g. 8080:8080)`,
-                placeHolder: "e.g. 8080:8080",
-                value: "8080:8080",
-                validateInput: (value) => {
-                  // Simple validation for port format
-                  const regex = /^\d+(:\d+)?(,\d+(:\d+)?)*$/;
-                  return regex.test(value)
-                    ? null
-                    : "Invalid port format. Use '8080:8080' or '8080,9090:9090'";
-                },
-              });
-
-              if (ports) {
-                commandToAppend.push(`as-service up --ports ${ports}`);
-                showProgress = false; // No progress needed for service
-              }
-
-              break;
-          }
-          break;
-        case "Service":
-          // ask the user if they want to run this in a terminal or expose as a service?
-          const serviceAction = await vscode.window.showInformationMessage(
-            `${message} Do you want to expose it?`,
-            "Expose Service",
-          );
-          if (!serviceAction) {
-            console.log("No action selected for service function");
-            break;
-          }
-
-          switch (serviceAction) {
-            case "Expose Service":
-              vscode.window.showInformationMessage(
-                `Exposing function \`${functionInfo.name}\` as a service...`,
-              );
-
-              const ports = await vscode.window.showInputBox({
-                prompt: `Enter ports to expose for function \`${functionInfo.name}\` (comma-separated, e.g. 8080:8080)`,
-                placeHolder: "e.g. 8080:8080",
-                value: "8080:8080",
-                validateInput: (value) => {
-                  // Simple validation for port format
-                  const regex = /^\d+(:\d+)?(,\d+(:\d+)?)*$/;
-                  return regex.test(value)
-                    ? null
-                    : "Invalid port format. Use '8080:8080' or '8080,9090:9090'";
-                },
-              });
-
-              if (ports) {
-                commandToAppend.push(`up --ports ${ports}`);
-                showProgress = false; // No progress needed for service
-              }
-
-              break;
-          }
+      const options = await preRunOptions(token, functionInfo);
+      if (!options) {
+        console.log("Function call cancelled by user during pre-run options");
+        return;
       }
 
-      if (!showProgress) {
-        let token = new vscode.CancellationTokenSource().token;
-
+      // skip progress if the user has selected options that are long running such as running in terminal or exposing as service
+      if (options.SkipProgress) {
         // get the user input for the function
         let functionInput = await collectFunctionInput(token, functionInfo);
         if (!functionInput) {
@@ -159,9 +73,12 @@ export const registerCallCommand = (
         }
 
         // add the command to run the function
-        if (commandToAppend.length > 0) {
+        if (
+          options.CommandArgsToAppend &&
+          options.CommandArgsToAppend.length > 0
+        ) {
           // append the command to run the function
-          functionInput.commandArgs.push(...commandToAppend);
+          functionInput.commandArgs.push(...options.CommandArgsToAppend);
         }
 
         const result = await runFunction(token, workspacePath, functionInput);
@@ -216,9 +133,12 @@ export const registerCallCommand = (
             }
 
             // add the command to run the function
-            if (commandToAppend.length > 0) {
+            if (
+              options.CommandArgsToAppend &&
+              options.CommandArgsToAppend.length > 0
+            ) {
               // append the command to run the function
-              functionInput.commandArgs.push(...commandToAppend);
+              functionInput.commandArgs.push(...options.CommandArgsToAppend);
             }
 
             const result = await runFunction(
@@ -266,4 +186,113 @@ export const registerCallCommand = (
   );
 
   context.subscriptions.push(disposable);
+};
+
+export interface SelectedActions {
+  OpenTerminal?: boolean;
+  ExposeService?: boolean;
+  Ports?: Record<number, number>;
+  CommandArgsToAppend?: string[];
+  SkipProgress?: boolean;
+}
+
+/**
+ * This looks at the return type of the function and prompts the user for options such as:
+ * - If the function returns a Container, ask if they want to run it in a terminal or expose it as a service
+ * - If the function returns a Service, ask if they want to expose it
+ * - If the function returns a File or Directory, ask if they want to export it to a local path
+ *
+ * @param token
+ * @param workspacePath
+ * @param functionInfo
+ */
+const preRunOptions = async (
+  token: vscode.CancellationToken,
+  functionInfo: FunctionInfo,
+) => {
+  const returnType = functionInfo.returnType;
+  let message = `\`${functionInfo.name}\` returns a ${returnType}.`;
+  let optionItems: string[] = [];
+
+  switch (returnType) {
+    case "Container":
+      // Ask if they want to run it in a terminal or expose it as a service
+      optionItems.push("Run in Terminal");
+      optionItems.push("Expose as Service");
+      break;
+    case "Service":
+      // Ask if they want to expose it
+      optionItems.push("Expose");
+      break;
+    case "File":
+    case "Directory":
+      // Ask if they want to export it to a local path
+      optionItems.push("Export to Local Path");
+      break;
+    default:
+    // do nothing
+  }
+
+  const selectedActions: SelectedActions = {
+    SkipProgress: true,
+  };
+
+  const selected = await vscode.window.showQuickPick(optionItems, {
+    placeHolder: message,
+    canPickMany: false,
+  });
+
+  if (!selected || token.isCancellationRequested) {
+    return undefined;
+  }
+
+  switch (selected) {
+    case "Run in Terminal":
+      selectedActions.OpenTerminal = true;
+      selectedActions.CommandArgsToAppend = ["terminal"];
+      selectedActions.SkipProgress = true;
+      break;
+    case "Expose as Service":
+      selectedActions.ExposeService = true;
+      selectedActions.CommandArgsToAppend = ["as-service up"];
+      selectedActions.SkipProgress = true;
+      break;
+    case "Expose":
+      selectedActions.ExposeService = true;
+      selectedActions.CommandArgsToAppend = ["up"];
+      selectedActions.SkipProgress = true;
+      break;
+    case "Export to Local Path":
+      // Handle export logic here if needed
+      break;
+  }
+
+  // do we need to ask for ports?
+  if (selectedActions.ExposeService) {
+    const ports = await vscode.window.showInputBox({
+      prompt: `Enter ports to expose for function \`${functionInfo.name}\` (comma-separated, e.g. 8080:8080)`,
+      placeHolder: "e.g. 8080:8080",
+      value: "8080:8080",
+      validateInput: (value) => {
+        // Simple validation for port format
+        const regex = /^\d+(:\d+)?(,\d+(:\d+)?)*$/;
+        return regex.test(value)
+          ? null
+          : "Invalid port format. Use '8080:8080' or '8080,9090:9090'";
+      },
+    });
+
+    if (ports) {
+      selectedActions.Ports = ports.split(",").reduce(
+        (acc, port) => {
+          const [host, container] = port.split(":");
+          acc[Number(host)] = Number(container);
+          return acc;
+        },
+        {} as Record<number, number>,
+      );
+    }
+  }
+
+  return selectedActions;
 };
