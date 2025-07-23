@@ -254,132 +254,6 @@ export const runFunction = async (
 };
 
 /**
- * Collects function argument values from the user and executes the Dagger function
- * @param _context VS Code extension context (not currently used but kept for future extension)
- * @param functionInfo The function information including name, arguments, and module
- * @returns A promise that resolves to { success, argValues } where argValues are the used arguments
- *
- * @deprecated Use collectFunctionInput and runFunction instead for better separation of concerns
- */
-export const collectAndRunFunction = async (
-  token: vscode.CancellationToken,
-  context: vscode.ExtensionContext,
-  _settings: DaggerSettings,
-  workspacePath: string,
-  functionInfo: FunctionInfo,
-): Promise<{
-  Result: TaskExecutionResult;
-  commandArgs: string[];
-  argValues: Record<string, string>;
-}> => {
-  const { name: functionName, args, module: moduleName } = functionInfo;
-
-  // Separate required and optional arguments
-  const requiredArgs = args.filter((arg) => arg.required);
-  const optionalArgs = args.filter((arg) => !arg.required);
-
-  // Select optional arguments to include
-  const selectedOptionalArgs = await selectOptionalArguments(optionalArgs);
-
-  // Combine required and selected optional arguments
-  const allSelectedArgs = [...requiredArgs, ...selectedOptionalArgs];
-
-  // Collect values for all arguments
-  const { argValues, cancelled } = await collectArgumentValues(allSelectedArgs);
-
-  if (cancelled) {
-    return {
-      Result: { success: false, exitCode: 1, execution: undefined },
-      commandArgs: [],
-      argValues: {},
-    };
-  }
-
-  let commandArgs: string[];
-  // if this is the root module, don't include module name
-  if (functionInfo.parentModule === undefined) {
-    commandArgs = buildCommandArgs(functionName, argValues);
-  } else {
-    commandArgs = buildCommandArgs(functionName, argValues, moduleName);
-  }
-
-  // check the return type and prompt the user to handle different cases
-  switch (functionInfo.returnType) {
-    case "Container":
-      const openInTerminal = await vscode.window.showInformationMessage(
-        `The function ${functionName} returns a container. Do you want to open it in a terminal?`,
-        { modal: false },
-        "Open",
-        "Cancel",
-      );
-
-      if (openInTerminal === "Open") {
-        // add terminal at the end of the commandArgs
-        commandArgs.push("terminal");
-        createTerminal(context).sendText(commandArgs.join(" "), true);
-      }
-      break;
-    case "File":
-      // ask the user if the want to export the file to the workspace
-      const exportFile = await vscode.window.showInformationMessage(
-        `Function ${functionName} returns a file. Do you want to export the file?`,
-        { modal: false },
-        "Export",
-        "Cancel",
-      );
-
-      if (exportFile === "Export") {
-        const exportLocation = await vscode.window.showInputBox({
-          prompt:
-            "Enter the export location and filename (default: ./bin/filename)",
-          value: "./bin/filename",
-        });
-
-        if (exportLocation !== undefined) {
-          commandArgs.push("export", `--path=${exportLocation}`);
-        }
-      }
-
-      break;
-    case "Directory":
-      // ask the user if they want to export the directory to the workspace
-      const exportDirectory = await vscode.window.showInformationMessage(
-        `Function ${functionName} returns a directory. Do you want to export the directory?`,
-        { modal: false },
-        "Export",
-        "Cancel",
-      );
-
-      if (exportDirectory === "Export") {
-        const exportLocation = await vscode.window.showInputBox({
-          prompt: "Enter the export location (default: ./dist/)",
-          value: "./dist/",
-        });
-
-        if (exportLocation !== undefined) {
-          commandArgs.push("export", `--path=${exportLocation}`);
-        }
-      }
-      break;
-  }
-
-  const result = await executeTaskAndWait(token, commandArgs.join(" "), {
-    taskName: `dagger`,
-    workingDirectory: workspacePath,
-  });
-
-  return {
-    Result: {
-      success: result.success,
-      exitCode: result.exitCode,
-      execution: result.execution,
-    },
-    commandArgs,
-    argValues,
-  };
-};
-
-/**
  * Shows a notification after a Dagger function call, prompting to save as a task
  * @param functionName The name of the function called
  * @param argValues The argument values used in the call
@@ -457,14 +331,23 @@ interface FunctionQuickPickItem extends vscode.QuickPickItem {
 }
 
 /**
+ * Type definition for a function filter callback
+ * @param fn The function info to filter
+ * @returns True if the function should be included, false to exclude
+ */
+export type FunctionFilterCallback = (fn: FunctionInfo) => boolean;
+
+/**
  * Loads functions and shows quick pick for selection
  * @param cli The Dagger CLI instance
  * @param workspacePath The workspace path
+ * @param filterCallback Optional callback to filter functions based on specific properties
  * @returns The selected function details or undefined if cancelled
  */
 export const selectFunction = async (
   cli: Cli,
   workspacePath: string,
+  filterCallback?: FunctionFilterCallback,
 ): Promise<FunctionInfo | undefined> => {
   const functions = await cli.functionsList(workspacePath);
 
@@ -475,8 +358,20 @@ export const selectFunction = async (
     return undefined;
   }
 
+  // Apply the filter if provided
+  const filteredFunctions = filterCallback 
+    ? functions.filter(filterCallback)
+    : functions;
+  
+  if (filteredFunctions.length === 0) {
+    vscode.window.showInformationMessage(
+      "No functions match the specified criteria.",
+    );
+    return undefined;
+  }
+
   // Create QuickPickItems with embedded function info
-  const functionItems: FunctionQuickPickItem[] = functions.map((fn) => ({
+  const functionItems: FunctionQuickPickItem[] = filteredFunctions.map((fn) => ({
     id: fn.functionId,
     label: fn.name,
     description: `${fn.module ? `(${fn.module}) ` : ""}${fn.description ? fn.description : ""}`,
@@ -494,4 +389,32 @@ export const selectFunction = async (
 
   // Return the embedded FunctionInfo object
   return pick.functionInfo;
+};
+
+/**
+ * Creates a filter callback that matches functions based on a specific property and one or more values
+ * @param propertyName The name of the property to filter by
+ * @param values One or more values to match against - can be a single value or an array
+ * @returns A filter callback function that can be passed to selectFunction
+ */
+export const createPropertyFilter = <K extends keyof FunctionInfo>(
+  propertyName: K,
+  values: FunctionInfo[K] | FunctionInfo[K][],
+): FunctionFilterCallback => {
+  // If values is a single value, convert to array for consistent processing
+  const valueArray = Array.isArray(values) ? values : [values];
+  
+  // Return a function that checks if the property value is in our array of accepted values
+  return (fn: FunctionInfo): boolean => valueArray.includes(fn[propertyName]);
+};
+
+/**
+ * Creates a custom filter callback using a predicate function
+ * @param predicate A function that tests each function info object
+ * @returns A filter callback function that can be passed to selectFunction
+ */
+export const createCustomFilter = (
+  predicate: (fn: FunctionInfo) => boolean,
+): FunctionFilterCallback => {
+  return predicate;
 };

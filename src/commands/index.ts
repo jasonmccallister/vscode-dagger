@@ -18,6 +18,7 @@ import { registerVersionCommand } from "./version";
 import { showCloudIntegrationPrompt } from "../prompt";
 import { registerTreeView } from "../tree/provider";
 import { DaggerSettings } from "../settings";
+import { registerExposeServiceCommand } from "./expose-service";
 
 type Options = {
   context: vscode.ExtensionContext;
@@ -62,6 +63,12 @@ export default class CommandManager {
       this.options.workspacePath,
     );
     registerResetCommand(this.options.context, this.options.settings);
+    registerExposeServiceCommand(
+      this.options.context,
+      this.options.cli,
+      this.options.workspacePath,
+      this.options.settings,
+    );
     registerSaveTaskCommand(
       this.options.context,
       this.options.cli,

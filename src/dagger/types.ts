@@ -1,3 +1,11 @@
+// types for Dagger return types
+
+// create a custom string type for Service
+export const ServiceType = "Service";
+export const ContainerType = "Container";
+export const FileType = "File";
+export const DirectoryType = "Directory";
+
 export interface DirectoryIdResult {
   host: {
     directory: {
