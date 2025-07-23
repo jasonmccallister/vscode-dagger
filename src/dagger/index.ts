@@ -7,6 +7,7 @@ import { CliCache } from "../cache/types";
 import { DaggerSettings } from "../settings";
 import { DirectoryIdResult, ModuleResult, ModuleObject } from "./types";
 import { getReturnTypeName, getArgumentTypeName } from "./type-helpers";
+import { findValidShell } from "../utils/terminal";
 
 // Type definitions for the CLI interface
 export interface RunOptions {
@@ -41,8 +42,6 @@ export interface FunctionInfo {
   args: FunctionArgument[];
 }
 
-// add tooltip method to FunctionInfo
-
 export default class Cli {
   private readonly command = "dagger";
   private workspacePath?: string;
@@ -69,34 +68,21 @@ export default class Cli {
         throw new Error(`Working directory does not exist: ${cwd}`);
       }
 
-      // Use login shell to ensure proper environment is loaded
-      const shell = process.env.SHELL || "/bin/bash";
-      const isFish = shell.includes("fish");
-
-      let stdout: Buffer;
-
-      if (isFish) {
-        // For fish shell, use the shell directly with login context
-        stdout = childProcess.execSync(`${shell} -l -c "${command}"`, {
-          cwd: cwd ?? this.workspacePath ?? process.cwd(),
-          timeout,
-          env: process.env,
-          stdio: ["ignore", "pipe", "pipe"],
-        });
-      } else {
-        // For other shells, use shell option with login flag
-        stdout = childProcess.execSync(command, {
-          cwd: cwd ?? this.workspacePath ?? process.cwd(),
-          timeout,
-          shell: `${shell} -l`,
-          env: {
-            ...process.env,
-            // Ensure PATH is properly set from the user's shell
-            PATH: process.env.PATH || "/usr/local/bin:/usr/bin:/bin",
-          },
-          stdio: ["ignore", "pipe", "pipe"],
-        });
-      }
+      // Get a valid shell for executing commands
+      const shell = findValidShell();
+      
+      // For other shells, use shell option with login flag
+      let stdout = childProcess.execSync(command, {
+        cwd: cwd ?? this.workspacePath ?? process.cwd(),
+        timeout,
+        shell,
+        env: {
+          ...process.env,
+          // Ensure PATH is properly set from the user's shell
+          PATH: process.env.PATH || "/usr/local/bin:/usr/bin:/bin",
+        },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
 
       return {
         code: 0,
@@ -487,7 +473,7 @@ export default class Cli {
       { id: directoryId },
       workspacePath,
     )) as ModuleResult;
-    
+
     // Return the objects array directly, filtering out any null or undefined entries
     return (
       result?.loadDirectoryFromID?.asModule?.objects?.filter(Boolean) ?? []
@@ -551,43 +537,27 @@ export default class Cli {
   ): Promise<unknown> {
     const varJson = JSON.stringify(variables);
     try {
-      // Use login shell to ensure proper environment is loaded
-      const shell = process.env.SHELL || "/bin/bash";
-      const isFish = shell.includes("fish");
-
+      // Get a valid shell for executing commands
+      const shell = findValidShell();
+      
       let child: any;
-
-      if (isFish) {
-        // For fish shell, use the shell directly with login context
-        child = require("child_process").spawn(
-          shell,
-          ["-l", "-c", `${this.command} query --var-json '${varJson}'`],
-          {
-            cwd: path,
-            env: process.env,
-            stdio: ["pipe", "pipe", "pipe"],
-          },
-        );
-      } else {
-        // For other shells, use shell option with login flag
-        child = require("child_process").spawn(
-          this.command,
-          ["query", "--var-json", varJson],
-          {
-            cwd: path,
-            shell: `${shell} -l`,
-            env: {
-              ...process.env,
-              // Ensure PATH is properly set from the user's shell
-              PATH: process.env.PATH || "/usr/local/bin:/usr/bin:/bin",
-            },
-            stdio: ["pipe", "pipe", "pipe"],
-          },
-        );
-      }
-
       let stdout = "";
       let stderr = "";
+
+      child = require("child_process").spawn(
+        this.command,
+        ["query", "--var-json", varJson],
+        {
+          cwd: path,
+          shell,
+          env: {
+            ...process.env,
+            // Ensure PATH is properly set from the user's shell
+            PATH: process.env.PATH || "/usr/local/bin:/usr/bin:/bin",
+          },
+          stdio: ["pipe", "pipe", "pipe"],
+        },
+      );
 
       child.stdout.on("data", (data: Buffer) => {
         stdout += data.toString();

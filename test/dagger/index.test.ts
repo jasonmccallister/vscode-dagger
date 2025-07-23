@@ -633,6 +633,10 @@ describe("Dagger CLI Wrapper", () => {
     });
 
     it("should ensure root module functions never have non-empty module names (tree view requirement)", async () => {
+      // Mock queryDirectoryId first to avoid the shell spawn issue
+      const mockQueryDirectoryId = sinon.stub(cli, "queryDirectoryId");
+      mockQueryDirectoryId.resolves("dir-123");
+      
       const mockQueryModuleFunctions = sinon.stub(cli, "queryModuleFunctions");
 
       // Mock response with various module hierarchies
@@ -668,7 +672,7 @@ describe("Dagger CLI Wrapper", () => {
           },
         },
       ]);
-
+      
       // Call functionsList to get processed functions
       const functions = await cli.functionsList("/test/workspace");
       
