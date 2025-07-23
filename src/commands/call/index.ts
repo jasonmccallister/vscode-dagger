@@ -2,7 +2,9 @@ import * as vscode from "vscode";
 import Cli, { FunctionInfo } from "../../dagger";
 import { showProjectSetupPrompt } from "../../prompt";
 import {
-  collectAndRunFunction,
+  collectFunctionInput,
+  runFunction,
+  selectFunction,
   showSaveTaskPrompt,
 } from "../../utils/function-helpers";
 import { DaggerTreeItem } from "../../tree/provider";
@@ -51,6 +53,139 @@ export const registerCallCommand = (
         return;
       }
 
+      let message = `\`${functionInfo.name}\` returns a ${functionInfo.returnType}.`;
+      let commandToAppend = [];
+      let showProgress = true;
+
+      switch (functionInfo.returnType) {
+        case "Container":
+          const containerAction = await vscode.window.showInformationMessage(
+            `${message} Do you want to run it in a terminal or expose it as a service?`,
+            "Open Terminal",
+            "Expose Service",
+          );
+
+          if (!containerAction) {
+            console.log("No action selected for container function");
+            break;
+          }
+
+          switch (containerAction) {
+            case "Open Terminal":
+              console.log(
+                `Running function \`${functionInfo.name}\` in terminal...`,
+              );
+
+              commandToAppend.push(`terminal`);
+
+              showProgress = false; // No progress needed for terminal
+
+              break;
+            case "Expose Service":
+              console.log(
+                `Exposing function \`${functionInfo.name}\` as a service...`,
+              );
+
+              const ports = await vscode.window.showInputBox({
+                prompt: `Enter ports to expose for function \`${functionInfo.name}\` (comma-separated, e.g. 8080:8080)`,
+                placeHolder: "e.g. 8080:8080",
+                value: "8080:8080",
+                validateInput: (value) => {
+                  // Simple validation for port format
+                  const regex = /^\d+(:\d+)?(,\d+(:\d+)?)*$/;
+                  return regex.test(value)
+                    ? null
+                    : "Invalid port format. Use '8080:8080' or '8080,9090:9090'";
+                },
+              });
+
+              if (ports) {
+                commandToAppend.push(`as-service up --ports ${ports}`);
+                showProgress = false; // No progress needed for service
+              }
+
+              break;
+          }
+          break;
+        case "Service":
+          // ask the user if they want to run this in a terminal or expose as a service?
+          const serviceAction = await vscode.window.showInformationMessage(
+            `${message} Do you want to expose it?`,
+            "Expose Service",
+          );
+          if (!serviceAction) {
+            console.log("No action selected for service function");
+            break;
+          }
+
+          switch (serviceAction) {
+            case "Expose Service":
+              vscode.window.showInformationMessage(
+                `Exposing function \`${functionInfo.name}\` as a service...`,
+              );
+
+              const ports = await vscode.window.showInputBox({
+                prompt: `Enter ports to expose for function \`${functionInfo.name}\` (comma-separated, e.g. 8080:8080)`,
+                placeHolder: "e.g. 8080:8080",
+                value: "8080:8080",
+                validateInput: (value) => {
+                  // Simple validation for port format
+                  const regex = /^\d+(:\d+)?(,\d+(:\d+)?)*$/;
+                  return regex.test(value)
+                    ? null
+                    : "Invalid port format. Use '8080:8080' or '8080,9090:9090'";
+                },
+              });
+
+              if (ports) {
+                commandToAppend.push(`up --ports ${ports}`);
+                showProgress = false; // No progress needed for service
+              }
+
+              break;
+          }
+      }
+
+      if (!showProgress) {
+        let token = new vscode.CancellationTokenSource().token;
+
+        // get the user input for the function
+        let functionInput = await collectFunctionInput(token, functionInfo);
+        if (!functionInput) {
+          console.log(
+            "Function call cancelled by user during input collection",
+          );
+          return undefined;
+        }
+
+        // add the command to run the function
+        if (commandToAppend.length > 0) {
+          // append the command to run the function
+          functionInput.commandArgs.push(...commandToAppend);
+        }
+
+        const result = await runFunction(token, workspacePath, functionInput);
+        if (!result) {
+          vscode.window.showErrorMessage(
+            `Failed to run function \`${functionInfo.name}\`. Please check the output for details.`,
+          );
+          return undefined;
+        }
+
+        // if successful and the prompt is not dismissed
+        if (settings.saveTaskPromptDismissed !== true) {
+          await showSaveTaskPrompt(
+            functionInfo.name!,
+            functionInput.argValues,
+            workspacePath,
+            settings,
+            functionInfo.module,
+          );
+        }
+
+        return undefined;
+      }
+
       await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
@@ -71,20 +206,29 @@ export const registerCallCommand = (
               return undefined;
             }
 
-            // Use the shared helper to collect arguments and run the function
-            // Pass the cancellation token to allow cancellation during argument collection
-            const { Result, argValues } =
-              await collectAndRunFunction(
-                token,
-                context,
-                settings,
-                workspacePath,
-                functionInfo,
+            // get the user input for the function
+            let functionInput = await collectFunctionInput(token, functionInfo);
+            if (!functionInput) {
+              console.log(
+                "Function call cancelled by user during input collection",
               );
+              return undefined;
+            }
 
-            if (!Result?.success) {
+            // add the command to run the function
+            if (commandToAppend.length > 0) {
+              // append the command to run the function
+              functionInput.commandArgs.push(...commandToAppend);
+            }
+
+            const result = await runFunction(
+              token,
+              workspacePath,
+              functionInput,
+            );
+            if (!result) {
               vscode.window.showErrorMessage(
-                `Function call failed with exit code ${Result?.exitCode || 'unknown'}`,
+                `Failed to run function \`${functionName}\`. Please check the output for details.`,
               );
               return undefined;
             }
@@ -93,7 +237,7 @@ export const registerCallCommand = (
             if (settings.saveTaskPromptDismissed !== true) {
               await showSaveTaskPrompt(
                 functionName!,
-                argValues,
+                functionInput.argValues,
                 workspacePath,
                 settings,
                 moduleName,
@@ -122,50 +266,4 @@ export const registerCallCommand = (
   );
 
   context.subscriptions.push(disposable);
-};
-
-/**
- * Interface for quick pick items that carry function info
- */
-interface FunctionQuickPickItem extends vscode.QuickPickItem {
-  functionInfo: FunctionInfo;
-}
-
-/**
- * Loads functions and shows quick pick for selection
- * @param cli The Dagger CLI instance
- * @param workspacePath The workspace path
- * @returns The selected function details or undefined if cancelled
- */
-const selectFunction = async (
-  cli: Cli,
-  workspacePath: string,
-): Promise<FunctionInfo | undefined> => {
-  const functions = await cli.functionsList(workspacePath);
-
-  if (functions.length === 0) {
-    vscode.window.showInformationMessage(
-      "No Dagger functions found in this project.",
-    );
-    return undefined;
-  }
-
-  // Create QuickPickItems with embedded function info
-  const functionItems: FunctionQuickPickItem[] = functions.map((fn) => ({
-    label: fn.name,
-    description: `${fn.module ? `(${fn.module}) ` : ""}${fn.description ? fn.description : ""}`,
-    detail: fn.returnType ? `Returns: ${fn.returnType}` : undefined,
-    functionInfo: fn, // Store the actual function info object
-  }));
-
-  const pick = await vscode.window.showQuickPick(functionItems, {
-    placeHolder: "Select a function to call",
-  });
-
-  if (!pick) {
-    return undefined;
-  }
-
-  // Return the embedded FunctionInfo object
-  return pick.functionInfo;
 };

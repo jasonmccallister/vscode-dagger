@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { FunctionInfo, FunctionArgument } from "../dagger";
+import Cli, { FunctionInfo, FunctionArgument } from "../dagger";
 import {
   createTerminal,
   executeTaskAndWait,
@@ -121,10 +121,145 @@ export const buildCommandArgs = (
 };
 
 /**
+ * Represents the collected function input data
+ */
+export interface CollectedFunctionInput {
+  /** The name of the function */
+  functionName: string;
+  /** The module name (if applicable) */
+  moduleName?: string;
+  /** The return type of the function */
+  returnType: string;
+  /** Whether the function is a parent module */
+  isParentModule: boolean;
+  /** The parent module name (if applicable) */
+  parentModule?: string;
+  /** The collected argument values */
+  argValues: Record<string, string>;
+  /** The final command arguments */
+  commandArgs: string[];
+}
+
+/**
+ * Collects function argument values and options from the user
+ * @param token Cancellation token to allow cancellation of the operation
+ * @param context VS Code extension context
+ * @param functionInfo The function information including name, arguments, and module
+ * @returns A promise that resolves to the collected function input or undefined if cancelled
+ */
+export const collectFunctionInput = async (
+  token: vscode.CancellationToken,
+  functionInfo: FunctionInfo,
+): Promise<CollectedFunctionInput | undefined> => {
+  const {
+    name: functionName,
+    args,
+    module: moduleName,
+    returnType,
+    isParentModule,
+    parentModule,
+  } = functionInfo;
+
+  // Check if operation has been cancelled
+  if (token.isCancellationRequested) {
+    return undefined;
+  }
+
+  // Separate required and optional arguments
+  const requiredArgs = args.filter((arg) => arg.required);
+  const optionalArgs = args.filter((arg) => !arg.required);
+
+  // Select optional arguments to include
+  const selectedOptionalArgs = await selectOptionalArguments(optionalArgs);
+
+  // Check if operation has been cancelled
+  if (token.isCancellationRequested) {
+    return undefined;
+  }
+
+  // Combine required and selected optional arguments
+  const allSelectedArgs = [...requiredArgs, ...selectedOptionalArgs];
+
+  // Collect values for all arguments
+  const { argValues, cancelled } = await collectArgumentValues(allSelectedArgs);
+
+  if (cancelled || token.isCancellationRequested) {
+    return undefined;
+  }
+
+  let commandArgs: string[];
+  // if this is the root module, don't include module name
+  if (functionInfo.parentModule === undefined) {
+    commandArgs = buildCommandArgs(functionName, argValues);
+  } else {
+    commandArgs = buildCommandArgs(functionName, argValues, moduleName);
+  }
+
+  // Check if operation has been cancelled
+  if (token.isCancellationRequested) {
+    return undefined;
+  }
+
+  return {
+    functionName,
+    moduleName,
+    returnType,
+    isParentModule,
+    parentModule,
+    argValues,
+    commandArgs,
+  };
+};
+
+/**
+ * Executes a Dagger function with the collected input
+ * @param token Cancellation token
+ * @param workspacePath The workspace path where the command will be executed
+ * @param input The collected function input
+ * @returns The task execution result along with command arguments and values
+ */
+export const runFunction = async (
+  token: vscode.CancellationToken,
+  workspacePath: string,
+  input: CollectedFunctionInput,
+): Promise<{
+  Result: TaskExecutionResult;
+  commandArgs: string[];
+  argValues: Record<string, string>;
+}> => {
+  // Check if operation has been cancelled
+  if (token.isCancellationRequested) {
+    return {
+      Result: { success: false, exitCode: 1, execution: undefined },
+      commandArgs: input.commandArgs,
+      argValues: input.argValues,
+    };
+  }
+
+  // Execute the command as a task and wait for completion
+  const result = await executeTaskAndWait(token, input.commandArgs.join(" "), {
+    taskName: `dagger`,
+    workingDirectory: workspacePath,
+  });
+
+  return {
+    Result: {
+      success: result.success,
+      exitCode: result.exitCode,
+      execution: result.execution,
+    },
+    commandArgs: input.commandArgs,
+    argValues: input.argValues,
+  };
+};
+
+/**
  * Collects function argument values from the user and executes the Dagger function
  * @param _context VS Code extension context (not currently used but kept for future extension)
  * @param functionInfo The function information including name, arguments, and module
  * @returns A promise that resolves to { success, argValues } where argValues are the used arguments
+ *
+ * @deprecated Use collectFunctionInput and runFunction instead for better separation of concerns
  */
 export const collectAndRunFunction = async (
   token: vscode.CancellationToken,
@@ -312,4 +447,51 @@ export const showSaveTaskPrompt = async (
       vscode.ConfigurationTarget.Global,
     );
   }
+};
+
+/**
+ * Interface for quick pick items that carry function info
+ */
+interface FunctionQuickPickItem extends vscode.QuickPickItem {
+  functionInfo: FunctionInfo;
+}
+
+/**
+ * Loads functions and shows quick pick for selection
+ * @param cli The Dagger CLI instance
+ * @param workspacePath The workspace path
+ * @returns The selected function details or undefined if cancelled
+ */
+export const selectFunction = async (
+  cli: Cli,
+  workspacePath: string,
+): Promise<FunctionInfo | undefined> => {
+  const functions = await cli.functionsList(workspacePath);
+
+  if (functions.length === 0) {
+    vscode.window.showInformationMessage(
+      "No Dagger functions found in this project.",
+    );
+    return undefined;
+  }
+
+  // Create QuickPickItems with embedded function info
+  const functionItems: FunctionQuickPickItem[] = functions.map((fn) => ({
+    id: fn.functionId,
+    label: fn.name,
+    description: `${fn.module ? `(${fn.module}) ` : ""}${fn.description ? fn.description : ""}`,
+    detail: fn.returnType ? `Returns: ${fn.returnType}` : undefined,
+    functionInfo: fn, // Store the actual function info object
+  }));
+
+  const pick = await vscode.window.showQuickPick(functionItems, {
+    placeHolder: "Select a function to call",
+  });
+
+  if (!pick) {
+    return undefined;
+  }
+
+  // Return the embedded FunctionInfo object
+  return pick.functionInfo;
 };
