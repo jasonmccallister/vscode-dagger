@@ -41,19 +41,20 @@ export const getReturnTypeName = (typeInfo: any): string => {
  * @returns A friendly argument type name (e.g., String, Int, Boolean, Container)
  */
 export const getArgumentTypeName = (typeInfo: any): string => {
-  // If typeInfo is an object with asObject.name, use that as it's the actual Dagger type name
+  // If typeInfo is an object, prioritize asObject.name as it contains the actual Dagger type name
   if (typeInfo && typeof typeInfo === "object") {
+    // First priority: Use asObject.name if available (e.g., "Container", "Service", "File")
     if (typeInfo.asObject && typeInfo.asObject.name) {
       return typeInfo.asObject.name;
     }
 
-    // Fall back to kind-based conversion
+    // Second priority: Fall back to kind-based conversion for scalar types
     if (typeInfo.kind) {
       return convertGraphQLType(typeInfo.kind);
     }
   }
 
-  // If typeInfo is a string, convert it
+  // If typeInfo is a string, convert it using kind-based logic
   if (typeof typeInfo === "string") {
     return convertGraphQLType(typeInfo);
   }

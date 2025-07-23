@@ -10,6 +10,9 @@ export interface FunctionArgTypeDef {
   kind: string;
   name?: string;
   optional?: boolean;
+  asObject?: {
+    name: string;
+  };
 }
 
 export interface FunctionArg {
@@ -19,10 +22,10 @@ export interface FunctionArg {
 }
 
 export interface ModuleFunction {
-  id: string; // Add the function ID
+  id: string;
   name: string;
   description?: string;
-  returnType: FunctionArgTypeDef; // Add return type information
+  returnType: FunctionArgTypeDef;
   args: FunctionArg[];
 }
 
@@ -40,7 +43,7 @@ export interface ModuleResult {
   loadDirectoryFromID: {
     asModule: {
       id: string;
-      description?: string; // Add module description
+      description?: string;
       name: string;
       objects: ModuleObject[];
     };

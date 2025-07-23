@@ -445,12 +445,11 @@ export default class Cli {
     directoryId: string,
     workspacePath: string,
   ): Promise<ModuleObject[]> {
-    const query = `
-            query($id: DirectoryID!) {
+    const query = `query ($id: DirectoryID!) {
               loadDirectoryFromID(id: $id) {
+                name
                 asModule {
                   id
-                  description
                   name
                   objects {
                     asObject {
@@ -470,6 +469,9 @@ export default class Cli {
                           name
                           description
                           typeDef {
+                            asObject {
+                              name
+                            }
                             kind
                             optional
                           }
@@ -479,13 +481,13 @@ export default class Cli {
                   }
                 }
               }
-            }
-          `;
+            }`;
     const result = (await this.query(
       query,
       { id: directoryId },
       workspacePath,
     )) as ModuleResult;
+    
     // Return the objects array directly, filtering out any null or undefined entries
     return (
       result?.loadDirectoryFromID?.asModule?.objects?.filter(Boolean) ?? []
@@ -503,333 +505,6 @@ export default class Cli {
     }
 
     this.workspacePath = workspacePath;
-  }
-
-  /**
-   * Queries the Dagger CLI to get a specific function by its ID.
-   * @param functionId The ID of the function to query
-   * @param workspacePath The path to the Dagger project directory
-   * @returns A Promise that resolves to a FunctionInfo object with detailed function information
-   * @throws Error if the query fails or the function is not found
-   */
-  public async queryFunctionByID(
-    functionId: string,
-    workspacePath: string,
-  ): Promise<FunctionInfo | undefined> {
-    const cacheKey = this.createCacheKey(
-      "function_by_id",
-      functionId,
-      workspacePath,
-    );
-
-    // Check cache first (only if caching is enabled)
-    if (this.cache && this.settings.enableCache) {
-      const cachedFunction = await this.cache.get<FunctionInfo>(cacheKey);
-      if (cachedFunction) {
-        console.log(`Returning cached function for ID: ${functionId}`);
-
-        // Update cache in background if caching is enabled
-        // Use a simple try/catch to avoid breaking tests
-        try {
-          if (this.settings.enableCache) {
-            this.updateFunctionByIDCache(
-              functionId,
-              workspacePath,
-              cacheKey,
-            ).catch((error) => {
-              console.error(
-                "Error updating function cache in background:",
-                error,
-              );
-            });
-          }
-        } catch (error) {
-          console.error("Error initiating background cache update:", error);
-        }
-
-        return cachedFunction;
-      }
-    }
-
-    // No cache, cache miss, or caching disabled - fetch directly
-    const functionInfo = await this.fetchFunctionByID(
-      functionId,
-      workspacePath,
-    );
-
-    // Cache the result if caching is enabled
-    if (this.cache && this.settings.enableCache && functionInfo) {
-      await this.cache.set(cacheKey, functionInfo);
-    }
-
-    return functionInfo;
-  }
-
-  /**
-   * Fetches a function by ID from the Dagger CLI (without caching)
-   * @param functionId The ID of the function to query
-   * @param workspacePath The path to the Dagger project directory
-   * @returns A Promise that resolves to a FunctionInfo object or undefined if not found
-   * @private
-   */
-  private async fetchFunctionByID(
-    functionId: string,
-    workspacePath: string,
-  ): Promise<FunctionInfo | undefined> {
-    console.log(`fetchFunctionByID called with functionId: ${functionId}`);
-
-    try {
-      const query = `
-                query($id: FunctionID!) {
-                    loadFunctionFromID(id: $id) {
-                        id
-                        name
-                        description
-                        returnType {
-                            kind
-                            optional
-                            asObject {
-                              name
-                            }
-                        }
-                        args {
-                            name
-                            description
-                            typeDef {
-                                kind
-                                optional
-                            }
-                        }
-                    }
-                }
-            `;
-
-      console.log(`Executing GraphQL query for function ID: ${functionId}`);
-      const result = await this.query(query, { id: functionId }, workspacePath);
-      console.log(
-        `Query result received: ${result ? "data returned" : "no data"}`,
-      );
-
-      const func = (result as any)?.loadFunctionFromID;
-
-      if (!func) {
-        console.warn(
-          `Function with ID ${functionId} not found in GraphQL response`,
-        );
-        return undefined;
-      }
-
-      console.log(
-        `Function data received: ${JSON.stringify({
-          id: func.id,
-          name: func.name,
-          argsCount: func.args?.length || 0,
-        })}`,
-      );
-
-      // Extract module name from function name if it contains a dot
-      let moduleName = "";
-      let isParentModule = false;
-
-      if (func.name.includes(".")) {
-        const fullModuleName = func.name.substring(0, func.name.indexOf("."));
-        isParentModule = false;
-
-        // Get the list of functions to determine root module
-        const allFunctions = await this.functionsList(workspacePath);
-
-        // Find the root module name (if any)
-        // Look for a function that has isParentModule=true
-        const rootModuleFuncs = allFunctions.filter((f) => f.isParentModule);
-        let rootModuleName = "";
-
-        if (rootModuleFuncs.length > 0) {
-          // We found at least one parent module function, use its module name
-          // The actual module name will be in the original name format (before kebab-case conversion)
-          // Extract it from one of the functions
-          const parentModuleFunc = rootModuleFuncs[0];
-          // We need to analyze the original name to find the parent module name
-          // First, find a function with this ID to get more context
-          const matchingFunc = allFunctions.find(
-            (f) => f.functionId === parentModuleFunc.functionId,
-          );
-
-          if (matchingFunc) {
-            // Get parent module functions in original module names
-            // For this, we need to get raw functions list from the API
-            const directoryId = await this.queryDirectoryId(workspacePath);
-            if (directoryId) {
-              const objects = await this.queryModuleFunctions(
-                directoryId,
-                workspacePath,
-              );
-              if (objects && objects.length > 0) {
-                // Find parent modules (they have submodules)
-                const parentModules = objects.filter((obj) => {
-                  const objName = obj.asObject?.name || obj.name || "";
-                  return objects.some((otherObj) => {
-                    const otherName =
-                      otherObj.asObject?.name || otherObj.name || "";
-                    return (
-                      otherName !== objName &&
-                      otherName.startsWith(objName) &&
-                      otherName.length > objName.length
-                    );
-                  });
-                });
-
-                // If there's only one parent module, consider it the root
-                if (parentModules.length === 1) {
-                  rootModuleName =
-                    parentModules[0].asObject?.name ||
-                    parentModules[0].name ||
-                    "";
-                }
-              }
-            }
-          }
-        }
-
-        // Now determine the clean module name
-        if (
-          rootModuleName &&
-          fullModuleName.startsWith(rootModuleName) &&
-          fullModuleName !== rootModuleName
-        ) {
-          // This is a submodule of the root module, extract just the submodule name
-          // Remove root module prefix to get the clean submodule name
-          moduleName = fullModuleName.substring(rootModuleName.length);
-
-          // Clean up any separators at the beginning (like hyphens or underscores)
-          moduleName = moduleName.replace(/^[-_]+/, "");
-        } else {
-          // Regular module or no root module found, use the full module name
-          moduleName = fullModuleName;
-        }
-      } else {
-        // This is a parent module function, use empty string for module name
-        isParentModule = true;
-      }
-
-      // Convert module name to kebab-case (only if it's not empty)
-      const moduleKebabName = moduleName
-        ? this.camelCaseToKebabCase(moduleName)
-        : "";
-
-      // Convert GraphQL function data to FunctionInfo format
-      return {
-        name: this.camelCaseToKebabCase(func.name),
-        description: func.description,
-        functionId: func.id,
-        module: moduleKebabName, // Use kebab-case module name or empty string for parent modules
-        isParentModule: isParentModule, // Indicate if this is a parent module function
-        parentModule: undefined, // We don't have context for determining parent here
-        returnType: getReturnTypeName(func.returnType), // Use specialized return type helper
-        args: func.args.map((arg: any) => {
-          const isRequired =
-            arg.typeDef.optional === undefined
-              ? arg.description?.includes("[required]") || false
-              : !arg.typeDef.optional;
-
-          return {
-            name: this.camelCaseToKebabCase(arg.name),
-            type: getArgumentTypeName(arg.typeDef), // Use specialized argument type helper
-            required: isRequired,
-          };
-        }),
-      };
-    } catch (error: any) {
-      console.error(`Error retrieving function with ID ${functionId}:`, error);
-      throw new Error(`Failed to retrieve function details: ${error.message}`);
-    }
-  }
-
-  /**
-   * Updates the function cache in the background
-   * @param functionId The ID of the function to update
-   * @param workspacePath The path to the Dagger project directory
-   * @param cacheKey The cache key to update
-   * @private
-   */
-  private async updateFunctionByIDCache(
-    functionId: string,
-    workspacePath: string,
-    cacheKey: string,
-  ): Promise<void> {
-    // Skip if caching is disabled
-    if (!this.settings.enableCache) {
-      return;
-    }
-
-    try {
-      const freshFunction = await this.fetchFunctionByID(
-        functionId,
-        workspacePath,
-      );
-      if (this.cache && freshFunction) {
-        // Check if data has actually changed using SHA256 comparison
-        const hasChanged = await this.cache.hasDataChanged(
-          cacheKey,
-          freshFunction,
-        );
-        if (hasChanged) {
-          await this.cache.set(cacheKey, freshFunction);
-          console.log(
-            `Updated function cache for ID: ${functionId} - data changed`,
-          );
-        } else {
-          console.log(
-            `Skipped function cache update for ID: ${functionId} - data unchanged`,
-          );
-        }
-      }
-    } catch (error) {
-      console.error(
-        `Error updating function cache for ID ${functionId}:`,
-        error,
-      );
-    }
-  }
-
-  /**
-   * Gets detailed information about a function including its arguments using the function ID.
-   *
-   * @param functionId The unique identifier of the function to fetch
-   * @param workspacePath The path to the workspace to run the command in
-   * @returns A Promise that resolves to a FunctionInfo object or undefined if not found
-   */
-  public async getFunction(
-    functionId: string,
-    workspacePath: string,
-  ): Promise<FunctionInfo | undefined> {
-    console.log(
-      `getFunction called with functionId: ${functionId}, workspacePath: ${workspacePath}`,
-    );
-
-    try {
-      const functionInfo = await this.queryFunctionByID(
-        functionId,
-        workspacePath,
-      );
-
-      if (!functionInfo) {
-        console.warn(`Function with ID ${functionId} not found`);
-        return undefined;
-      }
-
-      console.log(
-        `Function retrieved successfully: ${JSON.stringify({
-          name: functionInfo.name,
-          module: functionInfo.module,
-          argsCount: functionInfo.args?.length || 0,
-        })}`,
-      );
-
-      return functionInfo;
-    } catch (error: any) {
-      console.error(`Error in getFunction for ID ${functionId}:`, error);
-      throw new Error(`Failed to get function details: ${error.message}`);
-    }
   }
 
   /**

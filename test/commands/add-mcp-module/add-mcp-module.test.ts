@@ -24,9 +24,7 @@ describe("Add MCP Module Command", () => {
   let tempDir: string;
 
   const LATER_OPTION: MessageItem = { title: "Later" };
-  const RELOAD_OPTION: MessageItem = { title: "Reload" };
   const YES_OPTION: MessageItem = { title: "Yes" };
-  const NO_OPTION: MessageItem = { title: "No" };
 
   beforeEach(async () => {
     sandbox = sinon.createSandbox();

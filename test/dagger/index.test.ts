@@ -39,34 +39,61 @@ describe("Dagger CLI Wrapper", () => {
     sinon.restore();
   });
 
-  describe("getFriendlyTypeName", () => {
+  describe("getReturnTypeName and getArgumentTypeName", () => {
     it("should convert GraphQL type names to friendly type names", async () => {
+      // Import the utility functions directly
+      const { getReturnTypeName, getArgumentTypeName } = require("../../src/dagger/type-helpers");
+      
       const testCases = [
-        { input: "OBJECT_STRING", expected: "string" },
-        { input: "OBJECT_INT", expected: "number" },
-        { input: "OBJECT_FLOAT", expected: "number" },
-        { input: "OBJECT_BOOLEAN", expected: "boolean" },
-        { input: "OBJECT_OBJECT", expected: "object" },
-        { input: "OBJECT_ARRAY", expected: "array" },
-        { input: "OBJECT_LIST", expected: "array" },
-        { input: "OBJECT_MAP", expected: "object" },
-        { input: "OBJECT_CUSTOM", expected: "custom" },
-        { input: "STRING", expected: "string" },
-        { input: "INT", expected: "number" },
-        { input: "BOOLEAN", expected: "boolean" },
-        { input: "ID", expected: "string" },
-        { input: "CustomType", expected: "customtype" },
-        { input: "", expected: "unknown" },
-        { input: null as any, expected: "unknown" },
+        { input: "OBJECT_STRING", expectedReturn: "String", expectedArg: "String" },
+        { input: "OBJECT_INT", expectedReturn: "Int", expectedArg: "Int" },
+        { input: "OBJECT_FLOAT", expectedReturn: "Float", expectedArg: "Float" },
+        { input: "OBJECT_BOOLEAN", expectedReturn: "Boolean", expectedArg: "Boolean" },
+        { input: "OBJECT_OBJECT", expectedReturn: "Object", expectedArg: "Object" },
+        { input: "OBJECT_ARRAY", expectedReturn: "Array", expectedArg: "Array" },
+        { input: "OBJECT_LIST", expectedReturn: "Array", expectedArg: "Array" },
+        { input: "OBJECT_MAP", expectedReturn: "Object", expectedArg: "Object" },
+        { input: "OBJECT_CUSTOM", expectedReturn: "custom", expectedArg: "custom" },
+        { input: "STRING", expectedReturn: "String", expectedArg: "String" },
+        { input: "INT", expectedReturn: "Int", expectedArg: "Int" },
+        { input: "BOOLEAN", expectedReturn: "Boolean", expectedArg: "Boolean" },
+        { input: "ID", expectedReturn: "String", expectedArg: "String" },
+        { input: "CustomType", expectedReturn: "CustomType", expectedArg: "CustomType" },
+        { input: "", expectedReturn: "unknown", expectedArg: "unknown" },
+        { input: null as any, expectedReturn: "unknown", expectedArg: "unknown" },
       ];
 
       for (const testCase of testCases) {
-        // Access the private method for testing
-        const result = (cli as any).getFriendlyTypeName(testCase.input);
+        // Test both functions with string input
+        const returnResult = getReturnTypeName(testCase.input);
+        const argResult = getArgumentTypeName(testCase.input);
+        
         assert.strictEqual(
-          result,
-          testCase.expected,
-          `Failed for input: ${testCase.input}`,
+          returnResult,
+          testCase.expectedReturn,
+          `getReturnTypeName failed for input: ${testCase.input}`
+        );
+        
+        assert.strictEqual(
+          argResult,
+          testCase.expectedArg,
+          `getArgumentTypeName failed for input: ${testCase.input}`
+        );
+        
+        // Test with object input
+        const returnResultObj = getReturnTypeName({ kind: testCase.input });
+        const argResultObj = getArgumentTypeName({ kind: testCase.input });
+        
+        assert.strictEqual(
+          returnResultObj,
+          testCase.expectedReturn,
+          `getReturnTypeName failed for object input with kind: ${testCase.input}`
+        );
+        
+        assert.strictEqual(
+          argResultObj,
+          testCase.expectedArg,
+          `getArgumentTypeName failed for object input with kind: ${testCase.input}`
         );
       }
     });
@@ -605,26 +632,10 @@ describe("Dagger CLI Wrapper", () => {
       );
     });
 
-    it("should handle queryFunctionByID for root module functions", async () => {
-      const mockQuery = sinon.stub(cli as any, "query");
-      const mockQueryDirectoryId = sinon.stub(cli, "queryDirectoryId");
+    it("should ensure root module functions never have non-empty module names (tree view requirement)", async () => {
       const mockQueryModuleFunctions = sinon.stub(cli, "queryModuleFunctions");
 
-      // Mock the GraphQL response for queryFunctionByID
-      mockQuery.resolves({
-        loadFunctionFromID: {
-          id: "func1",
-          name: "buildImage",
-          description: "Builds an image",
-          returnType: { kind: "OBJECT_CONTAINER", optional: false },
-          args: [],
-        },
-      });
-
-      // Mock the directory ID response
-      mockQueryDirectoryId.resolves("dir-123");
-
-      // Mock the module functions response (same as first test for consistency)
+      // Mock response with various module hierarchies
       mockQueryModuleFunctions.resolves([
         {
           name: "DaggerDev",
@@ -658,140 +669,27 @@ describe("Dagger CLI Wrapper", () => {
         },
       ]);
 
-      // Call the method under test
-      const functionInfo = await (cli as any).fetchFunctionByID(
-        "func1",
-        "/test/workspace",
-      );
+      // Call functionsList to get processed functions
+      const functions = await cli.functionsList("/test/workspace");
+      
+      // Find the root module function
+      const rootFunction = functions.find(f => f.name === "build-image");
 
       // Verify the results
-      assert.ok(functionInfo, "Should return function info");
+      assert.ok(rootFunction, "Should find root module function");
       assert.strictEqual(
-        functionInfo.name,
-        "build-image",
-        "Function name should be kebab-cased",
+        rootFunction.module,
+        "",
+        "Root module function should have empty module name for tree view compatibility",
       );
       assert.strictEqual(
-        functionInfo.functionId,
-        "func1",
-        "Function ID should match",
-      );
-      assert.strictEqual(
-        functionInfo.isParentModule,
+        rootFunction.isParentModule,
         true,
         "Root module function should be marked as parent module",
       );
-      assert.strictEqual(
-        functionInfo.module,
-        "",
-        "Root module function should have empty module name",
-      );
-      assert.strictEqual(
-        functionInfo.parentModule,
-        undefined,
-        "Root module function should not have a parent",
-      );
-      assert.strictEqual(
-        functionInfo.returnType,
-        "container",
-        "Return type should be converted to friendly name (lowercase)",
-      );
     });
 
-    it("should handle queryFunctionByID for submodule functions", async () => {
-      const mockQuery = sinon.stub(cli as any, "query");
-      const mockQueryDirectoryId = sinon.stub(cli, "queryDirectoryId");
-      const mockQueryModuleFunctions = sinon.stub(cli, "queryModuleFunctions");
-
-      // Mock the GraphQL response for a submodule function
-      mockQuery.resolves({
-        loadFunctionFromID: {
-          id: "func2",
-          name: "DaggerDevCli.installBinary",
-          description: "Installs CLI binary",
-          returnType: { kind: "OBJECT_FILE", optional: false },
-          args: [],
-        },
-      });
-
-      // Mock the directory ID response
-      mockQueryDirectoryId.resolves("dir-123");
-
-      // Mock the module functions response
-      mockQueryModuleFunctions.resolves([
-        {
-          name: "DaggerDev",
-          asObject: {
-            name: "DaggerDev",
-            functions: [
-              {
-                id: "func1",
-                name: "buildImage",
-                description: "Builds an image",
-                returnType: { kind: "OBJECT_CONTAINER", optional: false },
-                args: [],
-              },
-            ],
-          },
-        },
-        {
-          name: "DaggerDevCli",
-          asObject: {
-            name: "DaggerDevCli",
-            functions: [
-              {
-                id: "func2",
-                name: "installBinary",
-                description: "Installs CLI binary",
-                returnType: { kind: "OBJECT_FILE", optional: false },
-                args: [],
-              },
-            ],
-          },
-        },
-      ]);
-
-      // Call the method under test
-      const functionInfo = await (cli as any).fetchFunctionByID(
-        "func2",
-        "/test/workspace",
-      );
-
-      // Verify the results
-      assert.ok(functionInfo, "Should return function info");
-      assert.strictEqual(
-        functionInfo.name,
-        "dagger-dev-cli.install-binary",
-        "Function name should include module prefix and be kebab-cased",
-      );
-      assert.strictEqual(
-        functionInfo.functionId,
-        "func2",
-        "Function ID should match",
-      );
-      assert.strictEqual(
-        functionInfo.isParentModule,
-        false,
-        "Submodule function should not be marked as parent module",
-      );
-      assert.strictEqual(
-        functionInfo.module,
-        "cli",
-        "Submodule function should have clean module name",
-      );
-      assert.strictEqual(
-        functionInfo.parentModule,
-        undefined,
-        "Parent module info is not available in this context",
-      );
-      assert.strictEqual(
-        functionInfo.returnType,
-        "file",
-        "Return type should be converted to friendly name (lowercase)",
-      );
-    });
-
-    it("should ensure root module functions never have non-empty module names (tree view requirement)", async () => {
+    it("should ensure multiple root module functions have correct structure", async () => {
       const mockQueryModuleFunctions = sinon.stub(cli, "queryModuleFunctions");
 
       // Mock response with various module hierarchies

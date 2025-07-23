@@ -139,15 +139,6 @@ describe("Call Command Tests", () => {
       ];
 
       mockCli.functionsList.resolves(mockFunctions);
-      mockCli.queryFunctionByID.resolves({
-        name: "test-function-1",
-        functionId: "func1",
-        module: "test-module",
-        args: [],
-        isParentModule: false,
-        parentModule: undefined,
-        returnType: "container",
-      });
 
       // Mock VS Code APIs
       const showQuickPickStub = sandbox.stub(vscode.window, "showQuickPick");
@@ -232,17 +223,15 @@ describe("Call Command Tests", () => {
         returnType: "container",
       };
 
-      // Create a mock TreeItem
+      // Create a mock TreeItem with functionInfo
       const mockTreeItem = new DaggerTreeItem(
-        "test-function",
+        mockFunction, // Pass the FunctionInfo object directly
         "function",
         vscode.TreeItemCollapsibleState.None,
         undefined,
         "test-module",
         "func1",
       );
-
-      mockCli.getFunction.resolves(mockFunction);
 
       // Mock VS Code APIs
       const withProgressStub = sandbox.stub(vscode.window, "withProgress");
@@ -312,17 +301,15 @@ describe("Call Command Tests", () => {
         returnType: "string",
       };
 
-      // Create a mock TreeItem
+      // Create a mock TreeItem with functionInfo
       const mockTreeItem = new DaggerTreeItem(
-        "parent-function",
+        mockFunction, // Pass the FunctionInfo object directly
         "function",
         vscode.TreeItemCollapsibleState.None,
         undefined,
         "", // Empty module name
         "parent1",
       );
-
-      mockCli.getFunction.resolves(mockFunction);
 
       // Mock VS Code APIs
       const withProgressStub = sandbox.stub(vscode.window, "withProgress");
@@ -428,13 +415,6 @@ describe("Call Command Tests", () => {
 
       // Execute command with TreeItem input that has children
       await commandCallback(mockTreeItem);
-
-      // Verify that getFunction was NOT called
-      assert.strictEqual(
-        mockCli.getFunction.called,
-        false,
-        "getFunction should not be called when tree item has argument children",
-      );
 
       // Verify collectAndRunFunction was called with the expected arguments
       assert.ok(
@@ -561,13 +541,6 @@ describe("Call Command Tests", () => {
 
       // Execute command with TreeItem input that has functionInfo
       await commandCallback(mockTreeItem);
-
-      // Verify that getFunction was NOT called
-      assert.strictEqual(
-        mockCli.getFunction.called,
-        false,
-        "getFunction should not be called when tree item has functionInfo",
-      );
 
       // Verify collectAndRunFunction was called with the expected arguments
       assert.ok(
