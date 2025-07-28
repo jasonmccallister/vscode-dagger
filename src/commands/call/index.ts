@@ -10,8 +10,6 @@ import {
 import { DaggerTreeItem } from "../../tree/provider";
 import { DaggerSettings } from "../../settings";
 
-export const COMMAND = "dagger.call";
-
 export const registerCallCommand = (
   context: vscode.ExtensionContext,
   cli: Cli,
@@ -19,13 +17,12 @@ export const registerCallCommand = (
   settings: DaggerSettings,
 ): void => {
   const disposable = vscode.commands.registerCommand(
-    COMMAND,
+    'dagger.call',
     async (input?: DaggerTreeItem) => {
       if (!(await cli.isDaggerProject())) {
         return showProjectSetupPrompt();
       }
 
-      // Ensure CLI has the workspace path set
       cli.setWorkspacePath(workspacePath);
 
       let functionInfo: FunctionInfo | undefined;
@@ -216,31 +213,34 @@ const preRunOptions = async (
 
   switch (returnType) {
     case "Container":
-      // Ask if they want to run it in a terminal or expose it as a service
       optionItems.push("Run in Terminal");
-      optionItems.push("Expose as Service");
+      optionItems.push("Expose Service");
       break;
     case "Service":
-      // Ask if they want to expose it
-      optionItems.push("Expose");
+      optionItems.push("Expose Service");
       break;
     case "File":
     case "Directory":
       // Ask if they want to export it to a local path
-      optionItems.push("Export to Local Path");
+      optionItems.push("Export to Host");
       break;
     default:
     // do nothing
   }
 
+  // always add the option to ignore extra steps
+  optionItems.push("Ignore and continue");
+
   const selectedActions: SelectedActions = {
     SkipProgress: true,
   };
 
-  const selected = await vscode.window.showQuickPick(optionItems, {
-    placeHolder: message,
-    canPickMany: false,
-  });
+  const selected = await vscode.window.showQuickPick(
+    optionItems,
+    {
+      placeHolder: message,
+    },
+  );
 
   if (!selected || token.isCancellationRequested) {
     return undefined;
@@ -252,18 +252,21 @@ const preRunOptions = async (
       selectedActions.CommandArgsToAppend = ["terminal"];
       selectedActions.SkipProgress = true;
       break;
-    case "Expose as Service":
+    case "Expose Service":
       selectedActions.ExposeService = true;
-      selectedActions.CommandArgsToAppend = ["as-service up"];
+      // For Container functions, need "as-service up", for Service functions just "up"
+      if (functionInfo.returnType === "Container") {
+        selectedActions.CommandArgsToAppend = ["as-service", "up"];
+      } else {
+        selectedActions.CommandArgsToAppend = ["up"];
+      }
       selectedActions.SkipProgress = true;
       break;
-    case "Expose":
-      selectedActions.ExposeService = true;
-      selectedActions.CommandArgsToAppend = ["up"];
-      selectedActions.SkipProgress = true;
-      break;
-    case "Export to Local Path":
+    case "Export to Host":
       // Handle export logic here if needed
+      break;
+    case "Ignore and continue":
+      selectedActions.SkipProgress = false;
       break;
   }
 
@@ -291,6 +294,18 @@ const preRunOptions = async (
         },
         {} as Record<number, number>,
       );
+
+      // Add port mappings to command args
+      if (selectedActions.Ports) {
+        const portMappings = Object.entries(selectedActions.Ports).map(
+          ([host, container]) => `${host}:${container}`,
+        );
+
+        // Add each port mapping individually with its own --ports flag
+        portMappings.forEach((mapping) => {
+          selectedActions.CommandArgsToAppend?.push("--ports", mapping);
+        });
+      }
     }
   }
 

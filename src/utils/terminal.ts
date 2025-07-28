@@ -22,7 +22,7 @@ export const findValidShell = (): string => {
   let shell = process.env.SHELL || "/bin/bash";
   
   // Common fallback shells in order of preference
-  const fallbackShells = ["/bin/bash", "/bin/sh"];
+  const fallbackShells = ["/bin/bash", "/bin/zsh", "/bin/sh"];
   
   try {
     // Check if the default shell exists
@@ -33,6 +33,20 @@ export const findValidShell = (): string => {
           shell = fallbackShell;
           break;
         }
+      }
+    }
+    
+    // Special handling for fish shell - it has different command execution behavior
+    // For CLI processes, it's often better to use bash for compatibility
+    if (shell.includes('fish')) {
+      console.log('Fish shell detected, using bash for CLI commands for better compatibility');
+      // Try to use bash instead for CLI commands
+      if (fs.existsSync('/bin/bash')) {
+        shell = '/bin/bash';
+      } else if (fs.existsSync('/bin/zsh')) {
+        shell = '/bin/zsh';
+      } else if (fs.existsSync('/bin/sh')) {
+        shell = '/bin/sh';
       }
     }
   } catch (err) {
@@ -62,6 +76,7 @@ export const createTerminal = (
 
 /**
  * Executes a command in the Dagger terminal
+ * @deprecated Use `executeTaskAndWait` for better task management
  */
 export const executeInTerminal = async (
   context: vscode.ExtensionContext,
