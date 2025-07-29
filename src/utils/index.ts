@@ -4,6 +4,6 @@
  */
 
 // Re-export all utility functions for easier imports
-export * from './terminal';
-export * from './function-helpers';
-export * from './installation';
+export * from "./terminal";
+export * from "./function-helpers";
+export * from "./installation";

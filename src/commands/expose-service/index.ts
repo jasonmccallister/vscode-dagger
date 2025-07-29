@@ -71,29 +71,24 @@ export const registerExposeServiceCommand = (
 
         // Prepare port mappings in the correct format (frontend:backend)
         const portMappings = Object.entries(ports).map(
-          ([host, container]) => `${host}:${container}`
+          ([host, container]) => `${host}:${container}`,
         );
-        
+
         // append the command args to the function input
         if (functionInfo.returnType === ContainerType) {
-          functionInput.commandArgs.push(
-            "as-service",
-            "up"
-          );
-          
+          functionInput.commandArgs.push("as-service", "up");
+
           // Add each port mapping individually with its own --ports flag
-          portMappings.forEach(mapping => {
+          portMappings.forEach((mapping) => {
             functionInput.commandArgs.push("--ports", mapping);
           });
         }
 
         if (functionInfo.returnType === ServiceType) {
-          functionInput.commandArgs.push(
-            "up"
-          );
-          
+          functionInput.commandArgs.push("up");
+
           // Add each port mapping individually with its own --ports flag
-          portMappings.forEach(mapping => {
+          portMappings.forEach((mapping) => {
             functionInput.commandArgs.push("--ports", mapping);
           });
         }

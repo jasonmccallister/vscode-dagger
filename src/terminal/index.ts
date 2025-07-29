@@ -13,13 +13,13 @@ export type DaggerPathFinder = () => string;
  */
 export const findDaggerPath = (): string => {
   try {
-    const shell = process.env.SHELL || '/bin/bash';
-    const isFish = shell.includes('fish');
-    
+    const shell = process.env.SHELL || "/bin/bash";
+    const isFish = shell.includes("fish");
+
     if (isFish) {
       // For fish shell, use the shell directly with login context
-      return execFileSync(shell, ['-l', '-c', 'which dagger'], { 
-        encoding: "utf8" 
+      return execFileSync(shell, ["-l", "-c", "which dagger"], {
+        encoding: "utf8",
       }).trim();
     } else {
       // For other shells, try which command directly first
@@ -27,8 +27,8 @@ export const findDaggerPath = (): string => {
         return execFileSync("which", ["dagger"], { encoding: "utf8" }).trim();
       } catch {
         // Fallback to using login shell for other shells too
-        return execFileSync(shell, ['-l', '-c', 'which dagger'], { 
-          encoding: "utf8" 
+        return execFileSync(shell, ["-l", "-c", "which dagger"], {
+          encoding: "utf8",
         }).trim();
       }
     }

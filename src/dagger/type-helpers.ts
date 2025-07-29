@@ -7,7 +7,7 @@
  * Converts GraphQL return type information to a friendly Dagger type name.
  * This is optimized for function return types which are often Dagger objects
  * like Container, Service, File, Directory, etc.
- * 
+ *
  * @param typeInfo The GraphQL return type info object or string
  * @returns A friendly return type name (e.g., Container, Service, String, Int)
  */
@@ -36,7 +36,7 @@ export const getReturnTypeName = (typeInfo: any): string => {
  * Converts GraphQL argument type information to a friendly Dagger type name.
  * This is optimized for function arguments which are often basic types
  * like String, Int, Boolean, or Dagger objects.
- * 
+ *
  * @param typeInfo The GraphQL argument type info object or string
  * @returns A friendly argument type name (e.g., String, Int, Boolean, Container)
  */
@@ -65,7 +65,7 @@ export const getArgumentTypeName = (typeInfo: any): string => {
 /**
  * Core function to convert various GraphQL type formats to Dagger-style type names.
  * Handles multiple patterns: OBJECT_, KIND_, _kind suffix, and direct scalar types.
- * 
+ *
  * @param graphQLType The GraphQL type string to convert
  * @returns A friendly Dagger-style type name
  * @private
@@ -90,7 +90,9 @@ const convertGraphQLType = (graphQLType: string): string => {
 
   // Handle _kind suffixed types (e.g., string_kind, int_kind)
   if (graphQLType.toLowerCase().endsWith("_kind")) {
-    const typeWithoutSuffix = graphQLType.substring(0, graphQLType.length - 5).toLowerCase();
+    const typeWithoutSuffix = graphQLType
+      .substring(0, graphQLType.length - 5)
+      .toLowerCase();
     return mapScalarType(typeWithoutSuffix);
   }
 
@@ -115,7 +117,7 @@ const convertGraphQLType = (graphQLType: string): string => {
 
 /**
  * Maps scalar type names to Dagger-style type names.
- * 
+ *
  * @param scalarType The scalar type name (lowercase)
  * @returns The mapped Dagger-style type name
  * @private

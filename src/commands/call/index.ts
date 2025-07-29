@@ -17,7 +17,7 @@ export const registerCallCommand = (
   settings: DaggerSettings,
 ): void => {
   const disposable = vscode.commands.registerCommand(
-    'dagger.call',
+    "dagger.call",
     async (input?: DaggerTreeItem) => {
       if (!(await cli.isDaggerProject())) {
         return showProjectSetupPrompt();
@@ -235,12 +235,9 @@ const preRunOptions = async (
     SkipProgress: true,
   };
 
-  const selected = await vscode.window.showQuickPick(
-    optionItems,
-    {
-      placeHolder: message,
-    },
-  );
+  const selected = await vscode.window.showQuickPick(optionItems, {
+    placeHolder: message,
+  });
 
   if (!selected || token.isCancellationRequested) {
     return undefined;

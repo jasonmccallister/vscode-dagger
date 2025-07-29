@@ -70,7 +70,7 @@ export default class Cli {
 
       // Get a valid shell for executing commands
       const shell = findValidShell();
-      
+
       // For other shells, use shell option with login flag
       let stdout = childProcess.execSync(command, {
         cwd: cwd ?? this.workspacePath ?? process.cwd(),
@@ -440,6 +440,7 @@ export default class Cli {
                   objects {
                     asObject {
                       name
+                      id
                       functions {
                         id
                         name
@@ -533,31 +534,36 @@ export default class Cli {
   private async query(
     query: string,
     variables: Record<string, unknown> = {},
-    path: string,
+    workspacePath: string,
   ): Promise<unknown> {
-    const varJson = JSON.stringify(variables);
     try {
       // Get a valid shell for executing commands
-      const shell = findValidShell();
-      
+      const shell = process.env.SHELL || "/bin/bash";
+
       let child: any;
       let stdout = "";
       let stderr = "";
 
-      child = require("child_process").spawn(
-        this.command,
-        ["query", "--var-json", varJson],
-        {
-          cwd: path,
-          shell,
-          env: {
-            ...process.env,
-            // Ensure PATH is properly set from the user's shell
-            PATH: process.env.PATH || "/usr/local/bin:/usr/bin:/bin",
-          },
-          stdio: ["pipe", "pipe", "pipe"],
+      // wrap the args to ensure they are properly quoted
+      // This is important for multi-line queries or queries with special characters
+      const vars = Object.entries(variables)
+        .map(
+          ([key, value]) => `${JSON.stringify(key)}=${JSON.stringify(value)}`,
+        )
+        .join(" ");
+
+      const args = ["query", "--var", vars];
+
+      child = require("child_process").spawn(this.command, args, {
+        cwd: workspacePath,
+        shell,
+        env: {
+          ...process.env,
+          // Ensure PATH is properly set from the user's shell
+          PATH: process.env.PATH || "/usr/local/bin:/usr/bin:/bin",
         },
-      );
+        stdio: ["pipe", "pipe", "pipe"],
+      });
 
       child.stdout.on("data", (data: Buffer) => {
         stdout += data.toString();
@@ -583,9 +589,6 @@ export default class Cli {
       return JSON.parse(stdout);
     } catch (error: any) {
       console.error("Error executing GraphQL query:", error);
-      console.error("Query:", query);
-      console.error("Variables:", varJson);
-      console.error("Working directory:", path);
       throw new Error(
         `Failed to execute GraphQL query: ${error.message || error}`,
       );

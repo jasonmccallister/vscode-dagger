@@ -20,10 +20,10 @@ const TERMINAL_CONFIG = {
 export const findValidShell = (): string => {
   // Default shell from environment or common default
   let shell = process.env.SHELL || "/bin/bash";
-  
+
   // Common fallback shells in order of preference
   const fallbackShells = ["/bin/bash", "/bin/zsh", "/bin/sh"];
-  
+
   try {
     // Check if the default shell exists
     if (!fs.existsSync(shell)) {
@@ -35,25 +35,27 @@ export const findValidShell = (): string => {
         }
       }
     }
-    
+
     // Special handling for fish shell - it has different command execution behavior
     // For CLI processes, it's often better to use bash for compatibility
-    if (shell.includes('fish')) {
-      console.log('Fish shell detected, using bash for CLI commands for better compatibility');
+    if (shell.includes("fish")) {
+      console.log(
+        "Fish shell detected, using bash for CLI commands for better compatibility",
+      );
       // Try to use bash instead for CLI commands
-      if (fs.existsSync('/bin/bash')) {
-        shell = '/bin/bash';
-      } else if (fs.existsSync('/bin/zsh')) {
-        shell = '/bin/zsh';
-      } else if (fs.existsSync('/bin/sh')) {
-        shell = '/bin/sh';
+      if (fs.existsSync("/bin/bash")) {
+        shell = "/bin/bash";
+      } else if (fs.existsSync("/bin/zsh")) {
+        shell = "/bin/zsh";
+      } else if (fs.existsSync("/bin/sh")) {
+        shell = "/bin/sh";
       }
     }
   } catch (err) {
     console.warn(`Error checking shell existence: ${err}`);
     shell = "/bin/sh"; // Safest fallback
   }
-  
+
   return shell;
 };
 

@@ -35,7 +35,9 @@ export const registerDevelopCommand = (
             } as CollectedFunctionInput);
 
             if (token.isCancellationRequested) {
-              console.log("Dagger development environment setup cancelled by user");
+              console.log(
+                "Dagger development environment setup cancelled by user",
+              );
               return undefined;
             }
 

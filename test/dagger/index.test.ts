@@ -41,59 +41,99 @@ describe("Dagger CLI Wrapper", () => {
 
   describe("getReturnTypeName and getArgumentTypeName", () => {
     it("should convert GraphQL type names to friendly type names", async () => {
-      // Import the utility functions directly
-      const { getReturnTypeName, getArgumentTypeName } = require("../../src/dagger/type-helpers");
       
+      // Import the utility functions directly
+      const {
+        getReturnTypeName,
+        getArgumentTypeName,
+      } = require("../../src/dagger/type-helpers");
+
       const testCases = [
-        { input: "OBJECT_STRING", expectedReturn: "String", expectedArg: "String" },
+        {
+          input: "OBJECT_STRING",
+          expectedReturn: "String",
+          expectedArg: "String",
+        },
         { input: "OBJECT_INT", expectedReturn: "Int", expectedArg: "Int" },
-        { input: "OBJECT_FLOAT", expectedReturn: "Float", expectedArg: "Float" },
-        { input: "OBJECT_BOOLEAN", expectedReturn: "Boolean", expectedArg: "Boolean" },
-        { input: "OBJECT_OBJECT", expectedReturn: "Object", expectedArg: "Object" },
-        { input: "OBJECT_ARRAY", expectedReturn: "Array", expectedArg: "Array" },
+        {
+          input: "OBJECT_FLOAT",
+          expectedReturn: "Float",
+          expectedArg: "Float",
+        },
+        {
+          input: "OBJECT_BOOLEAN",
+          expectedReturn: "Boolean",
+          expectedArg: "Boolean",
+        },
+        {
+          input: "OBJECT_OBJECT",
+          expectedReturn: "Object",
+          expectedArg: "Object",
+        },
+        {
+          input: "OBJECT_ARRAY",
+          expectedReturn: "Array",
+          expectedArg: "Array",
+        },
         { input: "OBJECT_LIST", expectedReturn: "Array", expectedArg: "Array" },
-        { input: "OBJECT_MAP", expectedReturn: "Object", expectedArg: "Object" },
-        { input: "OBJECT_CUSTOM", expectedReturn: "custom", expectedArg: "custom" },
+        {
+          input: "OBJECT_MAP",
+          expectedReturn: "Object",
+          expectedArg: "Object",
+        },
+        {
+          input: "OBJECT_CUSTOM",
+          expectedReturn: "custom",
+          expectedArg: "custom",
+        },
         { input: "STRING", expectedReturn: "String", expectedArg: "String" },
         { input: "INT", expectedReturn: "Int", expectedArg: "Int" },
         { input: "BOOLEAN", expectedReturn: "Boolean", expectedArg: "Boolean" },
         { input: "ID", expectedReturn: "String", expectedArg: "String" },
-        { input: "CustomType", expectedReturn: "CustomType", expectedArg: "CustomType" },
+        {
+          input: "CustomType",
+          expectedReturn: "CustomType",
+          expectedArg: "CustomType",
+        },
         { input: "", expectedReturn: "unknown", expectedArg: "unknown" },
-        { input: null as any, expectedReturn: "unknown", expectedArg: "unknown" },
+        {
+          input: null as any,
+          expectedReturn: "unknown",
+          expectedArg: "unknown",
+        },
       ];
 
       for (const testCase of testCases) {
         // Test both functions with string input
         const returnResult = getReturnTypeName(testCase.input);
         const argResult = getArgumentTypeName(testCase.input);
-        
+
         assert.strictEqual(
           returnResult,
           testCase.expectedReturn,
-          `getReturnTypeName failed for input: ${testCase.input}`
+          `getReturnTypeName failed for input: ${testCase.input}`,
         );
-        
+
         assert.strictEqual(
           argResult,
           testCase.expectedArg,
-          `getArgumentTypeName failed for input: ${testCase.input}`
+          `getArgumentTypeName failed for input: ${testCase.input}`,
         );
-        
+
         // Test with object input
         const returnResultObj = getReturnTypeName({ kind: testCase.input });
         const argResultObj = getArgumentTypeName({ kind: testCase.input });
-        
+
         assert.strictEqual(
           returnResultObj,
           testCase.expectedReturn,
-          `getReturnTypeName failed for object input with kind: ${testCase.input}`
+          `getReturnTypeName failed for object input with kind: ${testCase.input}`,
         );
-        
+
         assert.strictEqual(
           argResultObj,
           testCase.expectedArg,
-          `getArgumentTypeName failed for object input with kind: ${testCase.input}`
+          `getArgumentTypeName failed for object input with kind: ${testCase.input}`,
         );
       }
     });
@@ -636,7 +676,7 @@ describe("Dagger CLI Wrapper", () => {
       // Mock queryDirectoryId first to avoid the shell spawn issue
       const mockQueryDirectoryId = sinon.stub(cli, "queryDirectoryId");
       mockQueryDirectoryId.resolves("dir-123");
-      
+
       const mockQueryModuleFunctions = sinon.stub(cli, "queryModuleFunctions");
 
       // Mock response with various module hierarchies
@@ -672,12 +712,12 @@ describe("Dagger CLI Wrapper", () => {
           },
         },
       ]);
-      
+
       // Call functionsList to get processed functions
       const functions = await cli.functionsList("/test/workspace");
-      
+
       // Find the root module function
-      const rootFunction = functions.find(f => f.name === "build-image");
+      const rootFunction = functions.find((f) => f.name === "build-image");
 
       // Verify the results
       assert.ok(rootFunction, "Should find root module function");

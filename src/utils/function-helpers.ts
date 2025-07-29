@@ -359,10 +359,10 @@ export const selectFunction = async (
   }
 
   // Apply the filter if provided
-  const filteredFunctions = filterCallback 
+  const filteredFunctions = filterCallback
     ? functions.filter(filterCallback)
     : functions;
-  
+
   if (filteredFunctions.length === 0) {
     vscode.window.showInformationMessage(
       "No functions match the specified criteria.",
@@ -371,13 +371,15 @@ export const selectFunction = async (
   }
 
   // Create QuickPickItems with embedded function info
-  const functionItems: FunctionQuickPickItem[] = filteredFunctions.map((fn) => ({
-    id: fn.functionId,
-    label: fn.name,
-    description: `${fn.module ? `(${fn.module}) ` : ""}${fn.description ? fn.description : ""}`,
-    detail: fn.returnType ? `Returns: ${fn.returnType}` : undefined,
-    functionInfo: fn, // Store the actual function info object
-  }));
+  const functionItems: FunctionQuickPickItem[] = filteredFunctions.map(
+    (fn) => ({
+      id: fn.functionId,
+      label: fn.name,
+      description: `${fn.module ? `(${fn.module}) ` : ""}${fn.description ? fn.description : ""}`,
+      detail: fn.returnType ? `Returns: ${fn.returnType}` : undefined,
+      functionInfo: fn, // Store the actual function info object
+    }),
+  );
 
   const pick = await vscode.window.showQuickPick(functionItems, {
     placeHolder: "Select a function to call",
@@ -403,7 +405,7 @@ export const createPropertyFilter = <K extends keyof FunctionInfo>(
 ): FunctionFilterCallback => {
   // If values is a single value, convert to array for consistent processing
   const valueArray = Array.isArray(values) ? values : [values];
-  
+
   // Return a function that checks if the property value is in our array of accepted values
   return (fn: FunctionInfo): boolean => valueArray.includes(fn[propertyName]);
 };
