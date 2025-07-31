@@ -10,35 +10,25 @@ export interface InstallResult {
   platform: string;
 }
 
+/**
+ * Checks if Dagger is installed and accessible.
+ *
+ * @param platform The platform to check installation for (e.g., "darwin", "linux", "win32").
+ * @returns A promise that resolves to an InstallResult object indicating the installation status.
+ */
 export const checkInstallation = async (
   platform: string,
 ): Promise<InstallResult> => {
-  // Check if binary exists
   let hasCorrectBinary = false;
   try {
-    // Use login shell to ensure proper environment is loaded
-    const shell = process.env.SHELL || "/bin/bash";
-    const isFish = shell.includes("fish");
+    const shell = process.env.SHELL;
+    if (!shell) {
+      throw new Error("SHELL environment variable is not set.");
+    }
 
-    // For fish shell, we need to use login shell to load the user's environment
-    // For other shells, we can use the shell directly with login flag
-    const command = isFish
-      ? `${shell} -l -c "dagger version"`
-      : "dagger version";
-
-    const execOptions = isFish
-      ? { timeout: 5000 }
-      : {
-          timeout: 5000,
-          shell: `${shell} -l`,
-          env: {
-            ...process.env,
-            // Ensure PATH is properly set from the user's shell
-            PATH: process.env.PATH || "/usr/local/bin:/usr/bin:/bin",
-          },
-        };
-
-    const { stdout } = await execAsync(command, execOptions);
+    const { stdout } = await execAsync("dagger version", {
+      timeout: 5000,
+    });
     hasCorrectBinary = stdout.includes("dagger");
   } catch (error) {
     // dagger binary doesn't exist or failed to execute
@@ -50,25 +40,15 @@ export const checkInstallation = async (
   let hasHomebrew: boolean | undefined;
   if (platform === "darwin" || platform === "linux") {
     try {
-      const shell = process.env.SHELL || "/bin/bash";
-      const isFish = shell.includes("fish");
+      const shell = process.env.SHELL;
 
-      const command = isFish
-        ? `${shell} -l -c "brew --version"`
-        : "brew --version";
+      const command = "brew --version";
 
-      const execOptions = isFish
-        ? { timeout: 5000 }
-        : {
-            timeout: 5000,
-            shell: `${shell} -l`,
-            env: {
-              ...process.env,
-              PATH: process.env.PATH || "/usr/local/bin:/usr/bin:/bin",
-            },
-          };
+      await execAsync(command, {
+        timeout: 5000,
+        shell,
+      });
 
-      await execAsync(command, execOptions);
       hasHomebrew = true;
     } catch (error) {
       console.error("Failed to check homebrew installation:", error);

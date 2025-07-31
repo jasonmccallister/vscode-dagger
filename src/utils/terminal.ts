@@ -29,55 +29,6 @@ export const createTerminal = (
 };
 
 /**
- * Executes a command in the Dagger terminal
- * @deprecated Use `executeTaskAndWait` for better task management
- */
-export const executeInTerminal = async (
-  context: vscode.ExtensionContext,
-  command: string,
-  isInteractive: boolean = false,
-): Promise<void> => {
-  // if this is interactive
-  if (isInteractive) {
-    const terminal = createTerminal(context);
-    terminal.show();
-    terminal.sendText(command);
-    return;
-  }
-
-  const taskExecution = new vscode.ShellExecution(command);
-  const taskDefinition: vscode.TaskDefinition = {
-    type: "shell",
-  };
-
-  const task = new vscode.Task(
-    taskDefinition,
-    vscode.TaskScope.Workspace,
-    TERMINAL_CONFIG.NAME,
-    "shell",
-    taskExecution,
-  );
-
-  task.presentationOptions = {
-    reveal: vscode.TaskRevealKind.Always,
-    panel: vscode.TaskPanelKind.Shared,
-    showReuseMessage: false,
-    clear: false,
-  };
-  task.detail = command;
-
-  vscode.tasks.executeTask(task).then(
-    () => {},
-    (error) => {
-      console.error(`Failed to execute command in terminal: ${command}`, error);
-      vscode.window.showErrorMessage(
-        `Failed to execute command: ${error.message}`,
-      );
-    },
-  );
-};
-
-/**
  * Result interface for synchronous terminal execution
  */
 export interface TerminalExecutionResult {

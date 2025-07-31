@@ -132,7 +132,6 @@ export class DaggerCLI {
       result.loadDirectoryFromID.asModule.objects.forEach(
         (moduleObj: ModuleObject) => {
           if (moduleObj.asObject && moduleObj.asObject.functions) {
-            // Extract the module name
             const moduleName = moduleObj.asObject.name;
 
             // Process each function in the module

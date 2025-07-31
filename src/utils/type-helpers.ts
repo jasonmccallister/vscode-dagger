@@ -1,9 +1,4 @@
 /**
- * Helper functions for converting GraphQL type information to user-friendly type names
- * in the context of Dagger modules and functions.
- */
-
-/**
  * Converts GraphQL return type information to a friendly Dagger type name.
  * This is optimized for function return types which are often Dagger objects
  * like Container, Service, File, Directory, etc.
