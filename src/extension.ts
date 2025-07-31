@@ -33,7 +33,7 @@ export async function activate(context: vscode.ExtensionContext) {
     // Set global settings instance
     setGlobalSettings(settings);
 
-    const daggerCli = new DaggerCLI();
+    const daggerCli = new DaggerCLI(cache, settings);
 
     // Get workspace path
     const workspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? "";

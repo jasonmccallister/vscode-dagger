@@ -1,5 +1,8 @@
 import fs from "fs";
 import { FunctionInfo } from "./types/types";
+import { DaggerSettings } from "./settings";
+import { CliCache } from "./cache";
+import crypto from "crypto";
 
 export interface Output {
   exitCode: number;
@@ -62,6 +65,14 @@ const queryFunctions = `query directoryAsModule($id: DirectoryID!) {
 }`;
 
 export class DaggerCLI {
+  constructor(
+    private cache: CliCache,
+    private settings: DaggerSettings,
+  ) {
+    this.cache = cache;
+    this.settings = settings;
+  }
+
   /**
    * Retrieves the functions defined in the Dagger project at the specified path.
    * This method executes a GraphQL query to fetch the functions and their details.
@@ -70,6 +81,12 @@ export class DaggerCLI {
    * @returns A promise that resolves to an array of FunctionInfo objects.
    */
   async getFunctions(path: string): Promise<FunctionInfo[]> {
+    // is cache enabled?
+    if (this.settings.enableCache) {
+      const cacheKey = this.cacheKey(path);
+      console.log(`Checking cache for key: ${cacheKey}`);
+    }
+
     const { stdout, stderr, exitCode } = await this.execQuery(
       queryFunctions,
       { id: await this.getDirectoryID(path) },
@@ -91,7 +108,7 @@ export class DaggerCLI {
         throw new Error("Invalid functions response");
       }
 
-      return data.functions.map((func: any) => ({
+      const functions = data.functions.map((func: any) => ({
         name: func.name,
         description: func.description,
         functionId: func.functionId,
@@ -105,6 +122,14 @@ export class DaggerCLI {
           required: arg.required,
         })),
       }));
+
+      // is cache enabled?
+      if (this.settings.enableCache) {
+        console.log(`Caching functions for key: ${this.cacheKey(path)}`);
+        this.cache.set(this.cacheKey(path), functions);
+      }
+
+      return functions;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -253,11 +278,19 @@ export class DaggerCLI {
       { path: path },
       path, // pass the path because the cli command needs to come from the same path
     );
+    
 
     if (exitCode !== 0) {
       throw new Error(`Failed to get directory ID: ${stderr}`);
     }
 
     return stdout.trim();
+  }
+
+  private cacheKey(path: string): string {
+    return crypto
+      .createHash("md5")
+      .update("dagger-functions-" + path)
+      .digest("hex");
   }
 }

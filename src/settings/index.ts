@@ -54,7 +54,6 @@ export class DaggerSettingsProvider implements DaggerSettings {
   private _installMethod: "brew" | "curl" = "brew";
   private _cloudNotificationDismissed: boolean = false;
   private _saveTaskPromptDismissed: boolean = false;
-  private _runFunctionCallsInBackground: boolean = false;
 
   constructor() {
     this.reload();
