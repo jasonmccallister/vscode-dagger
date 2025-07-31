@@ -17,7 +17,6 @@ const mockSubmoduleFunction: FunctionInfo = {
   module: "test-module",
   args: [], // Function with no arguments
   description: "Test function",
-  isParentModule: false,
   parentModule: undefined,
   returnType: "container", // Add return type
 };
@@ -28,7 +27,6 @@ const mockParentModuleFunction: FunctionInfo = {
   module: "", // Empty string for parent modules
   args: [], // Function with no arguments
   description: "Parent module function",
-  isParentModule: true,
   parentModule: undefined,
   returnType: "string", // Add return type
 };

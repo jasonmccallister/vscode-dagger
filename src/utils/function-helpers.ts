@@ -129,8 +129,6 @@ export interface CollectedFunctionInput {
   moduleName?: string;
   /** The return type of the function */
   returnType: string;
-  /** Whether the function is a parent module */
-  isParentModule: boolean;
   /** The parent module name (if applicable) */
   parentModule?: string;
   /** The collected argument values */
@@ -155,7 +153,6 @@ export const collectFunctionInput = async (
     args,
     module: moduleName,
     returnType,
-    isParentModule,
     parentModule,
   } = functionInfo;
 
@@ -203,7 +200,6 @@ export const collectFunctionInput = async (
     functionName,
     moduleName,
     returnType,
-    isParentModule,
     parentModule,
     argValues,
     commandArgs,

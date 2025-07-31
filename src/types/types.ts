@@ -69,7 +69,6 @@ export interface FunctionInfo {
   description?: string;
   functionId: string;
   module: string;
-  isParentModule: boolean;
   parentModule?: string;
   returnType: string;
   args: FunctionArgument[];
@@ -104,6 +103,7 @@ export interface ObjectInfo {
 }
 
 export interface ModuleObject {
+  id: string;
   name?: string;
   asObject?: ObjectInfo;
 }

@@ -23,7 +23,6 @@ export const registerDevelopCommand = (
               functionName: "",
               moduleName: "",
               returnType: "",
-              isParentModule: false,
               argValues: {},
               commandArgs: ["dagger", "develop"],
             } as CollectedFunctionInput);

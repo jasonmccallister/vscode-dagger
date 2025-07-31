@@ -121,7 +121,6 @@ describe("Call Command Tests", () => {
           functionId: "func1",
           module: "test-module",
           args: [],
-          isParentModule: false,
           parentModule: undefined,
           returnType: "container",
         },
@@ -131,7 +130,6 @@ describe("Call Command Tests", () => {
           functionId: "func2",
           module: "test-module",
           args: [],
-          isParentModule: false,
           parentModule: undefined,
           returnType: "directory",
         },
@@ -215,7 +213,6 @@ describe("Call Command Tests", () => {
         functionId: "func1",
         module: "test-module",
         args: [],
-        isParentModule: false,
         parentModule: undefined,
         returnType: "container",
       };
@@ -292,7 +289,6 @@ describe("Call Command Tests", () => {
         functionId: "parent1",
         module: "", // Empty module name for parent modules
         args: [],
-        isParentModule: true,
         parentModule: undefined,
         returnType: "string",
       };
@@ -359,7 +355,6 @@ describe("Call Command Tests", () => {
         description: "Test function with arguments",
         functionId: "func1",
         module: "test-module",
-        isParentModule: false,
         parentModule: undefined,
         returnType: "container",
         args: [
@@ -488,7 +483,6 @@ describe("Call Command Tests", () => {
         description: "Test function",
         functionId: "func1",
         module: "test-module",
-        isParentModule: false,
         parentModule: undefined,
         returnType: "container",
         args: [

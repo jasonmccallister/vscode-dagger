@@ -94,7 +94,6 @@ export class DaggerTreeItem extends vscode.TreeItem {
           name: labelOrFunctionInfo,
           functionId: functionId || "",
           module: moduleName || "",
-          isParentModule: !moduleName,
           returnType: "",
           args: [],
         };
@@ -267,7 +266,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
 
                 // Use the module property directly, which should be set correctly by functionsList
                 // For parent modules, the module name will be empty
-                const moduleName = fn.isParentModule ? "" : fn.module || "";
+                const moduleName = fn.parentModule ? "" : fn.module || "";
 
                 // Add function to its module group
                 if (!moduleMap.has(moduleName)) {

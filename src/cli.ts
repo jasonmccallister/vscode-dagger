@@ -41,17 +41,17 @@ const queryFunctions = `query directoryAsModule($id: DirectoryID!) {
         name
         objects {
         asObject {
-            name
+          name
             id
             functions {
-            id
-            name
-            description
-            returnType {
+              id
+              name
+              description
+              returnType {
                 kind
                 optional
                 asObject {
-                name
+                  name
                 }
             }
             args {
@@ -100,8 +100,17 @@ export class DaggerCLI {
   async getFunctions(path: string): Promise<FunctionInfo[]> {
     // is cache enabled?
     if (this.settings.enableCache) {
-      const cacheKey = this.cacheKey(path);
+      const cacheKey = this.cacheKey("functions", path);
+
       console.log(`Checking cache for key: ${cacheKey}`);
+
+      const cachedFunctions = await this.cache.get<FunctionInfo[]>(cacheKey);
+      if (cachedFunctions) {
+        console.debug(`Using cached functions for key: ${cacheKey}`);
+        return cachedFunctions;
+      }
+
+      console.debug(`No cached functions found for key: ${cacheKey}`);
     }
 
     const { stdout, stderr, exitCode } = await this.execQuery(
@@ -132,7 +141,27 @@ export class DaggerCLI {
       result.loadDirectoryFromID.asModule.objects.forEach(
         (moduleObj: ModuleObject) => {
           if (moduleObj.asObject && moduleObj.asObject.functions) {
-            const moduleName = moduleObj.asObject.name;
+            let moduleName = slugify(moduleObj.asObject.name);
+            let hasParentModule = false;
+            let parentModule: string | undefined;
+
+            console.debug(`Processing module: ${moduleName}`);
+
+            // TODO(jasonmccallister): this is wrong
+            if (moduleObj.id === result.loadDirectoryFromID.asModule.id) {
+              hasParentModule = true;
+              parentModule = moduleName;
+            }
+
+            // if this is not the parent module, remove the parent module from the name
+            if (hasParentModule) {
+              console.debug(`Module ${moduleName} is a parent module.`);
+              // remove the parentModule prefix from the module name
+              moduleName = moduleName.replace(
+                new RegExp(`^${parentModule}`),
+                "",
+              );
+            }
 
             // Process each function in the module
             moduleObj.asObject.functions.forEach((func: ModuleFunction) => {
@@ -141,8 +170,7 @@ export class DaggerCLI {
                 description: func.description,
                 functionId: func.id,
                 module: moduleName,
-                isParentModule: false, // Set default value
-                parentModule: undefined, // Set default value
+                parentModule: hasParentModule ? moduleName : undefined,
                 returnType: getReturnTypeName(func.returnType),
                 args: func.args.map((arg: FunctionArg) => ({
                   name: arg.name,
@@ -157,8 +185,10 @@ export class DaggerCLI {
 
       // is cache enabled?
       if (this.settings.enableCache) {
-        console.debug(`Caching functions for key: ${this.cacheKey(path)}`);
-        this.cache.set(this.cacheKey(path), functions);
+        console.debug(
+          `Caching functions for key: ${this.cacheKey("functions", path)}`,
+        );
+        this.cache.set(this.cacheKey("functions", path), functions);
       }
 
       return functions;
@@ -305,6 +335,15 @@ export class DaggerCLI {
    * @returns A promise that resolves to the directory ID as a string.
    */
   private async getDirectoryID(path: string): Promise<string> {
+    if (this.settings.enableCache) {
+      const cacheKey = this.cacheKey("directory", path);
+      const cachedResult = await this.cache.get<DirectoryIdResult>(cacheKey);
+      if (cachedResult) {
+        console.debug(`Using cached directory ID for key: ${cacheKey}`);
+        return cachedResult.host.directory.id;
+      }
+    }
+
     const { stdout, stderr, exitCode } = await this.execQuery(
       queryHostDirectory,
       { path: path },
@@ -328,10 +367,19 @@ export class DaggerCLI {
     return result.host.directory.id;
   }
 
-  private cacheKey(path: string): string {
-    return crypto
-      .createHash("md5")
-      .update("dagger-functions-" + path)
-      .digest("hex");
+  private cacheKey(prefix: string, path: string): string {
+    return crypto.createHash("md5").update(`${prefix}-${path}`).digest("hex");
   }
+}
+
+function slugify(text: string): string {
+  return text
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^\w-]+/g, "")
+    .replace(/--+/g, "-");
 }
