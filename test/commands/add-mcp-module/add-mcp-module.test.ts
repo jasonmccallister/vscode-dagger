@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, it } from "mocha";
 import {
   registerAddMcpModuleCommand,
   COMMAND,
-} from "../../../src/commands/add-mcp-module";
+} from "../../../src/commands/addMCPModule";
 import { DaggerCLI } from "../../../src/cli";
 
 interface MessageItem extends vscode.MessageItem {

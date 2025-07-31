@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import { CollectedFunctionInput, runFunction } from "../../utils";
-import { DaggerCLI } from "../../cli";
+import { CollectedFunctionInput, runFunction } from "../utils";
+import { DaggerCLI } from "../cli";
 
 export const registerDevelopCommand = (
   context: vscode.ExtensionContext,

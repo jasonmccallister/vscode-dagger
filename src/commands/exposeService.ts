@@ -4,10 +4,10 @@ import {
   createPropertyFilter,
   runFunction,
   showSelectFunctionQuickPick,
-} from "../../utils/function-helpers";
-import { DaggerSettings } from "../../settings";
-import { DaggerCLI } from "../../cli";
-import { ContainerType, ServiceType } from "../../types/types";
+} from "../utils/function-helpers";
+import { DaggerSettings } from "../settings";
+import { DaggerCLI } from "../cli";
+import { ContainerType, ServiceType } from "../types/types";
 
 export const registerExposeServiceCommand = (
   context: vscode.ExtensionContext,

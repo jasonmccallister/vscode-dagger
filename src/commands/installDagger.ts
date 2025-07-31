@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as os from "os";
 import { exec } from "child_process";
 import { promisify } from "util";
-import { DaggerSettings } from "../../settings";
+import { DaggerSettings } from "../settings";
 
 const COMMAND = "dagger.install";
 const execAsync = promisify(exec);

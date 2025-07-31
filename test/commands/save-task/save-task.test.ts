@@ -4,7 +4,7 @@ import * as vscode from "vscode";
 import { describe, it, beforeEach, afterEach } from "mocha";
 import {
   saveTaskToTasksJson,
-} from "../../../src/commands/save-task";
+} from "../../../src/commands/saveFunctionAsTask";
 import { buildCommandArgs } from "../../../src/utils/function-helpers";
 import { DaggerCLI } from "../../../src/cli";
 import { FunctionInfo } from "../../../src/types/types";

@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { DaggerCLI } from "../../cli";
+import { DaggerCLI } from "../cli";
 
 interface ClearCacheMessageItem extends vscode.MessageItem {
   title: string;

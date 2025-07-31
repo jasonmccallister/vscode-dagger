@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import { DaggerCLI } from "../../cli";
+import { DaggerCLI } from "../cli";
 
 const COMMAND = "dagger.installModule";
 

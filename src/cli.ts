@@ -74,6 +74,15 @@ export class DaggerCLI {
   }
 
   /**
+   * Clears the cache.
+   * This method removes all cached data.
+   */
+  clearCache(): void {
+    this.cache.clear();
+    console.log("Cache cleared successfully.");
+  }
+
+  /**
    * Retrieves the functions defined in the Dagger project at the specified path.
    * This method executes a GraphQL query to fetch the functions and their details.
    *
@@ -278,7 +287,6 @@ export class DaggerCLI {
       { path: path },
       path, // pass the path because the cli command needs to come from the same path
     );
-    
 
     if (exitCode !== 0) {
       throw new Error(`Failed to get directory ID: ${stderr}`);

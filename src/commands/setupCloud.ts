@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import { DaggerSettings } from "../../settings";
-import { DaggerCLI } from "../../cli";
+import { DaggerSettings } from "../settings";
+import { DaggerCLI } from "../cli";
 
 type CloudResponse = "Visit dagger.cloud" | "Open Settings" | "Cancel";
 

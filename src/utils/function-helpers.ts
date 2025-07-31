@@ -4,7 +4,7 @@ import {
   TaskExecutionResult,
 } from "./terminal";
 import { DaggerSettings } from "../settings";
-import { saveTaskToTasksJson } from "../commands/save-task";
+import { saveTaskToTasksJson } from "../commands/saveFunctionAsTask";
 import { FunctionArgument, FunctionInfo } from "../types/types";
 
 interface ArgumentPick {

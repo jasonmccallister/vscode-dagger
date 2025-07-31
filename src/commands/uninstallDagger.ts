@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { exec } from "child_process";
-import { DaggerSettings } from "../../settings";
+import { DaggerSettings } from "../settings";
 
 export const registerUninstallCommand = (
   context: vscode.ExtensionContext,

@@ -7,21 +7,20 @@ import { registerTerminalProvider } from "./terminal";
 import { VSCodeWorkspaceCache } from "./cache";
 import { DaggerSettingsProvider, setGlobalSettings } from "./settings";
 import { DaggerCLI } from "./cli";
-import { registerInstallCommand } from "./commands/install";
-import { registerClearCacheCommand } from "./commands/clear-cache";
-import { registerCloudCommand } from "./commands/cloud";
-import { registerDevelopCommand } from "./commands/develop";
-import { registerAddMcpModuleCommand } from "./commands/add-mcp-module";
-import { registerExposeServiceCommand } from "./commands/expose-service";
-import { registerFunctionsCommand } from "./commands/functions";
-import { registerInitCommand } from "./commands/init";
-import { registerInstallModuleCommand } from "./commands/install-module";
-import { registerResetCommand } from "./commands/reset";
-import { registerSaveTaskCommand } from "./commands/save-task";
-import { registerShellCommand } from "./commands/shell";
-import { registerUninstallCommand } from "./commands/uninstall";
-import { registerUpdateCommand } from "./commands/update";
-import { registerVersionCommand } from "./commands/version";
+import { registerInstallCommand } from "./commands/installDagger";
+import { registerClearCacheCommand } from "./commands/clearCache";
+import { registerCloudCommand } from "./commands/setupCloud";
+import { registerDevelopCommand } from "./commands/developModule";
+import { registerAddMcpModuleCommand } from "./commands/addMCPModule";
+import { registerExposeServiceCommand } from "./commands/exposeService";
+import { registerFunctionsCommand } from "./commands/viewFunctions";
+import { registerInitCommand } from "./commands/initModule";
+import { registerInstallModuleCommand } from "./commands/installModule";
+import { registerSaveTaskCommand } from "./commands/saveFunctionAsTask";
+import { registerShellCommand } from "./commands/openShell";
+import { registerUninstallCommand } from "./commands/uninstallDagger";
+import { registerUpdateCommand } from "./commands/updateDagger";
+import { registerVersionCommand } from "./commands/daggerVersion";
 
 export async function activate(context: vscode.ExtensionContext) {
   try {
@@ -72,7 +71,6 @@ export async function activate(context: vscode.ExtensionContext) {
     registerInitCommand(context, daggerCli);
     registerInstallModuleCommand(context, daggerCli, workspace);
     registerAddMcpModuleCommand(context, daggerCli, workspace);
-    registerResetCommand(context, settings);
     registerExposeServiceCommand(context, daggerCli, workspace, settings);
     registerSaveTaskCommand(context, daggerCli, workspace);
     registerShellCommand(context, workspace);

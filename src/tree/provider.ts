@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { FunctionInfo } from "../types/types";
-import { COMMAND as REFRESH_COMMAND } from "../commands/refresh";
+import { COMMAND as REFRESH_COMMAND } from "../commands/refreshFunctions";
 import { DaggerSettings } from "../settings";
 import { DaggerCLI } from "../cli";
 

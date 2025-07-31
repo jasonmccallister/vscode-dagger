@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
 import { exec } from "child_process";
 import * as https from "https";
-import { checkInstallation } from "../../utils/installation";
-import { DaggerSettings } from "../../settings";
-import { DaggerCLI } from "../../cli";
+import { checkInstallation } from "../utils/installation";
+import { DaggerSettings } from "../settings";
+import { DaggerCLI } from "../cli";
 
 export const registerUpdateCommand = (
   context: vscode.ExtensionContext,

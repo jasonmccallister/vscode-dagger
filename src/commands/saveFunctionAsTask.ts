@@ -5,10 +5,10 @@ import {
   collectArgumentValues,
   selectOptionalArguments,
   showSelectFunctionQuickPick,
-} from "../../utils/function-helpers";
-import { DaggerCLI } from "../../cli";
-import { DaggerTreeItem } from "../../tree/provider";
-import { FunctionInfo } from "../../types/types";
+} from "../utils/function-helpers";
+import { DaggerCLI } from "../cli";
+import { DaggerTreeItem } from "../tree/provider";
+import { FunctionInfo } from "../types/types";
 
 export const COMMAND = "dagger.saveTask";
 

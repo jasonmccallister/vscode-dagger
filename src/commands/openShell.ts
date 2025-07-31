@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import { ICON_PATH_BLACK, ICON_PATH_WHITE } from "../../const";
+import { ICON_PATH_BLACK, ICON_PATH_WHITE } from "../const";
 
 export const registerShellCommand = (
   context: vscode.ExtensionContext,

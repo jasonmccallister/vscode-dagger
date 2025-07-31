@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import { DaggerSettings } from "../settings";
-import { DaggerCLI } from "../cli";
 
 type CloudPromptResponse = "Sign up" | "Learn More" | "Don't show again";
 

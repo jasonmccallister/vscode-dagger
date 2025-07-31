@@ -2,7 +2,7 @@ import * as assert from "assert";
 import * as vscode from "vscode";
 import * as sinon from "sinon";
 import { afterEach, beforeEach, describe, it } from "mocha";
-import { registerClearCacheCommand } from "../../../src/commands/clear-cache";
+import { registerClearCacheCommand } from "../../../src/commands/clearCache";
 import { DaggerCLI } from "../../../src/cli";
 
 interface ClearCacheMessageItem extends vscode.MessageItem {

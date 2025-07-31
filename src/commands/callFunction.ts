@@ -1,14 +1,14 @@
 import * as vscode from "vscode";
-import { FunctionInfo } from "../../types/types";
+import { FunctionInfo } from "../types/types";
 import {
   collectFunctionInput,
   runFunction,
   showSaveTaskPrompt,
   showSelectFunctionQuickPick,
-} from "../../utils/function-helpers";
-import { DaggerTreeItem } from "../../tree/provider";
-import { DaggerSettings } from "../../settings";
-import { DaggerCLI } from "../../cli";
+} from "../utils/function-helpers";
+import { DaggerTreeItem } from "../tree/provider";
+import { DaggerSettings } from "../settings";
+import { DaggerCLI } from "../cli";
 
 export const registerCallCommand = (
   context: vscode.ExtensionContext,

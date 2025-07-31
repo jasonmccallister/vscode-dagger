@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
-import { DaggerCLI } from "../../cli";
+import { DaggerCLI } from "../cli";
 
 export const COMMAND = "dagger.addMcpModule";
 
