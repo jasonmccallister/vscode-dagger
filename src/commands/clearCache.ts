@@ -16,7 +16,7 @@ const NO_OPTION: ClearCacheMessageItem = { title: "No" };
  */
 export const registerClearCacheCommand = (
   context: vscode.ExtensionContext,
-  _daggerCli: DaggerCLI,
+  daggerCli: DaggerCLI,
 ): void => {
   context.subscriptions.push(
     vscode.commands.registerCommand("dagger.clearCache", async () => {
@@ -27,12 +27,15 @@ export const registerClearCacheCommand = (
         NO_OPTION,
       );
 
-      if (response && response.title === YES_OPTION.title) {
-        vscode.window.showErrorMessage(
-          "Clearing the Dagger cache is not supported in this version of the CLI.",
-        );
+      if (!response || response.title === NO_OPTION.title) {
+        // User cancelled the prompt
         return;
       }
+
+      daggerCli.clearCache();
+      vscode.window.showInformationMessage(
+        "Dagger cache cleared successfully.",
+      );
     }),
   );
 };

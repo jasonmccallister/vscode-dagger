@@ -1,8 +1,16 @@
 import fs from "fs";
-import { FunctionInfo } from "./types/types";
+import {
+  DirectoryIdResult,
+  FunctionInfo,
+  ModuleObject,
+  ModuleResult,
+  FunctionArg,
+  ModuleFunction,
+} from "./types/types";
 import { DaggerSettings } from "./settings";
 import { CliCache } from "./cache";
 import crypto from "crypto";
+import { getArgumentTypeName, getReturnTypeName } from "./utils/type-helpers";
 
 export interface Output {
   exitCode: number;
@@ -108,29 +116,45 @@ export class DaggerCLI {
       throw new Error(`Failed to get functions: ${stderr}`);
     }
 
+    let result: ModuleResult;
     try {
-      const data = JSON.parse(stdout);
+      result = JSON.parse(stdout);
 
-      if (!data.functions) {
+      if (!result.loadDirectoryFromID.asModule.objects) {
         console.error("Invalid functions response:", stdout);
 
         throw new Error("Invalid functions response");
       }
 
-      const functions = data.functions.map((func: any) => ({
-        name: func.name,
-        description: func.description,
-        functionId: func.functionId,
-        module: func.module,
-        isParentModule: func.isParentModule,
-        parentModule: func.parentModule,
-        returnType: func.returnType,
-        args: func.args.map((arg: any) => ({
-          name: arg.name,
-          type: arg.type,
-          required: arg.required,
-        })),
-      }));
+      const functions: FunctionInfo[] = [];
+
+      // Iterate through each module object and extract functions
+      result.loadDirectoryFromID.asModule.objects.forEach(
+        (moduleObj: ModuleObject) => {
+          if (moduleObj.asObject && moduleObj.asObject.functions) {
+            // Extract the module name
+            const moduleName = moduleObj.asObject.name;
+
+            // Process each function in the module
+            moduleObj.asObject.functions.forEach((func: ModuleFunction) => {
+              functions.push({
+                name: func.name,
+                description: func.description,
+                functionId: func.id,
+                module: moduleName,
+                isParentModule: false, // Set default value
+                parentModule: undefined, // Set default value
+                returnType: getReturnTypeName(func.returnType),
+                args: func.args.map((arg: FunctionArg) => ({
+                  name: arg.name,
+                  type: getArgumentTypeName(arg.typeDef),
+                  required: arg.typeDef.optional !== true,
+                })),
+              });
+            });
+          }
+        },
+      );
 
       // is cache enabled?
       if (this.settings.enableCache) {
@@ -173,7 +197,7 @@ export class DaggerCLI {
         env: { ...process.env, ...env },
         timeout,
         shell,
-        stdio: ["ignore", "pipe", "pipe"],
+        stdio: ["pipe", "pipe", "pipe"],
       });
 
       child.stdout.on("data", (data: Buffer) => {
@@ -186,7 +210,7 @@ export class DaggerCLI {
 
       // if options.stdin is provided, write it to the child's stdin
       if (options.stdin) {
-        child.stdin.write(options.stdin || "");
+        child.stdin.write(options.stdin);
         child.stdin.end();
       }
 
@@ -247,7 +271,7 @@ export class DaggerCLI {
       .map(([key, value]) => `${JSON.stringify(key)}=${JSON.stringify(value)}`)
       .join(" ");
     const { stdout, stderr, exitCode } = await this.run(
-      ["query", "--vars", vars],
+      ["query", "--var", vars],
       { cwd, stdin: query },
     );
 
@@ -292,7 +316,17 @@ export class DaggerCLI {
       throw new Error(`Failed to get directory ID: ${stderr}`);
     }
 
-    return stdout.trim();
+    // convert stdout to DirectoryIdResult type
+    let result: DirectoryIdResult;
+    try {
+      result = JSON.parse(stdout);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to parse directory ID result: ${errorMessage}`);
+    }
+
+    return result.host.directory.id;
   }
 
   private cacheKey(path: string): string {
