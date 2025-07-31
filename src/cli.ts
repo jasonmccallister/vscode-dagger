@@ -157,7 +157,7 @@ export class DaggerCLI {
 
       // is cache enabled?
       if (this.settings.enableCache) {
-        console.log(`Caching functions for key: ${this.cacheKey(path)}`);
+        console.debug(`Caching functions for key: ${this.cacheKey(path)}`);
         this.cache.set(this.cacheKey(path), functions);
       }
 

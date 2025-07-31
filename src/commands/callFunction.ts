@@ -229,7 +229,11 @@ const preRunOptions = async (
       optionItems.push("Export to Host");
       break;
     default:
-    // do nothing
+      // do nothing and return
+      console.debug(
+        `Function \`${functionInfo.name}\` has an unsupported return type: ${returnType}`,
+      );
+      return;
   }
 
   // always add the option to ignore extra steps

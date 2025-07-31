@@ -21,6 +21,7 @@ import { registerShellCommand } from "./commands/openShell";
 import { registerUninstallCommand } from "./commands/uninstallDagger";
 import { registerUpdateCommand } from "./commands/updateDagger";
 import { registerVersionCommand } from "./commands/daggerVersion";
+import { registerCallCommand } from "./commands/callFunction";
 
 export async function activate(context: vscode.ExtensionContext) {
   try {
@@ -66,6 +67,7 @@ export async function activate(context: vscode.ExtensionContext) {
     // register the remaining commands because Dagger is installed
     registerClearCacheCommand(context, daggerCli);
     registerCloudCommand(context, daggerCli, settings);
+    registerCallCommand(context, daggerCli, workspace, settings);
     registerDevelopCommand(context, daggerCli, workspace);
     registerFunctionsCommand(context);
     registerInitCommand(context, daggerCli);
