@@ -9,7 +9,7 @@ import {
   registerAddMcpModuleCommand,
   COMMAND,
 } from "../../../src/commands/add-mcp-module";
-import Cli from "../../../src/dagger";
+import { DaggerCLI } from "../../../src/cli";
 
 interface MessageItem extends vscode.MessageItem {
   title: string;
@@ -17,7 +17,7 @@ interface MessageItem extends vscode.MessageItem {
 
 describe("Add MCP Module Command", () => {
   let context: vscode.ExtensionContext;
-  let cli: sinon.SinonStubbedInstance<Cli>;
+  let cli: sinon.SinonStubbedInstance<DaggerCLI>;
   let sandbox: sinon.SinonSandbox;
   let commandCallback: any;
   let workspace: string;
@@ -41,7 +41,7 @@ describe("Add MCP Module Command", () => {
     } as any;
 
     // Mock CLI
-    cli = sandbox.createStubInstance(Cli);
+    cli = sandbox.createStubInstance(DaggerCLI);
     cli.isDaggerProject.resolves(true);
 
     // Mock workspace folders

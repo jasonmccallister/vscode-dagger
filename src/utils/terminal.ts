@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import * as fs from "fs";
 import { ICON_PATH_BLACK, ICON_PATH_WHITE } from "../const";
 
 const TERMINAL_CONFIG = {
@@ -11,53 +10,6 @@ const TERMINAL_CONFIG = {
   CLEAR_LINE: "\x15", // NAK to clear current line
   EXIT_COMMAND: "exit",
 } as const;
-
-/**
- * Finds a valid shell executable path, with fallbacks for resilience
- * @returns A valid shell path for spawning processes
- * @description Tries to use the shell from environment variable, then falls back to common Unix shells
- */
-export const findValidShell = (): string => {
-  // Default shell from environment or common default
-  let shell = process.env.SHELL || "/bin/bash";
-
-  // Common fallback shells in order of preference
-  const fallbackShells = ["/bin/bash", "/bin/zsh", "/bin/sh"];
-
-  try {
-    // Check if the default shell exists
-    if (!fs.existsSync(shell)) {
-      // Try fallback shells in order
-      for (const fallbackShell of fallbackShells) {
-        if (fs.existsSync(fallbackShell)) {
-          shell = fallbackShell;
-          break;
-        }
-      }
-    }
-
-    // Special handling for fish shell - it has different command execution behavior
-    // For CLI processes, it's often better to use bash for compatibility
-    if (shell.includes("fish")) {
-      console.log(
-        "Fish shell detected, using bash for CLI commands for better compatibility",
-      );
-      // Try to use bash instead for CLI commands
-      if (fs.existsSync("/bin/bash")) {
-        shell = "/bin/bash";
-      } else if (fs.existsSync("/bin/zsh")) {
-        shell = "/bin/zsh";
-      } else if (fs.existsSync("/bin/sh")) {
-        shell = "/bin/sh";
-      }
-    }
-  } catch (err) {
-    console.warn(`Error checking shell existence: ${err}`);
-    shell = "/bin/sh"; // Safest fallback
-  }
-
-  return shell;
-};
 
 /**
  * Creates a terminal instance named "Dagger"

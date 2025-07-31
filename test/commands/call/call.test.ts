@@ -3,10 +3,10 @@ import * as assert from "assert";
 import * as vscode from "vscode";
 import * as sinon from "sinon";
 import { registerCallCommand } from "../../../src/commands/call";
-import Cli from "../../../src/dagger";
 import { DaggerTreeItem } from "../../../src/tree/provider";
-import { FunctionInfo } from "../../../src/dagger";
 import { DaggerSettings } from "../../../src/settings";
+import { DaggerCLI } from "../../../src/cli";
+import { FunctionInfo } from "../../../src/types/types";
 
 // Mock the utils module
 const mockUtils = {
@@ -41,7 +41,7 @@ class MockDaggerSettings implements DaggerSettings {
 }
 
 describe("Call Command Tests", () => {
-  let mockCli: sinon.SinonStubbedInstance<Cli>;
+  let mockCli: sinon.SinonStubbedInstance<DaggerCLI>;
   let mockContext: Partial<vscode.ExtensionContext>;
   let workspacePath: string;
   let commandCallback: any;
@@ -56,7 +56,7 @@ describe("Call Command Tests", () => {
     mockSettings = new MockDaggerSettings();
 
     // Create mock CLI
-    mockCli = sandbox.createStubInstance(Cli);
+    mockCli = sandbox.createStubInstance(DaggerCLI);
 
     // Reset mocks
     mockUtils.collectAndRunFunction.reset();
@@ -113,7 +113,6 @@ describe("Call Command Tests", () => {
     it("should show quick pick when no input is provided", async () => {
       // Setup
       mockCli.isDaggerProject.resolves(true);
-      mockCli.setWorkspacePath.returns();
 
       const mockFunctions: FunctionInfo[] = [
         {
@@ -138,7 +137,7 @@ describe("Call Command Tests", () => {
         },
       ];
 
-      mockCli.functionsList.resolves(mockFunctions);
+      mockCli.getFunctions.resolves(mockFunctions);
 
       // Mock VS Code APIs
       const showQuickPickStub = sandbox.stub(vscode.window, "showQuickPick");
@@ -175,18 +174,17 @@ describe("Call Command Tests", () => {
       // Verify quick pick was shown
       assert.ok(showQuickPickStub.calledOnce, "Quick pick should be shown");
 
-      // Verify functionsList was called to populate quick pick
+      // Verify getFunctions was called to populate quick pick
       assert.ok(
-        mockCli.functionsList.calledWith(workspacePath),
-        "functionsList should be called",
+        mockCli.getFunctions.calledWith(workspacePath),
+        "getFunctions should be called",
       );
     });
 
     it("should handle empty function list gracefully", async () => {
       // Setup
       mockCli.isDaggerProject.resolves(true);
-      mockCli.setWorkspacePath.returns();
-      mockCli.functionsList.resolves([]);
+      mockCli.getFunctions.resolves([]);
 
       const showInformationMessageStub = sandbox.stub(
         vscode.window,
@@ -210,7 +208,6 @@ describe("Call Command Tests", () => {
     it("should call showSaveTaskPrompt with correct module name", async () => {
       // Setup
       mockCli.isDaggerProject.resolves(true);
-      mockCli.setWorkspacePath.returns();
 
       const mockFunction: FunctionInfo = {
         name: "test-function",
@@ -288,7 +285,6 @@ describe("Call Command Tests", () => {
     it("should call showSaveTaskPrompt with empty module name for parent modules", async () => {
       // Setup
       mockCli.isDaggerProject.resolves(true);
-      mockCli.setWorkspacePath.returns();
 
       const mockFunction: FunctionInfo = {
         name: "parent-function",
@@ -356,7 +352,6 @@ describe("Call Command Tests", () => {
     it("should use tree item args without fetching function when it has argument children", async () => {
       // Setup
       mockCli.isDaggerProject.resolves(true);
-      mockCli.setWorkspacePath.returns();
 
       // Create a function info object for the tree item
       const treeItemFunctionInfo: FunctionInfo = {
@@ -486,7 +481,6 @@ describe("Call Command Tests", () => {
     it("should use tree item functionInfo without fetching function when it is available", async () => {
       // Setup
       mockCli.isDaggerProject.resolves(true);
-      mockCli.setWorkspacePath.returns();
 
       // Create a function info object to attach to the tree item
       const treeItemFunctionInfo: FunctionInfo = {

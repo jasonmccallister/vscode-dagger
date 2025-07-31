@@ -1,14 +1,14 @@
 import * as vscode from "vscode";
-import Cli, { FunctionInfo } from "../dagger";
-import { COMMAND as INIT_COMMAND } from "../commands/init";
+import { FunctionInfo } from "../types/types";
 import { COMMAND as REFRESH_COMMAND } from "../commands/refresh";
 import { DaggerSettings } from "../settings";
+import { DaggerCLI } from "../cli";
 
 type ItemType = "function" | "argument" | "empty" | "action" | "module";
 
 interface TreeViewConfig {
   workspacePath?: string;
-  cli?: Cli;
+  daggerCli: DaggerCLI;
   registerTreeCommands?: boolean; // Flag to control command registration
   settings: DaggerSettings;
 }
@@ -32,10 +32,10 @@ export const registerTreeView = (
     config.workspacePath ??
     vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ??
     "";
-  const cli = config.cli!;
+  const daggerCli = config.daggerCli;
 
   // Pass the extension context to the data provider
-  const dataProvider = new DataProvider(cli, workspacePath);
+  const dataProvider = new DataProvider(daggerCli, workspacePath);
 
   const treeView = vscode.window.createTreeView(TREE_VIEW_ID, {
     treeDataProvider: dataProvider,
@@ -178,11 +178,11 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
   > = this._onDidChangeTreeData.event;
 
   private items: DaggerTreeItem[] = [];
-  private cli: Cli;
+  private daggerCli: DaggerCLI;
   private workspacePath: string;
 
-  constructor(cli: Cli, workspacePath: string) {
-    this.cli = cli;
+  constructor(daggerCli: DaggerCLI, workspacePath: string) {
+    this.daggerCli = daggerCli;
     this.workspacePath = workspacePath;
     // Show loading state immediately
     this.items = [new DaggerTreeItem("Loading Dagger functions...", "empty")];
@@ -192,41 +192,6 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
 
   private async loadData(): Promise<void> {
     try {
-      // Check if Dagger is installed and workspace is a Dagger project
-      if (!(await this.cli.isInstalled())) {
-        this.items = [
-          new DaggerTreeItem("Dagger CLI not installed", "empty"),
-          new DaggerTreeItem(
-            "Install Dagger CLI",
-            "action",
-            vscode.TreeItemCollapsibleState.None,
-            {
-              command: "dagger.install",
-              title: "Install Dagger CLI",
-            },
-          ),
-        ];
-        this.refresh();
-        return;
-      }
-
-      if (!(await this.cli.isDaggerProject())) {
-        this.items = [
-          new DaggerTreeItem("Not a Dagger project", "empty"),
-          new DaggerTreeItem(
-            "Initialize Dagger Project",
-            "action",
-            vscode.TreeItemCollapsibleState.None,
-            {
-              command: INIT_COMMAND,
-              title: "Initialize Dagger Project",
-            },
-          ),
-        ];
-        this.refresh();
-        return;
-      }
-
       // Show progress while loading functions
       await vscode.window.withProgress(
         {
@@ -252,7 +217,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
 
             try {
               // Get all functions
-              const functions = await this.cli.functionsList(
+              const functions = await this.daggerCli.getFunctions(
                 this.workspacePath,
               );
 

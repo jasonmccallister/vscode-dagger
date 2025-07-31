@@ -1,39 +1,43 @@
 import * as vscode from "vscode";
-import Cli, { FunctionInfo } from "../../dagger";
-import { showProjectSetupPrompt } from "../../prompt";
+import { FunctionInfo } from "../../types/types";
 import {
   collectFunctionInput,
   runFunction,
-  selectFunction,
   showSaveTaskPrompt,
+  showSelectFunctionQuickPick,
 } from "../../utils/function-helpers";
 import { DaggerTreeItem } from "../../tree/provider";
 import { DaggerSettings } from "../../settings";
+import { DaggerCLI } from "../../cli";
 
 export const registerCallCommand = (
   context: vscode.ExtensionContext,
-  cli: Cli,
+  dagger: DaggerCLI,
   workspacePath: string,
   settings: DaggerSettings,
 ): void => {
   const disposable = vscode.commands.registerCommand(
     "dagger.call",
     async (input?: DaggerTreeItem) => {
-      if (!(await cli.isDaggerProject())) {
-        return showProjectSetupPrompt();
-      }
-
-      cli.setWorkspacePath(workspacePath);
-
       let functionInfo: FunctionInfo | undefined;
 
       // No input, prompt user to select a function
       if (input === undefined) {
-        // selectFunction now returns the full FunctionInfo object
-        functionInfo = await selectFunction(cli, workspacePath);
+        const functions = await dagger.getFunctions(workspacePath);
+        if (!functions || functions.length === 0) {
+          // If no functions are found, prompt the user to set up the project
+          vscode.window.showInformationMessage(
+            "No functions found. Please set up your Dagger project.",
+          );
+          return;
+        }
 
+        functionInfo = await showSelectFunctionQuickPick(functions);
         if (!functionInfo) {
-          return; // Selection cancelled
+          vscode.window.showInformationMessage(
+            "No function selected. Please select a function to call.",
+          );
+          return;
         }
       }
 

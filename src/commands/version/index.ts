@@ -1,14 +1,13 @@
 import * as vscode from "vscode";
-import Cli from "../../dagger";
-
-const COMMAND = "dagger.version";
+import { DaggerCLI } from "../../cli";
 
 export const registerVersionCommand = (
   context: vscode.ExtensionContext,
-  cli: Cli,
+  daggerCli: DaggerCLI,
+  workspace: string,
 ): void => {
-  const disposable = vscode.commands.registerCommand(
-    COMMAND,
+  context.subscriptions.push(vscode.commands.registerCommand(
+    "dagger.version",
     async (): Promise<void> => {
       const progressOptions = {
         title: "Dagger",
@@ -17,12 +16,16 @@ export const registerVersionCommand = (
 
       await vscode.window.withProgress(progressOptions, async (progress) => {
         progress.report({ message: "Getting Dagger version..." });
-        const result = await cli.run(["version"]);
+        
+        const result = await daggerCli.run(["version"], {
+          cwd: workspace,
+        });
 
-        if (!result.success) {
+        if (!result || result.exitCode !== 0) {
           vscode.window.showErrorMessage(
             `Failed to get Dagger version: ${result.stderr}`,
           );
+
           return;
         }
 
@@ -31,8 +34,5 @@ export const registerVersionCommand = (
           `Dagger Version: ${result.stdout}`,
         );
       });
-    },
-  );
-
-  context.subscriptions.push(disposable);
+   }));
 };

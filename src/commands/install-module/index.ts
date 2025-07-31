@@ -1,23 +1,16 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import Cli from "../../dagger";
-import { showProjectSetupPrompt } from "../../prompt";
+import { DaggerCLI } from "../../cli";
 
 const COMMAND = "dagger.installModule";
 
 export const registerInstallModuleCommand = (
   context: vscode.ExtensionContext,
-  cli: Cli,
+  daggerCli: DaggerCLI,
+  workspace: string,
 ): void => {
   context.subscriptions.push(
     vscode.commands.registerCommand(COMMAND, async () => {
-      if (!(await cli.isDaggerProject())) {
-        showProjectSetupPrompt();
-        return;
-      }
-
-      const workspace = getWorkspaceDirectory();
-
       // Ask user if they want to search for local directories first
       const searchLocal = await vscode.window.showInformationMessage(
         "Do you want to search for local modules in your workspace?",
@@ -27,23 +20,14 @@ export const registerInstallModuleCommand = (
       );
 
       if (searchLocal === "Yes") {
-        await handleLocalModuleInstallation(cli, workspace);
-      } else {
-        await handleRemoteModuleInstallation(cli, workspace);
+        await handleLocalModuleInstallation(daggerCli, workspace);
+
+        return;
       }
+
+      await handleRemoteModuleInstallation(daggerCli, workspace);
     }),
   );
-};
-
-/**
- * Gets the current workspace directory
- * @returns The workspace directory path
- */
-const getWorkspaceDirectory = (): string => {
-  const workspaceFolders = vscode.workspace.workspaceFolders;
-  return workspaceFolders && workspaceFolders.length > 0
-    ? workspaceFolders[0].uri.fsPath
-    : process.cwd();
 };
 
 /**
@@ -52,7 +36,7 @@ const getWorkspaceDirectory = (): string => {
  * @param workspace The workspace directory path
  */
 const handleLocalModuleInstallation = async (
-  cli: Cli,
+  daggerCli: DaggerCLI,
   workspace: string,
 ): Promise<void> => {
   const localModules = await findModulesInWorkspace(workspace);
@@ -61,7 +45,7 @@ const handleLocalModuleInstallation = async (
     vscode.window.showInformationMessage(
       "No local modules found in workspace. You can install a remote module instead.",
     );
-    await handleRemoteModuleInstallation(cli, workspace);
+    await handleRemoteModuleInstallation(daggerCli, workspace);
     return;
   }
 
@@ -89,7 +73,7 @@ const handleLocalModuleInstallation = async (
   // Install each selected module
   for (const module of selectedModules) {
     await installModule(
-      cli,
+      daggerCli,
       module,
       workspace,
       `Installing local module from ${module}...`,
@@ -103,7 +87,7 @@ const handleLocalModuleInstallation = async (
  * @param workspace The workspace directory path
  */
 const handleRemoteModuleInstallation = async (
-  cli: Cli,
+  daggerCli: DaggerCLI,
   workspace: string,
 ): Promise<void> => {
   const moduleAddress = await vscode.window.showInputBox({
@@ -139,7 +123,7 @@ const handleRemoteModuleInstallation = async (
   }
 
   await installModule(
-    cli,
+    daggerCli,
     moduleAddress.trim(),
     workspace,
     `Installing module from ${moduleAddress.trim()}...`,
@@ -154,7 +138,7 @@ const handleRemoteModuleInstallation = async (
  * @param progressMessage The message to show during installation
  */
 const installModule = async (
-  cli: Cli,
+  daggerCli: DaggerCLI,
   moduleAddress: string,
   workspace: string,
   progressMessage: string,
@@ -172,17 +156,18 @@ const installModule = async (
         return;
       }
 
-      const result = await cli.run(["install", moduleAddress], {
+      const result = await daggerCli.run(["install", moduleAddress], {
         cwd: workspace,
       });
 
-      if (!result.success) {
+      if (!result || result.exitCode !== 0) {
         vscode.window.showErrorMessage(
           `Failed to install module from ${moduleAddress}`,
         );
         console.error(
           `Dagger install module command failed for ${moduleAddress}: ${result.stderr}`,
         );
+
         return;
       }
 
@@ -195,17 +180,17 @@ const installModule = async (
 
 /**
  * Gets existing dependencies from the root dagger.json file
- * @param workspacePath The workspace directory path
+ * @param workspace The workspace directory path
  * @returns Set of dependency paths that are already defined
  */
 const getExistingDependencies = async (
-  workspacePath: string,
+  workspace: string,
 ): Promise<Set<string>> => {
   const fs = require("fs").promises;
   const dependencies = new Set<string>();
 
   try {
-    const daggerJsonPath = path.join(workspacePath, "dagger.json");
+    const daggerJsonPath = path.join(workspace, "dagger.json");
     if (await fileExists(daggerJsonPath)) {
       const content = await fs.readFile(daggerJsonPath, "utf8");
       const daggerConfig = JSON.parse(content);
@@ -244,20 +229,18 @@ const getExistingDependencies = async (
 
 /**
  * Finds all directories containing a dagger.json file in the current workspace (non-recursive)
- * @param workspacePath The workspace directory to search in
+ * @param workspace The workspace directory to search in
  * @returns Promise resolving to array of directory paths containing dagger.json
  */
-const findModulesInWorkspace = async (
-  workspacePath: string,
-): Promise<string[]> => {
+const findModulesInWorkspace = async (workspace: string): Promise<string[]> => {
   const fs = require("fs").promises;
   const results: string[] = [];
 
   // Read existing dependencies from root dagger.json to exclude them
-  const existingDependencies = await getExistingDependencies(workspacePath);
+  const existingDependencies = await getExistingDependencies(workspace);
 
   try {
-    const entries = await fs.readdir(workspacePath, { withFileTypes: true });
+    const entries = await fs.readdir(workspace, { withFileTypes: true });
 
     for (const entry of entries) {
       if (entry.isDirectory()) {
@@ -270,8 +253,8 @@ const findModulesInWorkspace = async (
           continue;
         }
 
-        const fullPath = path.join(workspacePath, entry.name);
-        const relativePath = path.relative(workspacePath, fullPath);
+        const fullPath = path.join(workspace, entry.name);
+        const relativePath = path.relative(workspace, fullPath);
         const daggerJsonPath = path.join(fullPath, "dagger.json");
 
         // Skip if this directory is already defined in root dagger.json
@@ -288,7 +271,7 @@ const findModulesInWorkspace = async (
       }
     }
   } catch (error) {
-    console.warn(`Could not read workspace directory ${workspacePath}:`, error);
+    console.warn(`Could not read workspace directory ${workspace}:`, error);
   }
 
   return results;
@@ -307,57 +290,4 @@ const fileExists = async (filePath: string): Promise<boolean> => {
   } catch {
     return false;
   }
-};
-
-/**
- * Finds all subdirectories containing a specific file
- * @param basePath The base directory to search from
- * @param fileName The file name to search for
- * @returns Promise resolving to array of directory paths containing the file
- * @deprecated Use findModulesInWorkspace instead for workspace-only searches
- */
-const findSubdirectoriesWithFile = async (
-  basePath: string,
-  fileName: string,
-): Promise<string[]> => {
-  const fs = require("fs").promises;
-
-  const findDirs = async (dir: string): Promise<string[]> => {
-    let results: string[] = [];
-
-    try {
-      const entries = await fs.readdir(dir, { withFileTypes: true });
-
-      for (const entry of entries) {
-        const fullPath = path.join(dir, entry.name);
-        if (entry.isDirectory()) {
-          // Skip node_modules and other common directories to avoid
-          if (entry.name === "node_modules" || entry.name === ".git") {
-            continue;
-          }
-
-          if (await fileExists(path.join(fullPath, fileName))) {
-            results.push(fullPath);
-          }
-          results = results.concat(await findDirs(fullPath));
-        }
-      }
-    } catch (error) {
-      // Ignore permission errors and continue
-      console.warn(`Could not read directory ${dir}:`, error);
-    }
-
-    return results;
-  };
-
-  const fileExists = async (filePath: string): Promise<boolean> => {
-    try {
-      await fs.access(filePath);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  return findDirs(basePath);
 };

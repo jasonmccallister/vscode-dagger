@@ -1,14 +1,13 @@
 import * as assert from "assert";
 import * as sinon from "sinon";
 import * as vscode from "vscode";
-import Cli, { FunctionInfo } from "../../../src/dagger";
 import { describe, it, beforeEach, afterEach } from "mocha";
 import {
-  COMMAND,
-  registerSaveTaskCommand,
   saveTaskToTasksJson,
 } from "../../../src/commands/save-task";
 import { buildCommandArgs } from "../../../src/utils/function-helpers";
+import { DaggerCLI } from "../../../src/cli";
+import { FunctionInfo } from "../../../src/types/types";
 
 // Mock modules and functions
 const mockWorkspacePath = "/mock/workspace/path";
@@ -36,15 +35,15 @@ const mockParentModuleFunction: FunctionInfo = {
 
 describe("Save Task Command", () => {
   let sandbox: sinon.SinonSandbox;
-  let mockCli: sinon.SinonStubbedInstance<Cli>;
+  let mockCli: sinon.SinonStubbedInstance<DaggerCLI>;
   let fsStub: any;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
 
-    // Create mocked Cli instance
-    mockCli = sandbox.createStubInstance(Cli);
-    mockCli.functionsList.resolves([
+    // Create mocked Dagger instance
+    mockCli = sandbox.createStubInstance(DaggerCLI);
+    mockCli.getFunctions.resolves([
       mockSubmoduleFunction,
       mockParentModuleFunction,
     ]);

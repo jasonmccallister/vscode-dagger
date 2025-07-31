@@ -2,14 +2,12 @@ import * as vscode from "vscode";
 import { exec } from "child_process";
 import { DaggerSettings } from "../../settings";
 
-const COMMAND = "dagger.uninstall";
-
 export const registerUninstallCommand = (
   context: vscode.ExtensionContext,
   settings: DaggerSettings,
 ): void => {
   const uninstallCommand = vscode.commands.registerCommand(
-    COMMAND,
+    "dagger.uninstall",
     async () => {
       const installMethod = settings.installMethod;
 

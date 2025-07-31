@@ -1,54 +1,48 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import Cli, { FunctionInfo } from "../../dagger";
 import {
   buildCommandArgs,
   collectArgumentValues,
   selectOptionalArguments,
+  showSelectFunctionQuickPick,
 } from "../../utils/function-helpers";
+import { DaggerCLI } from "../../cli";
+import { DaggerTreeItem } from "../../tree/provider";
+import { FunctionInfo } from "../../types/types";
 
 export const COMMAND = "dagger.saveTask";
 
 export const registerSaveTaskCommand = (
   context: vscode.ExtensionContext,
-  cli: Cli,
-  workspacePath: string,
+  daggerCli: DaggerCLI,
+  workspace: string,
 ): void => {
   const disposable = vscode.commands.registerCommand(
     COMMAND,
-    async (func?: string | vscode.TreeItem) => {
-      let functionName: string | undefined;
+    async (input?: DaggerTreeItem) => {
+      let functionInfo: FunctionInfo | undefined;
 
-      // Support both string and TreeItem
-      if (typeof func === "string") {
-        functionName = func;
-      } else if (func && typeof func === "object" && "label" in func) {
-        functionName = typeof func.label === "string" ? func.label : undefined;
-      }
-
-      // If functionName is not set, prompt the user to pick one
-      if (!functionName) {
-        const functions = await cli.functionsList(workspacePath);
+      // if there was no input
+      if (input === undefined) {
+        const functions = await daggerCli.getFunctions(workspace);
         if (!functions || functions.length === 0) {
           vscode.window.showErrorMessage(
             "No functions found in this Dagger project.",
           );
           return;
         }
-        const pick = await vscode.window.showQuickPick(
-          functions.map((fn) => ({
-            label: fn.name,
-            description: fn.description || "",
-          })),
-          {
-            placeHolder: "Select a function to save as a task",
-            ignoreFocusOut: true,
-          },
-        );
-        if (!pick) {
+
+        const selected = await showSelectFunctionQuickPick(functions);
+        if (!selected) {
           return; // User cancelled
         }
-        functionName = pick.label;
+
+        functionInfo = selected;
+      }
+
+      if (!functionInfo) {
+        vscode.window.showErrorMessage("No function selected.");
+        return;
       }
 
       try {
@@ -59,31 +53,8 @@ export const registerSaveTaskCommand = (
             cancellable: true,
           },
           async (progress, token) => {
-            progress.report({ message: "Getting function arguments..." });
-
-            // Get function arguments by finding the function in the functions list
-            const functions = await cli.functionsList(workspacePath);
-            const targetFunction = functions.find(
-              (f) => f.name === functionName,
-            );
-
-            if (!targetFunction) {
-              vscode.window.showErrorMessage(
-                `Function "${functionName}" not found.`,
-              );
-              return;
-            }
-
-            const args = targetFunction.args || [];
-
-            if (token.isCancellationRequested) {
-              return;
-            }
-
-            progress.report({ message: "Collecting argument values..." });
-
             // Collect arguments and build task
-            const result = await collectArgumentsForTask(targetFunction);
+            const result = await collectArgumentsForTask(functionInfo);
             if (result.cancelled) {
               return;
             }
@@ -98,7 +69,7 @@ export const registerSaveTaskCommand = (
             await saveTaskToTasksJson(
               result.taskName,
               result.command,
-              workspacePath,
+              workspace,
             );
 
             progress.report({ message: "Task saved successfully" });
@@ -210,15 +181,15 @@ const collectArgumentsForTask = async (
  * Creates or updates the tasks.json file with a new Dagger task
  * @param taskName The name of the task
  * @param command The command to execute
- * @param workspacePath The workspace path
+ * @param workspace The workspace path
  */
 export const saveTaskToTasksJson = async (
   taskName: string,
   command: string,
-  workspacePath: string,
+  workspace: string,
 ): Promise<void> => {
   const workspaceFolder = vscode.workspace.getWorkspaceFolder(
-    vscode.Uri.file(workspacePath),
+    vscode.Uri.file(workspace),
   );
   if (!workspaceFolder) {
     throw new Error("No workspace folder found");

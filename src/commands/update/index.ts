@@ -1,19 +1,18 @@
 import * as vscode from "vscode";
-import Cli from "../../dagger";
 import { exec } from "child_process";
 import * as https from "https";
 import { checkInstallation } from "../../utils/installation";
 import { DaggerSettings } from "../../settings";
-
-const COMMAND = "dagger.update";
+import { DaggerCLI } from "../../cli";
 
 export const registerUpdateCommand = (
   context: vscode.ExtensionContext,
-  cli: Cli,
+  daggerCli: DaggerCLI,
   settings: DaggerSettings,
+  workspace: string,
 ): void => {
   context.subscriptions.push(
-    vscode.commands.registerCommand(COMMAND, async () => {
+    vscode.commands.registerCommand("dagger.update", async () => {
       await vscode.window.withProgress(
         {
           title: "Dagger",
@@ -23,18 +22,21 @@ export const registerUpdateCommand = (
           progress.report({ message: "Checking for Dagger updates..." });
 
           try {
-            // Get current version
-            const versionResult = await cli.run(["version"]);
-            if (!versionResult.success) {
+            const result = await daggerCli.run(["version"], {
+              cwd: workspace,
+            });
+
+            if (result.exitCode !== 0) {
               vscode.window.showErrorMessage(
-                `Failed to get current Dagger version: ${versionResult.stderr}`,
+                `Failed to get current Dagger version: ${result.stderr}`,
               );
+
               return;
             }
 
             // Parse current version (example: dagger v0.18.10 ...)
             const currentVersionMatch =
-              versionResult.stdout.match(/v(\d+\.\d+\.\d+)/);
+              result.stdout.match(/v(\d+\.\d+\.\d+)/);
             if (!currentVersionMatch) {
               vscode.window.showErrorMessage(
                 "Could not parse current Dagger version",

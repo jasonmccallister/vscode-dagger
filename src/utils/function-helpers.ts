@@ -1,12 +1,11 @@
 import * as vscode from "vscode";
-import Cli, { FunctionInfo, FunctionArgument } from "../dagger";
 import {
-  createTerminal,
   executeTaskAndWait,
   TaskExecutionResult,
 } from "./terminal";
 import { DaggerSettings } from "../settings";
 import { saveTaskToTasksJson } from "../commands/save-task";
+import { FunctionArgument, FunctionInfo } from "../types/types";
 
 interface ArgumentPick {
   readonly label: string;
@@ -338,59 +337,38 @@ interface FunctionQuickPickItem extends vscode.QuickPickItem {
 export type FunctionFilterCallback = (fn: FunctionInfo) => boolean;
 
 /**
- * Loads functions and shows quick pick for selection
- * @param cli The Dagger CLI instance
- * @param workspacePath The workspace path
+ * Shows a quick pick UI for selecting a function from a list
+ *
+ * @param functions The list of functions to choose from
  * @param filterCallback Optional callback to filter functions based on specific properties
  * @returns The selected function details or undefined if cancelled
  */
-export const selectFunction = async (
-  cli: Cli,
-  workspacePath: string,
+export const showSelectFunctionQuickPick = async (
+  functions: FunctionInfo[],
   filterCallback?: FunctionFilterCallback,
 ): Promise<FunctionInfo | undefined> => {
-  const functions = await cli.functionsList(workspacePath);
-
   if (functions.length === 0) {
-    vscode.window.showInformationMessage(
-      "No Dagger functions found in this project.",
-    );
+    vscode.window.showInformationMessage("No functions available to select.");
     return undefined;
   }
 
-  // Apply the filter if provided
   const filteredFunctions = filterCallback
     ? functions.filter(filterCallback)
     : functions;
 
-  if (filteredFunctions.length === 0) {
-    vscode.window.showInformationMessage(
-      "No functions match the specified criteria.",
-    );
-    return undefined;
-  }
+  const choices: FunctionQuickPickItem[] = filteredFunctions.map((fn) => ({
+    id: fn.functionId,
+    label: fn.name,
+    description: `${fn.module ? `(${fn.module}) ` : ""}${fn.description ? fn.description : ""}`,
+    detail: fn.returnType ? `Returns: ${fn.returnType}` : undefined,
+    functionInfo: fn, // Store the actual function info object
+  }));
 
-  // Create QuickPickItems with embedded function info
-  const functionItems: FunctionQuickPickItem[] = filteredFunctions.map(
-    (fn) => ({
-      id: fn.functionId,
-      label: fn.name,
-      description: `${fn.module ? `(${fn.module}) ` : ""}${fn.description ? fn.description : ""}`,
-      detail: fn.returnType ? `Returns: ${fn.returnType}` : undefined,
-      functionInfo: fn, // Store the actual function info object
-    }),
-  );
-
-  const pick = await vscode.window.showQuickPick(functionItems, {
-    placeHolder: "Select a function to call",
+  const selected = await vscode.window.showQuickPick(choices, {
+    placeHolder: "Select a function",
   });
 
-  if (!pick) {
-    return undefined;
-  }
-
-  // Return the embedded FunctionInfo object
-  return pick.functionInfo;
+  return selected?.functionInfo;
 };
 
 /**

@@ -1,35 +1,32 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import { EXTENSION_NAME, ICON_PATH_BLACK, ICON_PATH_WHITE } from "../../const";
-
-const COMMAND = "dagger.shell";
-const shellCommand = "dagger shell";
+import { ICON_PATH_BLACK, ICON_PATH_WHITE } from "../../const";
 
 export const registerShellCommand = (
   context: vscode.ExtensionContext,
-  workspacePath: string,
+  workspace: string,
 ): void => {
-  const disposable = vscode.commands.registerCommand(COMMAND, async () => {
+  const disposable = vscode.commands.registerCommand("dagger.shell", async () => {
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: EXTENSION_NAME,
+        title: "Dagger",
         cancellable: false,
       },
       async (progress) => {
-        progress.report({ message: `Opening ${EXTENSION_NAME} shell...` });
+        progress.report({ message: `Opening Dagger shell...` });
 
         const existingTerminal = vscode.window.terminals.find(
-          (t) => t.name === EXTENSION_NAME,
+          (t) => t.name === "Dagger",
         );
         if (existingTerminal) {
           existingTerminal.show();
-          existingTerminal.sendText(shellCommand);
+          existingTerminal.sendText("dagger");
           return;
         }
 
         const newTerminal = vscode.window.createTerminal({
-          name: EXTENSION_NAME,
+          name: "Dagger",
           iconPath: {
             light: vscode.Uri.file(
               path.join(context.extensionPath, ICON_PATH_BLACK),
@@ -38,10 +35,10 @@ export const registerShellCommand = (
               path.join(context.extensionPath, ICON_PATH_WHITE),
             ),
           },
-          cwd: workspacePath,
+          cwd: workspace,
         });
         newTerminal.show();
-        newTerminal.sendText(shellCommand);
+        newTerminal.sendText("dagger");
       },
     );
   });
@@ -51,10 +48,11 @@ export const registerShellCommand = (
   // Show Dagger Shell terminal when opened (including from profile quick pick)
   const showDaggerShellTerminal = vscode.window.onDidOpenTerminal(
     (terminal) => {
-      if (terminal.name === EXTENSION_NAME) {
+      if (terminal.name === "Dagger") {
         terminal.show();
       }
     },
   );
+  
   context.subscriptions.push(showDaggerShellTerminal);
 };

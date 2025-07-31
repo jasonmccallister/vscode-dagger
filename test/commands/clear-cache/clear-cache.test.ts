@@ -3,7 +3,7 @@ import * as vscode from "vscode";
 import * as sinon from "sinon";
 import { afterEach, beforeEach, describe, it } from "mocha";
 import { registerClearCacheCommand } from "../../../src/commands/clear-cache";
-import Cli from "../../../src/dagger";
+import { DaggerCLI } from "../../../src/cli";
 
 interface ClearCacheMessageItem extends vscode.MessageItem {
   title: string;
@@ -12,7 +12,7 @@ interface ClearCacheMessageItem extends vscode.MessageItem {
 describe("Clear Cache Command", () => {
   let sandbox: sinon.SinonSandbox;
   let mockContext: any;
-  let mockCli: sinon.SinonStubbedInstance<Cli>;
+  let mockCli: sinon.SinonStubbedInstance<DaggerCLI>;
   let commandCallback: (...args: any[]) => any;
   let commandSpy: sinon.SinonSpy;
   const YES_OPTION: ClearCacheMessageItem = { title: "Yes" };
@@ -27,7 +27,7 @@ describe("Clear Cache Command", () => {
     };
 
     // Create a stubbed CLI instance
-    mockCli = sinon.createStubInstance(Cli);
+    mockCli = sinon.createStubInstance(DaggerCLI);
 
     // Stub vscode.commands.registerCommand to capture the command handler
     commandSpy = sandbox
@@ -49,7 +49,7 @@ describe("Clear Cache Command", () => {
     sandbox.stub(vscode.window, "showErrorMessage");
 
     // Register the command
-    registerClearCacheCommand(mockContext, mockCli as unknown as Cli);
+    registerClearCacheCommand(mockContext, mockCli as unknown as DaggerCLI);
   });
 
   afterEach(() => {

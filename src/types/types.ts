@@ -57,3 +57,53 @@ export interface ModuleResult {
     };
   };
 }
+
+export interface FunctionArgument {
+  name: string;
+  type: string;
+  required: boolean;
+}
+
+export interface FunctionInfo {
+  name: string;
+  description?: string;
+  functionId: string;
+  module: string;
+  isParentModule: boolean;
+  parentModule?: string;
+  returnType: string;
+  args: FunctionArgument[];
+}
+
+export interface FunctionArgTypeDef {
+  kind: string;
+  name?: string;
+  optional?: boolean;
+  asObject?: {
+    name: string;
+  };
+}
+
+export interface FunctionArg {
+  name: string;
+  description?: string;
+  typeDef: FunctionArgTypeDef;
+}
+
+export interface ModuleFunction {
+  id: string;
+  name: string;
+  description?: string;
+  returnType: FunctionArgTypeDef;
+  args: FunctionArg[];
+}
+
+export interface ObjectInfo {
+  name: string;
+  functions: ModuleFunction[];
+}
+
+export interface ModuleObject {
+  name?: string;
+  asObject?: ObjectInfo;
+}

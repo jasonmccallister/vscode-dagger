@@ -1,8 +1,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
-import Cli from "../../dagger";
-import { showProjectSetupPrompt } from "../../prompt";
+import { DaggerCLI } from "../../cli";
 
 export const COMMAND = "dagger.addMcpModule";
 
@@ -19,16 +18,11 @@ interface McpConfig {
 
 export const registerAddMcpModuleCommand = (
   context: vscode.ExtensionContext,
-  cli: Cli,
+  _daggerCli: DaggerCLI,
   workspace: string,
 ): void => {
   context.subscriptions.push(
     vscode.commands.registerCommand(COMMAND, async () => {
-      if (!(await cli.isDaggerProject())) {
-        showProjectSetupPrompt();
-        return;
-      }
-
       // Prompt user for module address
       const moduleAddress = await vscode.window.showInputBox({
         placeHolder:

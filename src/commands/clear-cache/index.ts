@@ -1,11 +1,10 @@
 import * as vscode from "vscode";
-import Cli from "../../dagger";
+import { DaggerCLI } from "../../cli";
 
 interface ClearCacheMessageItem extends vscode.MessageItem {
   title: string;
 }
 
-const COMMAND = "dagger.clearCache";
 const YES_OPTION: ClearCacheMessageItem = { title: "Yes" };
 const NO_OPTION: ClearCacheMessageItem = { title: "No" };
 
@@ -17,35 +16,23 @@ const NO_OPTION: ClearCacheMessageItem = { title: "No" };
  */
 export const registerClearCacheCommand = (
   context: vscode.ExtensionContext,
-  cli: Cli,
+  _daggerCli: DaggerCLI,
 ): void => {
-  const disposable = vscode.commands.registerCommand(COMMAND, async () => {
-    const response = await vscode.window.showWarningMessage(
-      "Are you sure you want to clear the Dagger cache? This will remove all cached function data.",
-      { modal: true },
-      YES_OPTION,
-      NO_OPTION,
-    );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("dagger.clearCache", async () => {
+      const response = await vscode.window.showWarningMessage(
+        "Are you sure you want to clear the Dagger cache? This will remove all cached function data.",
+        { modal: true },
+        YES_OPTION,
+        NO_OPTION,
+      );
 
-    if (response && response.title === YES_OPTION.title) {
-      await clearCache(cli);
-    }
-  });
-
-  context.subscriptions.push(disposable);
-};
-
-/**
- * Clears the Dagger CLI cache
- * @param cli The Dagger CLI instance with cache access
- */
-const clearCache = async (cli: Cli): Promise<void> => {
-  try {
-    await cli.clearCache();
-    vscode.window.showInformationMessage(
-      "Dagger cache has been cleared successfully.",
-    );
-  } catch (error) {
-    vscode.window.showErrorMessage(`Failed to clear Dagger cache: ${error}`);
-  }
+      if (response && response.title === YES_OPTION.title) {
+        vscode.window.showErrorMessage(
+          "Clearing the Dagger cache is not supported in this version of the CLI.",
+        );
+        return;
+      }
+    }),
+  );
 };

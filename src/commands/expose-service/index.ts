@@ -1,35 +1,30 @@
 import * as vscode from "vscode";
-import Cli from "../../dagger";
-import { showProjectSetupPrompt } from "../../prompt";
 import {
   collectFunctionInput,
   createPropertyFilter,
   runFunction,
-  selectFunction,
+  showSelectFunctionQuickPick,
 } from "../../utils/function-helpers";
 import { DaggerSettings } from "../../settings";
-import { ContainerType, ServiceType } from "../../dagger/types";
+import { DaggerCLI } from "../../cli";
+import { ContainerType, ServiceType } from "../../types/types";
 
 export const registerExposeServiceCommand = (
   context: vscode.ExtensionContext,
-  cli: Cli,
+  dagger: DaggerCLI,
   workspacePath: string,
   _settings: DaggerSettings,
 ): void => {
   const disposable = vscode.commands.registerCommand(
     "dagger.exposeService",
     async () => {
-      if (!(await cli.isDaggerProject())) {
-        return showProjectSetupPrompt();
+      const functions = await dagger.getFunctions(workspacePath);
+      if (!functions || functions.length === 0) {
+        // If no functions are found, prompt the user to set up the project
       }
 
-      // Ensure CLI has the workspace path set
-      cli.setWorkspacePath(workspacePath);
-
-      // selectFunction now returns the full FunctionInfo object
-      let functionInfo = await selectFunction(
-        cli,
-        workspacePath,
+      const functionInfo = await showSelectFunctionQuickPick(
+        functions,
         createPropertyFilter("returnType", [ServiceType, ContainerType]),
       );
 

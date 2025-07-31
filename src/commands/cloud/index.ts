@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import Cli from "../../dagger";
 import { DaggerSettings } from "../../settings";
+import { DaggerCLI } from "../../cli";
 
 type CloudResponse = "Visit dagger.cloud" | "Open Settings" | "Cancel";
 
@@ -14,7 +14,7 @@ interface TokenSources {
 
 export const registerCloudCommand = (
   context: vscode.ExtensionContext,
-  _cli: Cli,
+  _cli: DaggerCLI,
   settings: DaggerSettings,
 ): void => {
   const disposable = vscode.commands.registerCommand(COMMAND, async () => {

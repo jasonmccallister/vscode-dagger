@@ -1,21 +1,15 @@
 import * as vscode from "vscode";
-import Cli from "../../dagger";
-import { showProjectSetupPrompt } from "../../prompt";
 import { CollectedFunctionInput, runFunction } from "../../utils";
+import { DaggerCLI } from "../../cli";
 
 export const registerDevelopCommand = (
   context: vscode.ExtensionContext,
-  cli: Cli,
-  workspacePath: string,
+  _daggerCli: DaggerCLI,
+  workspace: string,
 ): void => {
   const disposable = vscode.commands.registerCommand(
     "dagger.develop",
     async () => {
-      if (!(await cli.isDaggerProject())) {
-        await showProjectSetupPrompt();
-        return;
-      }
-
       await vscode.window
         .withProgress(
           {
@@ -25,7 +19,7 @@ export const registerDevelopCommand = (
           },
           async (_progress, token) => {
             // Run the Dagger development environment setup
-            const output = await runFunction(token, workspacePath, {
+            const output = await runFunction(token, workspace, {
               functionName: "",
               moduleName: "",
               returnType: "",
@@ -38,6 +32,7 @@ export const registerDevelopCommand = (
               console.log(
                 "Dagger development environment setup cancelled by user",
               );
+              
               return undefined;
             }
 

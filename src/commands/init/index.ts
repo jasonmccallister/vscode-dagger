@@ -1,12 +1,11 @@
 import * as vscode from "vscode";
-import Cli from "../../dagger";
+import { DaggerCLI } from "../../cli";
 
 interface SdkOption {
   readonly label: string;
   readonly value: string;
 }
 
-type DevelopChoice = "Yes" | "No";
 type FunctionsChoice = "Yes" | "No";
 
 export const COMMAND = "dagger.init";
@@ -21,15 +20,9 @@ const SDK_OPTIONS: readonly SdkOption[] = [
 
 export const registerInitCommand = (
   context: vscode.ExtensionContext,
-  cli: Cli,
+  daggerCli: DaggerCLI,
 ): void => {
   const disposable = vscode.commands.registerCommand(COMMAND, async () => {
-    // Check if this workspace is already a Dagger project
-    if (await cli.isDaggerProject()) {
-      await handleExistingProject(cli);
-      return;
-    }
-
     // Select SDK for new project
     const sdkChoice = await vscode.window.showQuickPick(SDK_OPTIONS, {
       placeHolder: "Select the SDK to use",
@@ -40,7 +33,7 @@ export const registerInitCommand = (
       return;
     }
 
-    await initializeProject(cli, sdkChoice);
+    await initializeProject(daggerCli, sdkChoice);
   });
 
   context.subscriptions.push(disposable);
@@ -58,42 +51,24 @@ const getWorkspaceDirectory = (): string => {
 };
 
 /**
- * Handles the case where workspace is already a Dagger project
- * @param cli The Dagger CLI instance
- * @returns Promise that resolves when handling is complete
- */
-const handleExistingProject = async (cli: Cli): Promise<void> => {
-  const choice = (await vscode.window.showErrorMessage(
-    'This workspace is already a Dagger project. Do you want to run the "Dagger: Develop" command instead?',
-    { modal: true },
-    "Yes",
-    "No",
-  )) as DevelopChoice | undefined;
-
-  if (choice === "Yes") {
-    await cli.run(["develop"]);
-  } else {
-    vscode.window.showInformationMessage(
-      'You can run the "Dagger: Develop" command to start developing your Dagger project.',
-    );
-  }
-};
-
-/**
  * Initializes a new Dagger project with selected SDK
  * @param cli The Dagger CLI instance
  * @param sdk The selected SDK option
  * @returns Promise that resolves when initialization is complete
  */
-const initializeProject = async (cli: Cli, sdk: SdkOption): Promise<void> => {
+const initializeProject = async (
+  daggerCli: DaggerCLI,
+  sdk: SdkOption,
+): Promise<void> => {
   try {
     const cwd = getWorkspaceDirectory();
-    const result = await cli.run(["init", "--sdk", sdk.value], { cwd });
+    const result = await daggerCli.run(["init", "--sdk", sdk.value], { cwd });
 
-    if (!result.success) {
+    if (result.exitCode !== 0) {
       vscode.window.showErrorMessage(
         `Failed to initialize Dagger project: ${result.stderr}`,
       );
+
       return;
     }
 

@@ -1,22 +1,21 @@
 import * as assert from "assert";
 import { describe, it, beforeEach } from "mocha";
 import { DataProvider, DaggerTreeItem } from "../../src/tree/provider";
-import Cli, { FunctionInfo } from "../../src/dagger";
+import { DaggerCLI } from "../../src/cli";
+import { FunctionInfo } from "../../src/types/types";
 
 describe("Tree Provider", () => {
-  let mockCli: Partial<Cli>;
+  let mockCli: Partial<DaggerCLI>;
   let dataProvider: DataProvider;
 
   beforeEach(() => {
     mockCli = {
-      isInstalled: async () => true,
-      isDaggerProject: async () => true,
-      functionsList: async () => [],
+      getFunctions: async () => [],
     };
   });
 
   it("should load data with test items on construction", async () => {
-    // Arrange: mock functionsList to return test items
+    // Arrange: mock getFunctions to return test items
     const testFunctions: FunctionInfo[] = [
       {
         name: "testFunc1",
@@ -39,12 +38,10 @@ describe("Tree Provider", () => {
         returnType: "container",
       },
     ];
-    mockCli.functionsList = async () => testFunctions;
-    mockCli.isInstalled = async () => true;
-    mockCli.isDaggerProject = async () => true;
+    mockCli.getFunctions = async () => testFunctions;
 
     // Act
-    dataProvider = new DataProvider(mockCli as Cli, "");
+    dataProvider = new DataProvider(mockCli as DaggerCLI, "");
     // Wait for async loadData to finish
     await new Promise((resolve) => setTimeout(resolve, 10));
     const children = await dataProvider.getChildren();
@@ -111,12 +108,10 @@ describe("Tree Provider", () => {
         returnType: "container",
       },
     ];
-    mockCli.functionsList = async () => testFunctions;
-    mockCli.isInstalled = async () => true;
-    mockCli.isDaggerProject = async () => true;
+    mockCli.getFunctions = async () => testFunctions;
 
     // Act
-    dataProvider = new DataProvider(mockCli as Cli, "");
+    dataProvider = new DataProvider(mockCli as DaggerCLI, "");
     // Wait for async loadData to finish
     await new Promise((resolve) => setTimeout(resolve, 100));
     const children = await dataProvider.getChildren();
