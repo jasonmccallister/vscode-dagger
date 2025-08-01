@@ -34,42 +34,42 @@ const queryHostDirectory = `query hostDirectory($path: String!) {
 }`;
 
 const queryFunctions = `query directoryAsModule($id: DirectoryID!) {
-    loadDirectoryFromID(id: $id) {
-    name
-    asModule {
-        id
+  loadDirectoryFromID(id: $id) {
+  name
+  asModule {
+      id
+      name
+      objects {
+      asObject {
         name
-        objects {
-        asObject {
-          name
+          id
+          functions {
             id
-            functions {
-              id
+            name
+            description
+            returnType {
+              kind
+              optional
+              asObject {
+                name
+              }
+          }
+          args {
               name
               description
-              returnType {
-                kind
-                optional
-                asObject {
+              typeDef {
+              asObject {
                   name
-                }
-            }
-            args {
-                name
-                description
-                typeDef {
-                asObject {
-                    name
-                }
-                kind
-                optional
-                }
-            }
-            }
-        }
-        }
-    }
-    }
+              }
+              kind
+              optional
+              }
+          }
+          }
+      }
+      }
+  }
+  }
 }`;
 
 export class DaggerCLI {

@@ -111,6 +111,12 @@
         "shortTitle": "Setup Cloud"
       },
       {
+        "command": "dagger.startGraphQLServer",
+        "title": "Start GraphQL Server",
+        "category": "Dagger",
+        "shortTitle": "Start GraphQL Server"
+      },
+      {
         "command": "dagger.uninstall",
         "title": "Uninstall",
         "category": "Dagger",

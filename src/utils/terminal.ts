@@ -60,6 +60,7 @@ export const executeTaskAndWait = async (
     runInBackground?: boolean;
     taskName?: string;
     workingDirectory?: string;
+    environment?: { [key: string]: string };
   },
 ): Promise<TaskExecutionResult> => {
   return new Promise((resolve, reject) => {
@@ -73,11 +74,24 @@ export const executeTaskAndWait = async (
       runInBackground = false,
       taskName = TERMINAL_CONFIG.NAME,
       workingDirectory,
+      environment,
     } = options || {};
+
+    // Create environment variables
+    // Note: We need to ensure all values are strings to satisfy the type requirements
+    const env = environment 
+      ? Object.fromEntries(
+          Object.entries({ ...process.env, ...environment })
+            .filter(([_, value]) => value !== undefined)
+            .map(([key, value]) => [key, String(value)])
+        ) 
+      : undefined;
 
     const taskExecution = new vscode.ShellExecution(command, {
       cwd: workingDirectory,
+      env,
     });
+
     const taskDefinition: vscode.TaskDefinition = {
       type: "shell",
     };

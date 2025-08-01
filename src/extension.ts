@@ -22,6 +22,7 @@ import { registerUninstallCommand } from "./commands/uninstallDagger";
 import { registerUpdateCommand } from "./commands/updateDagger";
 import { registerVersionCommand } from "./commands/daggerVersion";
 import { registerCallCommand } from "./commands/callFunction";
+import { registerStartGraphQLServer } from "./commands/startGraphQLServer";
 
 export async function activate(context: vscode.ExtensionContext) {
   try {
@@ -79,6 +80,7 @@ export async function activate(context: vscode.ExtensionContext) {
     registerUninstallCommand(context, settings);
     registerUpdateCommand(context, daggerCli, settings, workspace);
     registerVersionCommand(context, daggerCli, workspace);
+    registerStartGraphQLServer(context, daggerCli, workspace);
 
     // Register tree view with settings
     registerTreeView(context, {
