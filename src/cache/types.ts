@@ -49,4 +49,13 @@ export interface CliCache {
    * @returns True if the data has changed, false if it's the same
    */
   hasDataChanged<T>(key: string, newData: T): Promise<boolean>;
+
+  /**
+   * Generates a cache key based on a prefix and path
+   *
+   * @param prefix The prefix for the cache key
+   * @param path The path to include in the key
+   * @returns A unique cache key
+   */
+  generateKey(prefix: string, path: string): string;
 }

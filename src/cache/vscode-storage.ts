@@ -116,4 +116,14 @@ export class VSCodeWorkspaceCache implements CliCache {
     const newSHA256 = this.generateSHA256(newData);
     return cachedSHA256 !== newSHA256;
   }
+
+  /**
+   * Generates a cache key based on a prefix and path
+   * @param prefix The prefix for the cache key
+   * @param path The path to include in the key
+   * @returns A unique cache key
+   */
+  generateKey(prefix: string, path: string): string {
+    return crypto.createHash("md5").update(`${prefix}-${path}`).digest("hex");
+  }
 }
