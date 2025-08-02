@@ -26,20 +26,12 @@ export const registerStartGraphQLServer = (
 
       const token = new vscode.CancellationTokenSource().token;
 
-      const env = {
-        DAGGER_SESSION_TOKEN: auth.value,
-        DAGGER_SESSION_PORT: "8080",
-      };
-      
-      // append --debug
-      command.push("--debug");
-
-      // pass the environment variables to the command
+      // put env DAGGER_SESSION_TOKEN=auth.value in the beginning of the command array
+      command = ["env", "DAGGER_SESSION_TOKEN=" + auth.value, ...command];
 
       executeTaskAndWait(token, command.join(" "), {
         runInBackground: false,
         workingDirectory: workspace,
-        environment: env,
       });
     },
   );
@@ -51,6 +43,11 @@ const listenAddressPrompt = async (
   commandArgs: string[],
   defaultAddress: string,
 ) => {
+  if (process.env.DAGGER_LISTEN_ADDRESS) {
+    commandArgs.push("--listen", process.env.DAGGER_LISTEN_ADDRESS);
+    return;
+  }
+
   const address = await vscode.window.showInputBox({
     placeHolder: "Enter the listen address",
     prompt: "Listen address for the GraphQL server",
@@ -77,6 +74,11 @@ const listenAddressPrompt = async (
 };
 
 const allowCorsPrompt = async (commandArgs: string[]) => {
+  if (process.env.DAGGER_ALLOW_CORS === "true") {
+    commandArgs.push("--allow-cors");
+    return;
+  }
+
   const allowCors = await vscode.window.showQuickPick(["Yes", "No"], {
     placeHolder: "Allow CORS?",
     canPickMany: false,
@@ -88,6 +90,11 @@ const allowCorsPrompt = async (commandArgs: string[]) => {
 };
 
 const allowLLMPrompt = async (commandArgs: string[]) => {
+  if (process.env.DAGGER_ALLOW_LLM === "true") {
+    commandArgs.push("--allow-llm=all");
+    return;
+  }
+
   const allowLLM = await vscode.window.showQuickPick(["Yes", "No"], {
     placeHolder: "Allow LLM connections for specific modules?",
     canPickMany: false,
@@ -136,6 +143,13 @@ interface AuthPromptResult {
 }
 
 const basicAuthPrompt = async (): Promise<AuthPromptResult> => {
+  if (process.env.DAGGER_SESSION_TOKEN) {
+    return {
+      token: Buffer.from(process.env.DAGGER_SESSION_TOKEN).toString("base64"),
+      value: process.env.DAGGER_SESSION_TOKEN,
+    };
+  }
+
   const auth = await vscode.window.showInputBox({
     placeHolder: "Set Basic Auth Token (optional)",
     value: "test",

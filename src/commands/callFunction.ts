@@ -51,6 +51,7 @@ export const registerCallCommand = (
         vscode.window.showErrorMessage(
           "No function selected. Please select a function to call.",
         );
+
         return;
       }
 
@@ -210,10 +211,13 @@ export interface SelectedActions {
 const preRunOptions = async (
   token: vscode.CancellationToken,
   functionInfo: FunctionInfo,
-) => {
+): Promise<SelectedActions | undefined> => {
   const returnType = functionInfo.returnType;
   let message = `\`${functionInfo.name}\` returns a ${returnType}.`;
   let optionItems: string[] = [];
+  let selectedActions: SelectedActions = {
+    SkipProgress: false,
+  };
 
   switch (returnType) {
     case "Container":
@@ -233,15 +237,14 @@ const preRunOptions = async (
       console.debug(
         `Function \`${functionInfo.name}\` has an unsupported return type: ${returnType}`,
       );
-      return;
+      
+      return selectedActions;
   }
 
   // always add the option to ignore extra steps
   optionItems.push("Ignore and continue");
 
-  const selectedActions: SelectedActions = {
-    SkipProgress: true,
-  };
+  selectedActions.SkipProgress = true;
 
   const selected = await vscode.window.showQuickPick(optionItems, {
     placeHolder: message,
