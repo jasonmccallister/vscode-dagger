@@ -129,8 +129,6 @@ export interface CollectedFunctionInput {
   moduleName?: string;
   /** The return type of the function */
   returnType: string;
-  /** The parent module name (if applicable) */
-  parentModule?: string;
   /** The collected argument values */
   argValues: Record<string, string>;
   /** The final command arguments */
@@ -153,7 +151,6 @@ export const collectFunctionInput = async (
     args,
     module: moduleName,
     returnType,
-    parentModule,
   } = functionInfo;
 
   // Check if operation has been cancelled
@@ -185,7 +182,7 @@ export const collectFunctionInput = async (
 
   let commandArgs: string[];
   // if this is the root module, don't include module name
-  if (functionInfo.parentModule === undefined) {
+  if (functionInfo.module === undefined) {
     commandArgs = buildCommandArgs(functionName, argValues);
   } else {
     commandArgs = buildCommandArgs(functionName, argValues, moduleName);
@@ -200,7 +197,6 @@ export const collectFunctionInput = async (
     functionName,
     moduleName,
     returnType,
-    parentModule,
     argValues,
     commandArgs,
   };
@@ -353,7 +349,7 @@ export const showSelectFunctionQuickPick = async (
     : functions;
 
   const choices: FunctionQuickPickItem[] = filteredFunctions.map((fn) => ({
-    id: fn.functionId,
+    id: fn.id,
     label: fn.name,
     description: `${fn.module ? `(${fn.module}) ` : ""}${fn.description ? fn.description : ""}`,
     detail: fn.returnType ? `Returns: ${fn.returnType}` : undefined,

@@ -10,6 +10,7 @@ import { DaggerTreeItem } from "../tree/provider";
 import { DaggerSettings } from "../settings";
 import { DaggerCLI } from "../cli";
 
+
 export const registerCallCommand = (
   context: vscode.ExtensionContext,
   dagger: DaggerCLI,
@@ -114,10 +115,10 @@ export const registerCallCommand = (
         async (progress, token) => {
           try {
             let functionName: string = functionInfo?.name;
-            let moduleName: string = functionInfo?.module;
+            let moduleName: string | undefined = functionInfo?.module;
 
             progress.report({
-              message: `Running function \`${functionName}\`${functionInfo.parentModule ? ` in module ${functionInfo.module}` : ""}`,
+              message: `Running function \`${functionName}\`${moduleName ? ` in module ${moduleName}` : ""}`,
             });
 
             if (token.isCancellationRequested) {
@@ -197,6 +198,7 @@ export interface SelectedActions {
   CommandArgsToAppend?: string[];
   SkipProgress?: boolean;
 }
+
 
 /**
  * This looks at the return type of the function and prompts the user for options such as:

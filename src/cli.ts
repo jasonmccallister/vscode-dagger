@@ -9,7 +9,6 @@ import {
 } from "./types/types";
 import { DaggerSettings } from "./settings";
 import { CliCache } from "./cache";
-import crypto from "crypto";
 import { getArgumentTypeName, getReturnTypeName } from "./utils/type-helpers";
 
 export interface Output {
@@ -35,13 +34,13 @@ const queryHostDirectory = `query hostDirectory($path: String!) {
 
 const queryFunctions = `query directoryAsModule($id: DirectoryID!) {
   loadDirectoryFromID(id: $id) {
-  name
-  asModule {
+    name
+    asModule {
       id
       name
       objects {
-      asObject {
-        name
+        asObject {
+          name
           id
           functions {
             id
@@ -53,22 +52,22 @@ const queryFunctions = `query directoryAsModule($id: DirectoryID!) {
               asObject {
                 name
               }
-          }
-          args {
+            }
+            args {
               name
               description
               typeDef {
-              asObject {
+                asObject {
                   name
+                }
+                kind
+                optional
               }
-              kind
-              optional
-              }
+            }
           }
-          }
+        }
       }
-      }
-  }
+    }
   }
 }`;
 
@@ -98,10 +97,9 @@ export class DaggerCLI {
    * @returns A promise that resolves to an array of FunctionInfo objects.
    */
   async getFunctions(path: string): Promise<FunctionInfo[]> {
+    const cacheKey = this.cache.generateKey("functions", path);
     // is cache enabled?
     if (this.settings.enableCache) {
-      const cacheKey = this.cacheKey("functions", path);
-
       console.log(`Checking cache for key: ${cacheKey}`);
 
       const cachedFunctions = await this.cache.get<FunctionInfo[]>(cacheKey);
@@ -121,7 +119,6 @@ export class DaggerCLI {
 
     if (exitCode !== 0) {
       console.error("Failed to get functions:", stderr);
-
       throw new Error(`Failed to get functions: ${stderr}`);
     }
 
@@ -131,46 +128,47 @@ export class DaggerCLI {
 
       if (!result.loadDirectoryFromID.asModule.objects) {
         console.error("Invalid functions response:", stdout);
-
         throw new Error("Invalid functions response");
       }
 
       const functions: FunctionInfo[] = [];
+      const rootModuleId = result.loadDirectoryFromID.asModule.id;
+      const rootModuleName = slugify(result.loadDirectoryFromID.asModule.name);
 
       // Iterate through each module object and extract functions
       result.loadDirectoryFromID.asModule.objects.forEach(
         (moduleObj: ModuleObject) => {
           if (moduleObj.asObject && moduleObj.asObject.functions) {
-            let moduleName = slugify(moduleObj.asObject.name);
-            let hasParentModule = false;
-            let parentModule: string | undefined;
+            const fullModuleName = slugify(moduleObj.asObject.name);
 
-            console.debug(`Processing module: ${moduleName}`);
+            // Check if this is the root module by comparing IDs
+            const isRootModule = moduleObj.id === rootModuleId;
 
-            // TODO(jasonmccallister): this is wrong
-            if (moduleObj.id === result.loadDirectoryFromID.asModule.id) {
-              hasParentModule = true;
-              parentModule = moduleName;
+            // For submodules, strip the root module prefix if present to get clean submodule name
+            let moduleName: string | undefined;
+            if (!isRootModule) {
+              // This is a submodule, set the module name
+              if (fullModuleName.startsWith(`${rootModuleName}-`)) {
+                // Strip the root module prefix (e.g., "dagger-dev-cli" -> "cli")
+                moduleName = fullModuleName.substring(rootModuleName.length + 1);
+              } else {
+                // Use the full name if it doesn't start with root module prefix
+                moduleName = fullModuleName;
+              }
             }
+            // For root module, moduleName remains undefined
 
-            // if this is not the parent module, remove the parent module from the name
-            if (hasParentModule) {
-              console.debug(`Module ${moduleName} is a parent module.`);
-              // remove the parentModule prefix from the module name
-              moduleName = moduleName.replace(
-                new RegExp(`^${parentModule}`),
-                "",
-              );
-            }
+            console.debug(
+              `Processing module: ${moduleName || "root"} (isRoot: ${isRootModule}, original: ${fullModuleName})`,
+            );
 
             // Process each function in the module
             moduleObj.asObject.functions.forEach((func: ModuleFunction) => {
               functions.push({
+                id: func.id,
                 name: func.name,
                 description: func.description,
-                functionId: func.id,
-                module: moduleName,
-                parentModule: hasParentModule ? moduleName : undefined,
+                module: moduleName, // undefined for root module, submodule name for submodules
                 returnType: getReturnTypeName(func.returnType),
                 args: func.args.map((arg: FunctionArg) => ({
                   name: arg.name,
@@ -183,23 +181,55 @@ export class DaggerCLI {
         },
       );
 
-      // is cache enabled?
-      if (this.settings.enableCache) {
-        console.debug(
-          `Caching functions for key: ${this.cacheKey("functions", path)}`,
-        );
-        this.cache.set(this.cacheKey("functions", path), functions);
-      }
+      // Always set the cache, even if not enabled. 
+      // This is to ensure that the cache is always up-to-date if enabled later
+      console.debug(`Caching functions for key: ${cacheKey}`);
+
+      this.cache.set(cacheKey, functions);
 
       return functions;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-
-      console.error("Error parsing functions response:", errorMessage);
+      
+        console.error("Error parsing functions response:", errorMessage);
 
       throw new Error(`Failed to parse functions response: ${errorMessage}`);
     }
+  }
+
+  async getFunctionsAsTree(
+    path: string,
+  ): Promise<Map<string, Array<{ fn: FunctionInfo; index: number }>>> {
+    const functions = await this.getFunctions(path);
+
+    const functionTree: Map<
+      string,
+      Array<{ fn: FunctionInfo; index: number }>
+    > = new Map();
+
+    for (let i = 0; i < functions.length; i++) {
+      const fn = functions[i];
+      if (!fn.id) {
+        console.warn(`Function ${fn.name} has no ID, skipping`);
+        continue;
+      }
+
+      // Determine the module key for grouping
+      // Root module functions (module is undefined) use empty string as key
+      // Submodule functions use their module name as key
+      const moduleKey = fn.module || "";
+
+      // Initialize the module group if it doesn't exist
+      if (!functionTree.has(moduleKey)) {
+        functionTree.set(moduleKey, []);
+      }
+
+      // Add function to its module group
+      functionTree.get(moduleKey)!.push({ fn, index: i });
+    }
+
+    return functionTree;
   }
 
   /**
@@ -335,11 +365,12 @@ export class DaggerCLI {
    * @returns A promise that resolves to the directory ID as a string.
    */
   private async getDirectoryID(path: string): Promise<string> {
+    const cacheKey = this.cache.generateKey("directory", path);
     if (this.settings.enableCache) {
-      const cacheKey = this.cacheKey("directory", path);
       const cachedResult = await this.cache.get<DirectoryIdResult>(cacheKey);
       if (cachedResult) {
         console.debug(`Using cached directory ID for key: ${cacheKey}`);
+
         return cachedResult.host.directory.id;
       }
     }
@@ -364,11 +395,12 @@ export class DaggerCLI {
       throw new Error(`Failed to parse directory ID result: ${errorMessage}`);
     }
 
-    return result.host.directory.id;
-  }
+    console.debug(`Caching directory ID for key: ${cacheKey}`);
 
-  private cacheKey(prefix: string, path: string): string {
-    return crypto.createHash("md5").update(`${prefix}-${path}`).digest("hex");
+    // always set the cache, even if not enabled. This is to ensure that the cache is always up-to-date if enabled later
+    this.cache.set(cacheKey, result);
+
+    return result.host.directory.id;
   }
 }
 
@@ -383,3 +415,10 @@ function slugify(text: string): string {
     .replace(/[^\w-]+/g, "")
     .replace(/--+/g, "-");
 }
+
+const normalizeModuleName = (name: string): string => {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+};

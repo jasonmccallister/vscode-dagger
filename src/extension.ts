@@ -81,6 +81,7 @@ export async function activate(context: vscode.ExtensionContext) {
     registerUpdateCommand(context, daggerCli, settings, workspace);
     registerVersionCommand(context, daggerCli, workspace);
     registerStartGraphQLServer(context, daggerCli, workspace);
+    
 
     // Register tree view with settings
     registerTreeView(context, {

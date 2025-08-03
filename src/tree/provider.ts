@@ -92,7 +92,7 @@ export class DaggerTreeItem extends vscode.TreeItem {
       if (moduleName || functionId) {
         derivedFunctionInfo = {
           name: labelOrFunctionInfo,
-          functionId: functionId || "",
+          id: functionId || "",
           module: moduleName || "",
           returnType: "",
           args: [],
@@ -113,9 +113,9 @@ export class DaggerTreeItem extends vscode.TreeItem {
     this.functionInfo = derivedFunctionInfo;
 
     // Generate a unique ID for this item based on its type
-    if (type === "function" && this.functionInfo?.functionId) {
+    if (type === "function" && this.functionInfo?.id) {
       // Use function ID from API for uniqueness
-      this.id = this.functionInfo.functionId;
+      this.id = this.functionInfo.id;
     } else if (type === "module" && this.functionInfo?.module) {
       // Use module name for module items
       this.id = `module:${this.functionInfo.module}`;
@@ -215,15 +215,21 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
             }, 3000); // Show notice after 3 seconds
 
             try {
-              // Get all functions
-              const functions = await this.daggerCli.getFunctions(
+              // Get functions grouped by module using the new getFunctionsAsTree method
+              const moduleMap = await this.daggerCli.getFunctionsAsTree(
                 this.workspacePath,
               );
 
               // Clear the timeout since we're done loading
               clearTimeout(timeoutHandle);
 
-              if (functions.length === 0) {
+              // Check if we have any functions at all
+              const totalFunctions = Array.from(moduleMap.values()).reduce(
+                (sum, functions) => sum + functions.length,
+                0,
+              );
+
+              if (totalFunctions === 0) {
                 this.items = [
                   new DaggerTreeItem("No functions found", "empty"),
                   new DaggerTreeItem(
@@ -245,47 +251,15 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
 
               this.items = [];
 
-              // Initialize progress tracking
-              const totalFunctions = functions.length;
-              const incrementPerFunction = 100 / totalFunctions;
-
-              // Group functions by their module
-              const moduleMap = new Map<
-                string,
-                Array<{ fn: any; index: number }>
-              >();
-
-              // Process all functions at once
-              for (let i = 0; i < functions.length; i++) {
-                const fn = functions[i];
-
-                if (!fn.functionId) {
-                  console.warn(`Function ${fn.name} has no ID, skipping`);
-                  continue;
-                }
-
-                // Use the module property directly, which should be set correctly by functionsList
-                // For parent modules, the module name will be empty
-                const moduleName = fn.parentModule ? "" : fn.module || "";
-
-                // Add function to its module group
-                if (!moduleMap.has(moduleName)) {
-                  moduleMap.set(moduleName, []);
-                }
-                moduleMap.get(moduleName)!.push({ fn, index: i });
-
-                // Report progress for this function
-                progress.report({
-                  message: `Processing ${
-                    i + 1
-                  }/${totalFunctions}: ${fn.name.trim()}`,
-                  increment: incrementPerFunction,
-                });
-              }
+              // Report progress
+              progress.report({
+                message: `Processing ${totalFunctions} functions...`,
+                increment: 50,
+              });
 
               progress.report({ message: "Building tree view..." });
 
-              // Build the tree items after all functions are processed
+              // Build the tree items from the module map
               await this.buildTreeItems(moduleMap);
 
               // Refresh the tree view with the new items
@@ -320,7 +294,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
    * @param moduleMap Map of module names to function arrays
    */
   private async buildTreeItems(
-    moduleMap: Map<string, Array<{ fn: any; index: number }>>,
+    moduleMap: Map<string, Array<{ fn: FunctionInfo; index: number }>>,
   ): Promise<void> {
     // If there's only one module, don't nest under module
     if (moduleMap.size === 1) {
@@ -331,7 +305,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
       // Create function items directly
       for (const { fn } of moduleFunctions) {
         const functionName = fn.name.trim();
-        const functionId = fn.functionId; // Use the function ID directly
+        const functionId = fn.id; // Use the function ID directly
 
         if (!functionId) {
           console.warn(`Function ${functionName} has no ID, skipping`);
@@ -377,7 +351,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
       if (rootModuleFunctions.length > 0) {
         for (const { fn } of rootModuleFunctions) {
           const functionName = fn.name.trim();
-          const functionId = fn.functionId;
+          const functionId = fn.id;
 
           if (!functionId) {
             console.warn(
@@ -415,7 +389,6 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
             );
           }
 
-          // Add to top level items
           this.items.push(functionItem);
         }
 
@@ -441,12 +414,9 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
 
         // Add functions as children of the module
         moduleItem.children = moduleFunctions.map(({ fn }) => {
-          // For display, use the function name without module prefix
-          const displayName = fn.name.includes(".")
-            ? fn.name.substring(fn.name.indexOf(".") + 1) // Remove module prefix from display
-            : fn.name.trim();
-
-          const functionId = fn.functionId; // Use the function ID directly
+          // For display, use the function name as-is since it should already be clean
+          const displayName = fn.name.trim();
+          const functionId = fn.id; // Use the function ID directly
 
           if (!functionId) {
             console.warn(
@@ -455,15 +425,9 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
             return new DaggerTreeItem(`${displayName} (error: no ID)`, "empty");
           }
 
-          // Create a modified function info to use a display name without the module prefix
-          const modifiedFn = {
-            ...fn,
-            name: displayName, // Override the name with display name
-          };
-
           // Create function item with FunctionInfo
           const functionItem = new DaggerTreeItem(
-            modifiedFn, // Pass modified FunctionInfo
+            fn, // Pass FunctionInfo directly
             "function",
             fn.args && fn.args.length > 0
               ? vscode.TreeItemCollapsibleState.Collapsed

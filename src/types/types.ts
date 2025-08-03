@@ -42,11 +42,6 @@ export interface ObjectInfo {
   functions: ModuleFunction[];
 }
 
-export interface ModuleObject {
-  name?: string;
-  asObject?: ObjectInfo;
-}
-
 export interface ModuleResult {
   loadDirectoryFromID: {
     asModule: {
@@ -65,11 +60,10 @@ export interface FunctionArgument {
 }
 
 export interface FunctionInfo {
+  id: string;
   name: string;
   description?: string;
-  functionId: string;
-  module: string;
-  parentModule?: string;
+  module?: string;
   returnType: string;
   args: FunctionArgument[];
 }
@@ -104,6 +98,6 @@ export interface ObjectInfo {
 
 export interface ModuleObject {
   id: string;
-  name?: string;
+  name: string;
   asObject?: ObjectInfo;
 }
