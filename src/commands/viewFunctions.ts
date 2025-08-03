@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { COMMAND as REFRESH_COMMAND } from "./refreshFunctions";
+import { COMMAND as REFRESH_COMMAND } from "./reloadFunctions";
 
 export const COMMAND = "dagger.functions";
 

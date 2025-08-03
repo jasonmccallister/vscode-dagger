@@ -132,34 +132,59 @@ export class DaggerCLI {
       }
 
       const functions: FunctionInfo[] = [];
-      const rootModuleId = result.loadDirectoryFromID.asModule.id;
-      const rootModuleName = slugify(result.loadDirectoryFromID.asModule.name);
+
+      // Collect all normalized module names first
+      const moduleNames: string[] = [];
+      result.loadDirectoryFromID.asModule.objects.forEach(
+        (moduleObj: ModuleObject) => {
+          if (moduleObj.asObject) {
+            moduleNames.push(normalizeModuleName(moduleObj.asObject.name));
+          }
+        },
+      );
+
+      // Sort module names by length to find the shortest one as root
+      moduleNames.sort((a, b) => a.length - b.length);
+      const rootModuleName = moduleNames[0] || "";
+
+      console.debug(`Root module name determined: ${rootModuleName}`);
+      console.debug(`All module names: ${moduleNames.join(", ")}`);
 
       // Iterate through each module object and extract functions
       result.loadDirectoryFromID.asModule.objects.forEach(
         (moduleObj: ModuleObject) => {
           if (moduleObj.asObject && moduleObj.asObject.functions) {
-            const fullModuleName = slugify(moduleObj.asObject.name);
+            // make sure the module name is defined
+            if (!moduleObj.asObject.name) {
+              console.warn("Module name is undefined, skipping module");
+              return;
+            }
 
-            // Check if this is the root module by comparing IDs
-            const isRootModule = moduleObj.id === rootModuleId;
+            const fullModuleName = normalizeModuleName(moduleObj.asObject.name);
+
+            // Check if this is the root module by comparing with the shortest module name
+            const isRootModule = fullModuleName === rootModuleName;
 
             // For submodules, strip the root module prefix if present to get clean submodule name
             let moduleName: string | undefined;
-            if (!isRootModule) {
-              // This is a submodule, set the module name
-              if (fullModuleName.startsWith(`${rootModuleName}-`)) {
-                // Strip the root module prefix (e.g., "dagger-dev-cli" -> "cli")
-                moduleName = fullModuleName.substring(rootModuleName.length + 1);
-              } else {
-                // Use the full name if it doesn't start with root module prefix
-                moduleName = fullModuleName;
+            if (!isRootModule && fullModuleName.startsWith(rootModuleName)) {
+              // Strip the root module prefix (e.g., "daggerdevcli" -> "cli")
+              moduleName = fullModuleName.substring(rootModuleName.length);
+              // Remove any leading hyphens
+              moduleName = moduleName.replace(/^-+/, "");
+
+              // If nothing is left after stripping, treat as root module
+              if (!moduleName) {
+                moduleName = undefined;
               }
+            } else if (!isRootModule) {
+              // Use the full name if it doesn't start with root module prefix
+              moduleName = fullModuleName;
             }
             // For root module, moduleName remains undefined
 
             console.debug(
-              `Processing module: ${moduleName || "root"} (isRoot: ${isRootModule}, original: ${fullModuleName})`,
+              `Processing module: ${moduleName || "root"} (isRoot: ${isRootModule}, original: ${fullModuleName}, rootModule: ${rootModuleName})`,
             );
 
             // Process each function in the module
@@ -181,7 +206,7 @@ export class DaggerCLI {
         },
       );
 
-      // Always set the cache, even if not enabled. 
+      // Always set the cache, even if not enabled.
       // This is to ensure that the cache is always up-to-date if enabled later
       console.debug(`Caching functions for key: ${cacheKey}`);
 
@@ -191,8 +216,8 @@ export class DaggerCLI {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      
-        console.error("Error parsing functions response:", errorMessage);
+
+      console.error("Error parsing functions response:", errorMessage);
 
       throw new Error(`Failed to parse functions response: ${errorMessage}`);
     }
@@ -404,7 +429,7 @@ export class DaggerCLI {
   }
 }
 
-function slugify(text: string): string {
+export const slugify = (text: string): string => {
   return text
     .toString()
     .normalize("NFD")
@@ -414,11 +439,26 @@ function slugify(text: string): string {
     .replace(/\s+/g, "-")
     .replace(/[^\w-]+/g, "")
     .replace(/--+/g, "-");
-}
+};
 
 const normalizeModuleName = (name: string): string => {
   return name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
+};
+
+export const kebab = (text: string): string => {
+  return text
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^\w-]+/g, "")
+    .replace(/--+/g, "-")
+    .replace(/^-|-$/g, "")
+    .replace(/_/g, "-")
+    .replace(/\.|,/g, "-");
 };

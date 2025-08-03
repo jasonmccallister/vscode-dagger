@@ -1,8 +1,7 @@
 import * as vscode from "vscode";
 import { FunctionInfo } from "../types/types";
-import { COMMAND as REFRESH_COMMAND } from "../commands/refreshFunctions";
 import { DaggerSettings } from "../settings";
-import { DaggerCLI } from "../cli";
+import { DaggerCLI, kebab } from "../cli";
 
 type ItemType = "function" | "argument" | "empty" | "action" | "module";
 
@@ -45,14 +44,14 @@ export const registerTreeView = (
 
   // register the refresh command here so we can access the tree view and data provider in the callback
   const refreshCommand = vscode.commands.registerCommand(
-    REFRESH_COMMAND,
+    "dagger.reloadFunctions",
     async () => {
       try {
         dataProvider.reloadFunctions();
       } catch (error) {
-        console.error("Failed to reload Dagger functions:", error);
+        console.error("Failed to reload functions:", error);
         vscode.window.showErrorMessage(
-          "Failed to reload Dagger functions. Check the console for details",
+          "Failed to reload functions. Check the console for details",
         );
       }
     },
@@ -184,7 +183,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
     this.daggerCli = daggerCli;
     this.workspacePath = workspacePath;
     // Show loading state immediately
-    this.items = [new DaggerTreeItem("Loading Dagger functions...", "empty")];
+    this.items = [new DaggerTreeItem("Loading functions...", "empty")];
     // Load data asynchronously without blocking
     this.loadData();
   }
@@ -270,7 +269,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
               throw error;
             }
           } catch (error) {
-            console.error("Error loading Dagger functions:", error);
+            console.error("Error loading functions:", error);
             this.items = [
               new DaggerTreeItem("Error loading functions", "empty"),
             ];
@@ -279,11 +278,11 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
           }
 
           // Final progress report to indicate completion
-          progress.report({ message: "Dagger functions loaded successfully" });
+          progress.report({ message: "Functions loaded successfully" });
         },
       );
     } catch (error) {
-      console.error("Failed to load Dagger functions:", error);
+      console.error("Failed to load functions:", error);
       this.items = [new DaggerTreeItem("Failed to load functions", "empty")];
       this.refresh();
     }
@@ -333,7 +332,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
           functionItem.children = fn.args.map(
             (arg: { name: string; type: string; required: boolean }) =>
               new DaggerTreeItem(
-                `--${arg.name} (${arg.type})${
+                `--${kebab(arg.name)} (${arg.type})${
                   arg.required ? " [required]" : ""
                 }`,
                 "argument",
@@ -381,7 +380,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
             functionItem.children = fn.args.map(
               (arg: { name: string; type: string; required: boolean }) =>
                 new DaggerTreeItem(
-                  `--${arg.name} (${arg.type})${
+                  `--${kebab(arg.name)} (${arg.type})${
                     arg.required ? " [required]" : ""
                   }`,
                   "argument",
@@ -454,7 +453,7 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
             functionItem.children = fn.args.map(
               (arg: { name: string; type: string; required: boolean }) =>
                 new DaggerTreeItem(
-                  `--${arg.name} (${arg.type})${
+                  `--${kebab(arg.name)} (${arg.type})${
                     arg.required ? " [required]" : ""
                   }`,
                   "argument",
@@ -472,20 +471,20 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
 
   async reloadFunctions(): Promise<void> {
     // Show loading state
-    this.items = [new DaggerTreeItem("Reloading Dagger functions...", "empty")];
+    this.items = [new DaggerTreeItem("Reloading functions...", "empty")];
     this.refresh();
 
     try {
       // Reload data asynchronously with progress already handled in loadData
       await this.loadData();
     } catch (error) {
-      console.error("Failed to reload Dagger functions:", error);
+      console.error("Failed to reload functions:", error);
       this.items = [new DaggerTreeItem("Failed to reload functions", "empty")];
       this.refresh();
 
       // Show error notification
       vscode.window.showErrorMessage(
-        `Failed to reload Dagger functions: ${
+        `Failed to reload functions: ${
           error instanceof Error ? error.message : "Unknown error"
         }`,
       );

@@ -88,15 +88,15 @@
       },
       {
         "command": "dagger.installModule",
-        "title": "Install a module",
+        "title": "Install a Module",
         "category": "Dagger",
-        "shortTitle": "Install module"
+        "shortTitle": "Install Module"
       },
       {
         "command": "dagger.addMcpModule",
-        "title": "Add a module as MCP server",
+        "title": "Add a Module as MCP server",
         "category": "Dagger",
-        "shortTitle": "Add module MCP"
+        "shortTitle": "Add Module MCP"
       },
       {
         "command": "dagger.exposeService",
@@ -118,37 +118,31 @@
       },
       {
         "command": "dagger.uninstall",
-        "title": "Uninstall",
+        "title": "Uninstall Dagger",
         "category": "Dagger",
         "shortTitle": "Uninstall"
       },
       {
         "command": "dagger.version",
-        "title": "Show version",
+        "title": "Show Version",
         "category": "Dagger",
         "shortTitle": "Version"
       },
       {
         "command": "dagger.update",
-        "title": "Check for updates",
+        "title": "Check for Updates",
         "category": "Dagger",
         "shortTitle": "Update"
       },
       {
-        "command": "dagger.reset",
-        "title": "Reset preferences",
-        "category": "Dagger",
-        "shortTitle": "Reset"
-      },
-      {
         "command": "dagger.shell",
-        "title": "Open a shell",
+        "title": "Open a Dagger Shell",
         "category": "Dagger",
         "shortTitle": "Shell"
       },
       {
-        "command": "dagger.refresh",
-        "title": "Refresh functions",
+        "command": "dagger.reloadFunctions",
+        "title": "Reload Functions",
         "category": "Dagger",
         "icon": "$(refresh)"
       }
