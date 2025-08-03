@@ -1,14 +1,11 @@
 import * as vscode from "vscode";
-import { COMMAND as REFRESH_COMMAND } from "./reloadFunctions";
-
-export const COMMAND = "dagger.functions";
 
 export const registerFunctionsCommand = (
   context: vscode.ExtensionContext,
 ): void => {
-  const disposable = vscode.commands.registerCommand(COMMAND, async () => {
+  const disposable = vscode.commands.registerCommand("dagger.functions", async () => {
     // call the refresh command to ensure the tree view is up-to-date in the background
-    vscode.commands.executeCommand(REFRESH_COMMAND);
+    vscode.commands.executeCommand("dagger.reloadFunctions");
 
     await vscode.commands.executeCommand(
       "workbench.view.extension.daggerViewContainer",
