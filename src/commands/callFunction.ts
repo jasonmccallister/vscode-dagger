@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { FunctionInfo } from "../types/types";
 import {
+  CollectedFunctionInput,
   collectFunctionInput,
   runFunction,
   showSaveTaskPrompt,
@@ -9,187 +10,191 @@ import {
 import { DaggerTreeItem } from "../tree/provider";
 import { DaggerSettings } from "../settings";
 import { DaggerCLI } from "../cli";
+import { askForPorts } from "../utils/user-input";
+import { Command } from "./types";
 
+export class CallFunctionCommand implements Command<DaggerTreeItem> {
+  constructor(
+    private dagger: DaggerCLI,
+    private path: string,
+    private settings: DaggerSettings,
+  ) {}
 
-export const registerCallCommand = (
-  context: vscode.ExtensionContext,
-  dagger: DaggerCLI,
-  workspacePath: string,
-  settings: DaggerSettings,
-): void => {
-  const disposable = vscode.commands.registerCommand(
-    "dagger.call",
-    async (input?: DaggerTreeItem) => {
-      let functionInfo: FunctionInfo | undefined;
+  preExecute(): Promise<boolean> {
+    // TODO(jasonmccallister): verify this is a Dagger project
+    return Promise.resolve(true);
+  }
 
-      // No input, prompt user to select a function
-      if (input === undefined) {
-        const functions = await dagger.getFunctions(workspacePath);
-        if (!functions || functions.length === 0) {
-          // If no functions are found, prompt the user to set up the project
-          vscode.window.showInformationMessage(
-            "No functions found. Please set up your Dagger project.",
-          );
-          return;
-        }
+  async execute(input?: DaggerTreeItem): Promise<void> {
+    let functionInfo: FunctionInfo | undefined;
+    let functionInput: CollectedFunctionInput | undefined;
+    const token = new vscode.CancellationTokenSource().token;
 
-        functionInfo = await showSelectFunctionQuickPick(functions);
-        if (!functionInfo) {
-          vscode.window.showInformationMessage(
-            "No function selected. Please select a function to call.",
-          );
-          return;
-        }
+    // Check the type of input to determine how to proceed
+    if (input === undefined) {
+      // No input provided, we will prompt the user to select a function
+      const functions = await this.dagger.getFunctions(this.path);
+      if (!functions || functions.length === 0) {
+        // If no functions are found, prompt the user to set up the project
+        vscode.window.showInformationMessage(
+          "No functions found. Please set up your Dagger project.",
+        );
+        return;
       }
 
-      // Determine function selection method
-      if (input instanceof DaggerTreeItem && input.functionInfo !== undefined) {
-        functionInfo = input.functionInfo;
-      }
-
-      // we should have a functionInfo at this point
+      functionInfo = await showSelectFunctionQuickPick(functions);
       if (!functionInfo) {
-        vscode.window.showErrorMessage(
+        vscode.window.showInformationMessage(
           "No function selected. Please select a function to call.",
         );
-
         return;
       }
+    } else if (
+      input instanceof DaggerTreeItem &&
+      input.functionInfo !== undefined
+    ) {
+      // Input is a tree item with function info
+      functionInfo = input.functionInfo;
+    }
 
-      const token = new vscode.CancellationTokenSource().token;
-
-      const options = await preRunOptions(token, functionInfo);
-      if (!options) {
-        console.log("Function call cancelled by user during pre-run options");
-        return;
-      }
-
-      // skip progress if the user has selected options that are long running such as running in terminal or exposing as service
-      if (options.SkipProgress) {
-        // get the user input for the function
-        let functionInput = await collectFunctionInput(token, functionInfo);
-        if (!functionInput) {
-          console.log(
-            "Function call cancelled by user during input collection",
-          );
-          return undefined;
-        }
-
-        // add the command to run the function
-        if (
-          options.CommandArgsToAppend &&
-          options.CommandArgsToAppend.length > 0
-        ) {
-          // append the command to run the function
-          functionInput.commandArgs.push(...options.CommandArgsToAppend);
-        }
-
-        const result = await runFunction(token, workspacePath, functionInput);
-        if (!result) {
-          vscode.window.showErrorMessage(
-            `Failed to run function \`${functionInfo.name}\`. Please check the output for details.`,
-          );
-          return undefined;
-        }
-
-        // if successful and the prompt is not dismissed
-        if (settings.saveTaskPromptDismissed !== true) {
-          await showSaveTaskPrompt(
-            functionInfo.name!,
-            functionInput.argValues,
-            workspacePath,
-            settings,
-            functionInfo.module,
-          );
-        }
-
-        return undefined;
-      }
-
-      await vscode.window.withProgress(
-        {
-          location: vscode.ProgressLocation.Notification,
-          title: "Dagger",
-          cancellable: true,
-        },
-        async (progress, token) => {
-          try {
-            let functionName: string = functionInfo?.name;
-            let moduleName: string | undefined = functionInfo?.module;
-
-            progress.report({
-              message: `Running function \`${functionName}\`${moduleName ? ` in module ${moduleName}` : ""}`,
-            });
-
-            if (token.isCancellationRequested) {
-              console.log("Function call cancelled by user");
-              return undefined;
-            }
-
-            // get the user input for the function
-            let functionInput = await collectFunctionInput(token, functionInfo);
-            if (!functionInput) {
-              console.log(
-                "Function call cancelled by user during input collection",
-              );
-              return undefined;
-            }
-
-            // add the command to run the function
-            if (
-              options.CommandArgsToAppend &&
-              options.CommandArgsToAppend.length > 0
-            ) {
-              // append the command to run the function
-              functionInput.commandArgs.push(...options.CommandArgsToAppend);
-            }
-
-            const result = await runFunction(
-              token,
-              workspacePath,
-              functionInput,
-            );
-            if (!result) {
-              vscode.window.showErrorMessage(
-                `Failed to run function \`${functionName}\`. Please check the output for details.`,
-              );
-              return undefined;
-            }
-
-            // if successful and the prompt is not dismissed
-            if (settings.saveTaskPromptDismissed !== true) {
-              await showSaveTaskPrompt(
-                functionName!,
-                functionInput.argValues,
-                workspacePath,
-                settings,
-                moduleName,
-              );
-            }
-
-            return undefined;
-          } catch (error) {
-            // Don't show error if the operation was cancelled
-            if (token.isCancellationRequested) {
-              console.log("Function call cancelled by user during execution");
-              return undefined;
-            }
-
-            const errorMessage =
-              error instanceof Error ? error.message : String(error);
-            vscode.window.showErrorMessage(
-              `Failed to get function details: ${errorMessage}`,
-            );
-            console.error("Error in call command:", error);
-            return undefined;
-          }
-        },
+    // we should have a functionInfo at this point
+    if (!functionInfo) {
+      vscode.window.showErrorMessage(
+        "No function selected. Please select a function to call.",
       );
-    },
-  );
+      return;
+    }
 
-  context.subscriptions.push(disposable);
-};
+    const options = await preRunOptions(token, functionInfo);
+    if (!options) {
+      console.log("Function call cancelled by user during pre-run options");
+      return;
+    }
+
+    // skip progress if the user has selected options that are long running such as running in terminal or exposing as service
+    if (options.SkipProgress) {
+      // get the user input for the function
+      functionInput = await collectFunctionInput(token, functionInfo);
+      if (!functionInput) {
+        console.log(
+          "Function call cancelled by user during input collection",
+        );
+        return;
+      }
+
+      // add the command to run the function
+      if (
+        options.CommandArgsToAppend &&
+        options.CommandArgsToAppend.length > 0
+      ) {
+        // append the command to run the function
+        functionInput.commandArgs.push(...options.CommandArgsToAppend);
+      }
+
+      const result = await runFunction(token, this.path, functionInput);
+      if (!result) {
+        vscode.window.showErrorMessage(
+          `Failed to run function \`${functionInfo.name}\`. Please check the output for details.`,
+        );
+        return;
+      }
+
+      // if successful and the prompt is not dismissed
+      if (this.settings.saveTaskPromptDismissed !== true) {
+        await showSaveTaskPrompt(
+          functionInfo.name!,
+          functionInput.argValues,
+          this.path,
+          this.settings,
+          functionInfo.module,
+        );
+      }
+
+      return;
+    }
+
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: "Dagger",
+        cancellable: true,
+      },
+      async (progress, token) => {
+        try {
+          let functionName: string = functionInfo?.name;
+          let moduleName: string | undefined = functionInfo?.module;
+
+          progress.report({
+            message: `Running function \`${functionName}\`${moduleName ? ` in module ${moduleName}` : ""}`,
+          });
+
+          if (token.isCancellationRequested) {
+            console.log("Function call cancelled by user");
+            return;
+          }
+
+          // get the user input for the function
+          let functionInput = await collectFunctionInput(token, functionInfo);
+          if (!functionInput) {
+            console.log(
+              "Function call cancelled by user during input collection",
+            );
+            return;
+          }
+
+          // add the command to run the function
+          if (
+            options.CommandArgsToAppend &&
+            options.CommandArgsToAppend.length > 0
+          ) {
+            // append the command to run the function
+            functionInput.commandArgs.push(...options.CommandArgsToAppend);
+          }
+
+          const result = await runFunction(token, this.path, functionInput);
+          if (!result) {
+            vscode.window.showErrorMessage(
+              `Failed to run function \`${functionName}\`. Please check the output for details.`,
+            );
+            return;
+          }
+
+          // if successful and the prompt is not dismissed
+          if (this.settings.saveTaskPromptDismissed !== true) {
+            await showSaveTaskPrompt(
+              functionName!,
+              functionInput.argValues,
+              this.path,
+              this.settings,
+              moduleName,
+            );
+          }
+
+          return;
+        } catch (error) {
+          // Don't show error if the operation was cancelled
+          if (token.isCancellationRequested) {
+            console.log("Function call cancelled by user during execution");
+            return;
+          }
+
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          vscode.window.showErrorMessage(
+            `Failed to get function details: ${errorMessage}`,
+          );
+          console.error("Error in call command:", error);
+          return;
+        }
+      },
+    );
+  }
+
+  postExecute?(): Promise<void> {
+    // This command does not require post-execution actions
+    return Promise.resolve();
+  }
+}
 
 export interface SelectedActions {
   OpenTerminal?: boolean;
@@ -198,7 +203,6 @@ export interface SelectedActions {
   CommandArgsToAppend?: string[];
   SkipProgress?: boolean;
 }
-
 
 /**
  * This looks at the return type of the function and prompts the user for options such as:
@@ -239,7 +243,7 @@ const preRunOptions = async (
       console.debug(
         `Function \`${functionInfo.name}\` has an unsupported return type: ${returnType}`,
       );
-      
+
       return selectedActions;
   }
 
@@ -271,6 +275,16 @@ const preRunOptions = async (
         selectedActions.CommandArgsToAppend = ["up"];
       }
       selectedActions.SkipProgress = true;
+
+      const ports = await askForPorts(functionInfo.name);
+
+      if (ports && selectedActions.CommandArgsToAppend) {
+        selectedActions.CommandArgsToAppend!.push(
+          "--ports",
+          `${ports.join(",")}`,
+        );
+      }
+
       break;
     case "Export to Host":
       // Handle export logic here if needed
@@ -278,45 +292,6 @@ const preRunOptions = async (
     case "Ignore and continue":
       selectedActions.SkipProgress = false;
       break;
-  }
-
-  // do we need to ask for ports?
-  if (selectedActions.ExposeService) {
-    const ports = await vscode.window.showInputBox({
-      prompt: `Enter ports to expose for function \`${functionInfo.name}\` (comma-separated, e.g. 8080:8080)`,
-      placeHolder: "e.g. 8080:8080",
-      value: "8080:8080",
-      validateInput: (value) => {
-        // Simple validation for port format
-        const regex = /^\d+(:\d+)?(,\d+(:\d+)?)*$/;
-        return regex.test(value)
-          ? null
-          : "Invalid port format. Use '8080:8080' or '8080,9090:9090'";
-      },
-    });
-
-    if (ports) {
-      selectedActions.Ports = ports.split(",").reduce(
-        (acc, port) => {
-          const [host, container] = port.split(":");
-          acc[Number(host)] = Number(container);
-          return acc;
-        },
-        {} as Record<number, number>,
-      );
-
-      // Add port mappings to command args
-      if (selectedActions.Ports) {
-        const portMappings = Object.entries(selectedActions.Ports).map(
-          ([host, container]) => `${host}:${container}`,
-        );
-
-        // Add each port mapping individually with its own --ports flag
-        portMappings.forEach((mapping) => {
-          selectedActions.CommandArgsToAppend?.push("--ports", mapping);
-        });
-      }
-    }
   }
 
   return selectedActions;

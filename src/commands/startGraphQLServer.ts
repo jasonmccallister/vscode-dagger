@@ -1,16 +1,16 @@
 import * as vscode from "vscode";
 import { DaggerCLI } from "../cli";
 import { executeTaskAndWait } from "../utils";
+import { Command } from "./types";
 
-export const registerStartGraphQLServer = (
-  context: vscode.ExtensionContext,
-  _daggerCli: DaggerCLI,
-  workspace: string,
-) => {
-  const disposable = vscode.commands.registerCommand(
-    "dagger.startGraphQLServer",
-    async () => {
-      let command = ["dagger", "listen"];
+export class StartGraphQLServerCommand implements Command {
+  constructor(
+    private _dagger: DaggerCLI,
+    private path: string,
+  ) {}
+
+  public execute = async (): Promise<void> => {
+     let command = ["dagger", "listen"];
 
       await allowCorsPrompt(command);
 
@@ -31,13 +31,10 @@ export const registerStartGraphQLServer = (
 
       executeTaskAndWait(token, command.join(" "), {
         runInBackground: false,
-        workingDirectory: workspace,
+        workingDirectory: this.path,
       });
-    },
-  );
-
-  context.subscriptions.push(disposable);
-};
+    };
+}
 
 const listenAddressPrompt = async (
   commandArgs: string[],

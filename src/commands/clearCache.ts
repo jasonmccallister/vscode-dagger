@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { DaggerCLI } from "../cli";
+import { Command } from "./types";
 
 interface ClearCacheMessageItem extends vscode.MessageItem {
   title: string;
@@ -8,34 +9,24 @@ interface ClearCacheMessageItem extends vscode.MessageItem {
 const YES_OPTION: ClearCacheMessageItem = { title: "Yes" };
 const NO_OPTION: ClearCacheMessageItem = { title: "No" };
 
-/**
- * Registers the clear cache command
- *
- * @param context The extension context
- * @param cli The Dagger CLI instance with cache access
- */
-export const registerClearCacheCommand = (
-  context: vscode.ExtensionContext,
-  daggerCli: DaggerCLI,
-): void => {
-  context.subscriptions.push(
-    vscode.commands.registerCommand("dagger.clearCache", async () => {
-      const response = await vscode.window.showWarningMessage(
-        "Are you sure you want to clear the Dagger cache? This will remove all cached function data.",
-        { modal: true },
-        YES_OPTION,
-        NO_OPTION,
-      );
+export class ClearCacheCommand implements Command {
+  constructor(private dagger: DaggerCLI) {}
 
-      if (!response || response.title === NO_OPTION.title) {
-        // User cancelled the prompt
-        return;
-      }
+  execute = async (): Promise<void> => {
+    const response = await vscode.window.showWarningMessage(
+      "Are you sure you want to clear the Dagger cache? This will remove all cached function data.",
+      { modal: true },
+      YES_OPTION,
+      NO_OPTION,
+    );
 
-      daggerCli.clearCache();
-      vscode.window.showInformationMessage(
-        "Dagger cache cleared successfully.",
-      );
-    }),
-  );
-};
+    if (!response || response.title === NO_OPTION.title) {
+      // User cancelled the prompt
+      return;
+    }
+
+    this.dagger.clearCache();
+
+    vscode.window.showInformationMessage("Dagger cache cleared successfully.");
+  };
+}

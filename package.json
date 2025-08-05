@@ -217,7 +217,7 @@
     "menus": {
       "view/title": [
         {
-          "command": "dagger.refresh",
+          "command": "dagger.reloadFunctions",
           "when": "view == daggerTreeView",
           "group": "navigation@1"
         }

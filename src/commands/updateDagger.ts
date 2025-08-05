@@ -4,101 +4,99 @@ import * as https from "https";
 import { checkInstallation } from "../utils/installation";
 import { DaggerSettings } from "../settings";
 import { DaggerCLI } from "../cli";
+import { Command } from "./types";
 
-export const registerUpdateCommand = (
-  context: vscode.ExtensionContext,
-  daggerCli: DaggerCLI,
-  settings: DaggerSettings,
-  workspace: string,
-): void => {
-  context.subscriptions.push(
-    vscode.commands.registerCommand("dagger.update", async () => {
-      await vscode.window.withProgress(
-        {
-          title: "Dagger",
-          location: vscode.ProgressLocation.Notification,
-        },
-        async (progress) => {
-          progress.report({ message: "Checking for Dagger updates..." });
+export class UpdateDaggerCommand implements Command {
+  constructor(
+    private dagger: DaggerCLI,
+    private path: string,
+    private settings: DaggerSettings,
+  ) {}
 
-          try {
-            const result = await daggerCli.run(["version"], {
-              cwd: workspace,
-            });
+  execute = async (): Promise<void> => {
+    await vscode.window.withProgress(
+      {
+        title: "Dagger",
+        location: vscode.ProgressLocation.Notification,
+      },
+      async (progress) => {
+        progress.report({ message: "Checking for Dagger updates..." });
 
-            if (result.exitCode !== 0) {
-              vscode.window.showErrorMessage(
-                `Failed to get current Dagger version: ${result.stderr}`,
-              );
+        try {
+          const result = await this.dagger.run(["version"], {
+            cwd: this.path,
+          });
 
-              return;
-            }
+          if (result.exitCode !== 0) {
+            vscode.window.showErrorMessage(
+              `Failed to get current Dagger version: ${result.stderr}`,
+            );
+            return;
+          }
 
-            // Parse current version (example: dagger v0.18.10 ...)
-            const currentVersionMatch =
-              result.stdout.match(/v(\d+\.\d+\.\d+)/);
-            if (!currentVersionMatch) {
-              vscode.window.showErrorMessage(
-                "Could not parse current Dagger version",
-              );
-              return;
-            }
-            const currentVersion = currentVersionMatch[1];
+          // Parse current version (example: dagger v0.18.10 ...)
+          const currentVersionMatch = result.stdout.match(/v(\d+\.\d+\.\d+)/);
+          if (!currentVersionMatch) {
+            vscode.window.showErrorMessage(
+              "Could not parse current Dagger version",
+            );
+            return;
+          }
+          const currentVersion = currentVersionMatch[1];
 
-            // Get install method from settings
-            const installMethod = settings.installMethod;
+          // Get install method from settings
+          const installMethod = this.settings.installMethod;
 
-            let hasUpdate = false;
-            let latestVersion = "";
-            let updateCommand = "";
+          let hasUpdate = false;
+          let latestVersion = "";
+          let updateCommand = "";
 
-            if (installMethod === "brew" && (await checkInstallation("brew"))) {
-              // Check for brew updates
-              progress.report({ message: "Checking Homebrew for updates..." });
+          if (installMethod === "brew" && (await checkInstallation("brew"))) {
+            // Check for brew updates
+            progress.report({ message: "Checking Homebrew for updates..." });
 
-              const brewResult = await runCommand(
-                "brew outdated dagger/tap/dagger",
-              );
-              if (brewResult.success && brewResult.stdout.trim()) {
-                hasUpdate = true;
-                updateCommand = "brew upgrade dagger/tap/dagger";
-                const fetchedVersion = await getLatestGithubVersion();
-                if (fetchedVersion) {
-                  latestVersion = fetchedVersion;
-                }
-              }
-            } else {
-              // Check for curl/GitHub updates
-              progress.report({ message: "Checking GitHub for updates..." });
+            const brewResult = await runCommand(
+              "brew outdated dagger/tap/dagger",
+            );
+            if (brewResult.success && brewResult.stdout.trim()) {
+              hasUpdate = true;
+              updateCommand = "brew upgrade dagger/tap/dagger";
               const fetchedVersion = await getLatestGithubVersion();
-
               if (fetchedVersion) {
                 latestVersion = fetchedVersion;
-                if (compareVersions(latestVersion, currentVersion) > 0) {
-                  hasUpdate = true;
-                  updateCommand =
-                    "curl -fsSL https://raw.githubusercontent.com/dagger/dagger/main/install.sh | bash";
-                }
               }
             }
+          } else {
+            // Check for curl/GitHub updates
+            progress.report({ message: "Checking GitHub for updates..." });
+            const fetchedVersion = await getLatestGithubVersion();
 
-            if (hasUpdate) {
-              await handleUpdate(latestVersion, currentVersion, updateCommand);
-            } else {
-              vscode.window.showInformationMessage(
-                `Dagger is already up to date (v${currentVersion})`,
-              );
+            if (fetchedVersion) {
+              latestVersion = fetchedVersion;
+              if (compareVersions(latestVersion, currentVersion) > 0) {
+                hasUpdate = true;
+                updateCommand =
+                  "curl -fsSL https://raw.githubusercontent.com/dagger/dagger/main/install.sh | bash";
+              }
             }
-          } catch (error) {
-            vscode.window.showErrorMessage(
-              `Error checking for Dagger updates: ${error}`,
+          }
+
+          if (hasUpdate) {
+            await handleUpdate(latestVersion, currentVersion, updateCommand);
+          } else {
+            vscode.window.showInformationMessage(
+              `Dagger is already up to date (v${currentVersion})`,
             );
           }
-        },
-      );
-    }),
-  );
-};
+        } catch (error) {
+          vscode.window.showErrorMessage(
+            `Error checking for Dagger updates: ${error}`,
+          );
+        }
+      },
+    );
+  };
+}
 
 /**
  * Handles the update process

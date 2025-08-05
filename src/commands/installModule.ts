@@ -1,182 +1,148 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import { DaggerCLI } from "../cli";
+import { Command } from "./types";
 
-const COMMAND = "dagger.installModule";
+export class InstallModuleCommand implements Command {
+  constructor(
+    private dagger: DaggerCLI,
+    private path: string,
+  ) {}
 
-export const registerInstallModuleCommand = (
-  context: vscode.ExtensionContext,
-  daggerCli: DaggerCLI,
-  workspace: string,
-): void => {
-  context.subscriptions.push(
-    vscode.commands.registerCommand(COMMAND, async () => {
-      // Ask user if they want to search for local directories first
-      const searchLocal = await vscode.window.showInformationMessage(
-        "Do you want to search for local modules in your workspace?",
-        { modal: true },
-        "Yes",
-        "No",
-      );
-
-      if (searchLocal === "Yes") {
-        await handleLocalModuleInstallation(daggerCli, workspace);
-
-        return;
-      }
-
-      await handleRemoteModuleInstallation(daggerCli, workspace);
-    }),
-  );
-};
-
-/**
- * Handles local module installation by searching for directories with dagger.json
- * @param cli The Dagger CLI instance
- * @param workspace The workspace directory path
- */
-const handleLocalModuleInstallation = async (
-  daggerCli: DaggerCLI,
-  workspace: string,
-): Promise<void> => {
-  const localModules = await findModulesInWorkspace(workspace);
-
-  if (localModules.length === 0) {
-    vscode.window.showInformationMessage(
-      "No local modules found in workspace. You can install a remote module instead.",
+  execute = async (): Promise<void> => {
+    // Ask user if they want to search for local directories first
+    const searchLocal = await vscode.window.showInformationMessage(
+      "Do you want to search for local modules in your workspace?",
+      { modal: true },
+      "Yes",
+      "No",
     );
-    await handleRemoteModuleInstallation(daggerCli, workspace);
-    return;
-  }
 
-  const modulePick = await vscode.window.showQuickPick(
-    localModules.map((dir) => {
-      const relativePath = path.relative(workspace, dir);
-      return {
-        label: relativePath,
-        description: "$(folder) Local module found in workspace",
-        detail: dir, // Store the full path in detail for reference
-      };
-    }),
-    {
-      placeHolder: "Select local modules to install",
-      canPickMany: true,
-    },
-  );
+    if (searchLocal === "Yes") {
+      await this.handleLocalModuleInstallation();
 
-  if (!modulePick || modulePick.length === 0) {
-    return;
-  }
+      return;
+    }
+  };
 
-  const selectedModules = modulePick.map((item) => item.detail || item.label);
-
-  // Install each selected module
-  for (const module of selectedModules) {
-    await installModule(
-      daggerCli,
-      module,
-      workspace,
-      `Installing local module from ${module}...`,
-    );
-  }
-};
-
-/**
- * Handles remote module installation by prompting for module address
- * @param cli The Dagger CLI instance
- * @param workspace The workspace directory path
- */
-const handleRemoteModuleInstallation = async (
-  daggerCli: DaggerCLI,
-  workspace: string,
-): Promise<void> => {
-  const moduleAddress = await vscode.window.showInputBox({
-    placeHolder: "github.com/user/repo or https://github.com/user/repo.git",
-    prompt: "Enter the module address (Git URL or GitHub repository)",
-    validateInput: (value) => {
-      if (!value || value.trim().length === 0) {
-        return "Please provide a valid module address.";
-      }
-
-      // Basic validation for common patterns
-      const trimmedValue = value.trim();
-      const isGitUrl =
-        trimmedValue.startsWith("http") || trimmedValue.startsWith("git@");
-      const isGithubShorthand = /^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/.test(
-        trimmedValue,
-      );
-      const isGithubPath = trimmedValue.startsWith("github.com/");
-
-      if (!isGitUrl && !isGithubShorthand && !isGithubPath) {
-        return "Please provide a valid Git URL or GitHub repository (e.g., github.com/user/repo)";
-      }
-
-      return null;
-    },
-  });
-
-  if (!moduleAddress) {
-    vscode.window.showInformationMessage(
-      'Installation cancelled. You can install modules later by running the "Dagger: Install Module" command.',
-    );
-    return;
-  }
-
-  await installModule(
-    daggerCli,
-    moduleAddress.trim(),
-    workspace,
-    `Installing module from ${moduleAddress.trim()}...`,
-  );
-};
-
-/**
- * Installs a single module using the Dagger CLI
- * @param cli The Dagger CLI instance
- * @param moduleAddress The module address or path
- * @param workspace The workspace directory path
- * @param progressMessage The message to show during installation
- */
-const installModule = async (
-  daggerCli: DaggerCLI,
-  moduleAddress: string,
-  workspace: string,
-  progressMessage: string,
-): Promise<void> => {
-  await vscode.window.withProgress(
-    {
-      location: vscode.ProgressLocation.Notification,
-      title: "Dagger",
-      cancellable: true,
-    },
-    async (progress, token) => {
-      progress.report({ message: progressMessage });
-
-      if (token.isCancellationRequested) {
-        return;
-      }
-
-      const result = await daggerCli.run(["install", moduleAddress], {
-        cwd: workspace,
-      });
-
-      if (!result || result.exitCode !== 0) {
-        vscode.window.showErrorMessage(
-          `Failed to install module from ${moduleAddress}`,
-        );
-        console.error(
-          `Dagger install module command failed for ${moduleAddress}: ${result.stderr}`,
-        );
-
-        return;
-      }
-
+  private handleLocalModuleInstallation = async (): Promise<void> => {
+    const found = await findModulesInWorkspace(this.path);
+    if (found.length === 0) {
       vscode.window.showInformationMessage(
-        `Module installed successfully from ${moduleAddress}`,
+        "No local modules found in workspace. You can install a remote module instead.",
       );
-    },
-  );
-};
+      await this.handleRemoteModuleInstallation();
+      return;
+    }
+
+    const module = await vscode.window.showQuickPick(
+      found.map((dir) => {
+        const relativePath = path.relative(this.path, dir);
+        return {
+          label: relativePath,
+          description: "$(folder) Local module found in workspace",
+          detail: dir, // Store the full path in detail for reference
+        };
+      }),
+      {
+        placeHolder: "Select local modules to install",
+        canPickMany: true,
+      },
+    );
+
+    if (!module || module.length === 0) {
+      return;
+    }
+
+    const selected = module.map((item) => item.detail || item.label);
+
+    // Install each selected module
+    for (const module of selected) {
+      await this.installModule(
+        module,
+        `Installing local module from ${module}...`,
+      );
+    }
+  };
+
+  private handleRemoteModuleInstallation = async (): Promise<void> => {
+    const moduleAddress = await vscode.window.showInputBox({
+      placeHolder: "github.com/user/repo or https://github.com/user/repo.git",
+      prompt: "Enter the module address (Git URL or GitHub repository)",
+      validateInput: (value) => {
+        if (!value || value.trim().length === 0) {
+          return "Please provide a valid module address.";
+        }
+
+        // Basic validation for common patterns
+        const trimmedValue = value.trim();
+        const isGitUrl =
+          trimmedValue.startsWith("http") || trimmedValue.startsWith("git@");
+        const isGithubShorthand = /^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/.test(
+          trimmedValue,
+        );
+        const isGithubPath = trimmedValue.startsWith("github.com/");
+
+        if (!isGitUrl && !isGithubShorthand && !isGithubPath) {
+          return "Please provide a valid Git URL or GitHub repository (e.g., github.com/user/repo)";
+        }
+
+        return null;
+      },
+    });
+
+    if (!moduleAddress) {
+      vscode.window.showInformationMessage(
+        'Installation cancelled. You can install modules later by running the "Dagger: Install Module" command.',
+      );
+      return;
+    }
+
+    await this.installModule(
+      moduleAddress.trim(),
+      `Installing module from ${moduleAddress.trim()}...`,
+    );
+  };
+
+  private installModule = async (
+    moduleAddress: string,
+    progressMessage: string,
+  ): Promise<void> => {
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: "Dagger",
+        cancellable: true,
+      },
+      async (progress, token) => {
+        progress.report({ message: progressMessage });
+
+        if (token.isCancellationRequested) {
+          return;
+        }
+
+        const result = await this.dagger.run(["install", moduleAddress], {
+          cwd: this.path,
+        });
+
+        if (!result || result.exitCode !== 0) {
+          vscode.window.showErrorMessage(
+            `Failed to install module from ${moduleAddress}`,
+          );
+          console.error(
+            `Dagger install module command failed for ${moduleAddress}: ${result.stderr}`,
+          );
+
+          return;
+        }
+
+        vscode.window.showInformationMessage(
+          `Module installed successfully from ${moduleAddress}`,
+        );
+      },
+    );
+  };
+}
 
 /**
  * Gets existing dependencies from the root dagger.json file

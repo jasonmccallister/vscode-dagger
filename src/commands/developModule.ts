@@ -1,75 +1,73 @@
 import * as vscode from "vscode";
 import { CollectedFunctionInput, runFunction } from "../utils";
 import { DaggerCLI } from "../cli";
+import { Command } from "./types";
+import { DaggerSettings } from "../settings";
 
-export const registerDevelopCommand = (
-  context: vscode.ExtensionContext,
-  _daggerCli: DaggerCLI,
-  workspace: string,
-): void => {
-  const disposable = vscode.commands.registerCommand(
-    "dagger.develop",
-    async () => {
-      await vscode.window
-        .withProgress(
-          {
-            location: vscode.ProgressLocation.Notification,
-            title: "Dagger",
-            cancellable: true,
-          },
-          async (_progress, token) => {
-            // Run the Dagger development environment setup
-            const output = await runFunction(token, workspace, {
-              functionName: "",
-              moduleName: "",
-              returnType: "",
-              argValues: {},
-              commandArgs: ["dagger", "develop"],
-            } as CollectedFunctionInput);
+export class DevelopModuleCommand implements Command {
+  constructor(
+    private _dagger: DaggerCLI,
+    private path: string,
+    private _settings: DaggerSettings,
+  ) {}
 
-            if (token.isCancellationRequested) {
-              console.log(
-                "Dagger development environment setup cancelled by user",
-              );
-              
-              return undefined;
-            }
+  async execute(_input?: void | undefined): Promise<void> {
+    await vscode.window
+      .withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: "Dagger",
+          cancellable: true,
+        },
+        async (_progress, token) => {
+          const output = await runFunction(token, this.path, {
+            functionName: "",
+            moduleName: "",
+            returnType: "",
+            argValues: {},
+            commandArgs: ["dagger", "develop"],
+          } as CollectedFunctionInput);
 
-            if (!output) {
-              console.error("Failed to start Dagger development environment");
-              vscode.window.showErrorMessage(
-                "Failed to start Dagger development environment",
-              );
-              return undefined;
-            }
-
-            if (!output.Result.success) {
-              console.error("Failed to start Dagger development environment");
-              vscode.window.showErrorMessage(
-                "Failed to start Dagger development environment",
-              );
-              return undefined;
-            }
-          },
-        )
-        .then(
-          () => {
-            vscode.window.showInformationMessage(
-              "Dagger development environment started successfully.",
+          if (token.isCancellationRequested) {
+            console.log(
+              "Dagger development environment setup cancelled by user",
             );
-          },
-          (error) => {
-            console.error(
-              "Failed to start Dagger development environment",
-              error,
-            );
+
+            return undefined;
+          }
+
+          if (!output) {
+            console.error("Failed to start Dagger development environment");
             vscode.window.showErrorMessage(
-              `Failed to start Dagger development environment: ${error.message}`,
+              "Failed to start Dagger development environment",
             );
-          },
-        );
-    },
-  );
+            return undefined;
+          }
 
-  context.subscriptions.push(disposable);
-};
+          if (!output.Result.success) {
+            console.error("Failed to start Dagger development environment");
+            vscode.window.showErrorMessage(
+              "Failed to start Dagger development environment",
+            );
+            return undefined;
+          }
+        },
+      )
+      .then(
+        () => {
+          vscode.window.showInformationMessage(
+            "Dagger development environment started successfully.",
+          );
+        },
+        (error) => {
+          console.error(
+            "Failed to start Dagger development environment",
+            error,
+          );
+          vscode.window.showErrorMessage(
+            `Failed to start Dagger development environment: ${error.message}`,
+          );
+        },
+      );
+  }
+}

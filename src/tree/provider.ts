@@ -298,7 +298,6 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
     // If there's only one module, don't nest under module
     if (moduleMap.size === 1) {
       const moduleEntries = [...moduleMap.entries()][0];
-      const moduleName = moduleEntries[0]; // Get the module name
       const moduleFunctions = moduleEntries[1];
 
       // Create function items directly

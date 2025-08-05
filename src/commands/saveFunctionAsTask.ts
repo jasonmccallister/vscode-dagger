@@ -9,94 +9,87 @@ import {
 import { DaggerCLI } from "../cli";
 import { DaggerTreeItem } from "../tree/provider";
 import { FunctionInfo } from "../types/types";
-
-export const COMMAND = "dagger.saveTask";
-
-export const registerSaveTaskCommand = (
-  context: vscode.ExtensionContext,
-  daggerCli: DaggerCLI,
-  workspace: string,
-): void => {
-  const disposable = vscode.commands.registerCommand(
-    COMMAND,
-    async (input?: DaggerTreeItem) => {
-      let functionInfo: FunctionInfo | undefined;
-
-      // if there was no input
-      if (input === undefined) {
-        const functions = await daggerCli.getFunctions(workspace);
-        if (!functions || functions.length === 0) {
-          vscode.window.showErrorMessage(
-            "No functions found in this Dagger project.",
-          );
-          return;
-        }
-
-        const selected = await showSelectFunctionQuickPick(functions);
-        if (!selected) {
-          return; // User cancelled
-        }
-
-        functionInfo = selected;
-      }
-
-      if (!functionInfo) {
-        vscode.window.showErrorMessage("No function selected.");
-        return;
-      }
-
-      try {
-        await vscode.window.withProgress(
-          {
-            location: vscode.ProgressLocation.Notification,
-            title: "Dagger",
-            cancellable: true,
-          },
-          async (progress, token) => {
-            // Collect arguments and build task
-            const result = await collectArgumentsForTask(functionInfo);
-            if (result.cancelled) {
-              return;
-            }
-
-            if (token.isCancellationRequested) {
-              return;
-            }
-
-            progress.report({ message: "Saving task..." });
-
-            // Save the task
-            await saveTaskToTasksJson(
-              result.taskName,
-              result.command,
-              workspace,
-            );
-
-            progress.report({ message: "Task saved successfully" });
-
-            // Ask if user wants to run the task
-            const shouldRun = await askToRunTask(result.taskName);
-            if (shouldRun) {
-              await runTask(result.taskName);
-            }
-          },
-        );
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        vscode.window.showErrorMessage(`Failed to save task: ${errorMessage}`);
-        console.error("Error saving task:", error);
-      }
-    },
-  );
-
-  context.subscriptions.push(disposable);
-};
+import { Command } from "./types";
 
 interface TaskCreationResult {
   readonly taskName: string;
   readonly command: string;
   readonly cancelled: boolean;
+}
+
+export class SaveFunctionAsTaskCommand
+  implements Command<DaggerTreeItem | undefined>
+{
+  constructor(
+    private dagger: DaggerCLI,
+    private path: string,
+  ) {}
+
+  execute = async (input?: DaggerTreeItem): Promise<void> => {
+    let functionInfo: FunctionInfo | undefined;
+
+    // if there was no input
+    if (input === undefined) {
+      const functions = await this.dagger.getFunctions(this.path);
+      if (!functions || functions.length === 0) {
+        vscode.window.showErrorMessage(
+          "No functions found in this Dagger project.",
+        );
+        return;
+      }
+
+      const selected = await showSelectFunctionQuickPick(functions);
+      if (!selected) {
+        return; // User cancelled
+      }
+
+      functionInfo = selected;
+    }
+
+    if (!functionInfo) {
+      vscode.window.showErrorMessage("No function selected.");
+      return;
+    }
+
+    try {
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: "Dagger",
+          cancellable: true,
+        },
+        async (progress, token) => {
+          // Collect arguments and build task
+          const result = await collectArgumentsForTask(functionInfo);
+          if (result.cancelled) {
+            return;
+          }
+
+          if (token.isCancellationRequested) {
+            return;
+          }
+
+          progress.report({ message: "Saving task..." });
+
+          // Save the task
+          await saveTaskToTasksJson(result.taskName, result.command, this.path);
+
+          progress.report({ message: "Task saved successfully" });
+
+          // Ask if user wants to run the task
+          const shouldRun = await askToRunTask(result.taskName);
+          if (shouldRun) {
+            await runTask(result.taskName);
+          }
+        },
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      vscode.window.showErrorMessage(`Failed to save task: ${errorMessage}`);
+      console.error("Error saving task:", error);
+    }
+  };
 }
 
 /**

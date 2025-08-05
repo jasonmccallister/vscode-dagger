@@ -1,9 +1,8 @@
 import * as vscode from "vscode";
+import { Command } from "./types";
 
-export const registerFunctionsCommand = (
-  context: vscode.ExtensionContext,
-): void => {
-  const disposable = vscode.commands.registerCommand("dagger.functions", async () => {
+export class DaggerViewFunctions implements Command {
+  execute = async (): Promise<void> => {
     // call the refresh command to ensure the tree view is up-to-date in the background
     vscode.commands.executeCommand("dagger.reloadFunctions");
 
@@ -18,7 +17,5 @@ export const registerFunctionsCommand = (
     if (treeView) {
       treeView.show();
     }
-  });
-
-  context.subscriptions.push(disposable);
-};
+  };
+}

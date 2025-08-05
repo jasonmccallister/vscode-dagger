@@ -7,22 +7,22 @@ import { registerTerminalProvider } from "./terminal";
 import { VSCodeWorkspaceCache } from "./cache";
 import { DaggerSettingsProvider, setGlobalSettings } from "./settings";
 import { DaggerCLI } from "./cli";
-import { registerInstallCommand } from "./commands/installDagger";
-import { registerClearCacheCommand } from "./commands/clearCache";
+import { ClearCacheCommand } from "./commands/clearCache";
 import { registerCloudCommand } from "./commands/setupCloud";
-import { registerDevelopCommand } from "./commands/developModule";
-import { registerAddMcpModuleCommand } from "./commands/addMCPModule";
-import { registerExposeServiceCommand } from "./commands/exposeService";
-import { registerFunctionsCommand } from "./commands/viewFunctions";
-import { registerInitCommand } from "./commands/initModule";
-import { registerInstallModuleCommand } from "./commands/installModule";
-import { registerSaveTaskCommand } from "./commands/saveFunctionAsTask";
-import { registerShellCommand } from "./commands/openShell";
-import { registerUninstallCommand } from "./commands/uninstallDagger";
-import { registerUpdateCommand } from "./commands/updateDagger";
-import { registerVersionCommand } from "./commands/daggerVersion";
-import { registerCallCommand } from "./commands/callFunction";
-import { registerStartGraphQLServer } from "./commands/startGraphQLServer";
+import { AddMcpModuleCommand } from "./commands/addMCPModule";
+import { ExposeServiceCommand } from "./commands/exposeService";
+import { DaggerViewFunctions } from "./commands/viewFunctions";
+import { UninstallDaggerCommand } from "./commands/uninstallDagger";
+import { DaggerVersionCommand } from "./commands/daggerVersion";
+import { CallFunctionCommand } from "./commands/callFunction";
+import { DevelopModuleCommand } from "./commands/developModule";
+import { InitModuleCommand } from "./commands/initModule";
+import { InstallCommand } from "./commands/installDagger";
+import { InstallModuleCommand } from "./commands/installModule";
+import { OpenShellCommand } from "./commands/openShell";
+import { SaveFunctionAsTaskCommand } from "./commands/saveFunctionAsTask";
+import { StartGraphQLServerCommand } from "./commands/startGraphQLServer";
+import { UpdateDaggerCommand } from "./commands/updateDagger";
 
 export async function activate(context: vscode.ExtensionContext) {
   try {
@@ -37,7 +37,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const daggerCli = new DaggerCLI(cache, settings);
 
     // Get workspace path
-    const workspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? "";
+    const path = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? "";
 
     // Register configuration change listener to reload settings
     context.subscriptions.push(
@@ -49,7 +49,97 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 
     // register the install command
-    registerInstallCommand(context, settings);
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        "dagger.install",
+        new InstallCommand(settings).execute,
+      ),
+    );
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        "dagger.clearCache",
+        new ClearCacheCommand(daggerCli).execute,
+      ),
+    );
+    registerCloudCommand(context, daggerCli, settings);
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        "dagger.call",
+        new CallFunctionCommand(daggerCli, path, settings).execute,
+      ),
+    );
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        "dagger.develop",
+        new DevelopModuleCommand(daggerCli, path, settings).execute,
+      ),
+    );
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        "dagger.functions",
+        new DaggerViewFunctions().execute,
+      ),
+    );
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        "dagger.init",
+        new InitModuleCommand(daggerCli, path).execute,
+      ),
+    );
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        "dagger.installModule",
+        new InstallModuleCommand(daggerCli, path).execute,
+      ),
+    );
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        "dagger.addMcpModule",
+        new AddMcpModuleCommand(daggerCli, path, settings).execute,
+      ),
+    );
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        "dagger.exposeService",
+        new ExposeServiceCommand(daggerCli, path, settings).execute,
+      ),
+    );
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        "dagger.saveTask",
+        new SaveFunctionAsTaskCommand(daggerCli, path).execute,
+      ),
+    );
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        "dagger.openShell",
+        new OpenShellCommand(context, path).execute,
+      ),
+    );
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        "dagger.uninstall",
+        new UninstallDaggerCommand(settings).execute,
+      ),
+    );
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        "dagger.update",
+        new UpdateDaggerCommand(daggerCli, path, settings).execute,
+      ),
+    );
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        "dagger.version",
+        new DaggerVersionCommand(daggerCli, path).execute,
+      ),
+    );
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        "dagger.startGraphQLServer",
+        new StartGraphQLServerCommand(daggerCli, path).execute,
+      ),
+    );
 
     // Check installation status before setting up other commands and views
     const result = await checkInstallation(os.platform());
@@ -59,37 +149,28 @@ export async function activate(context: vscode.ExtensionContext) {
         result,
         settings,
         daggerCli,
-        workspace,
+        path,
       );
 
       return;
     }
 
-    // register the remaining commands because Dagger is installed
-    registerClearCacheCommand(context, daggerCli);
-    registerCloudCommand(context, daggerCli, settings);
-    registerCallCommand(context, daggerCli, workspace, settings);
-    registerDevelopCommand(context, daggerCli, workspace);
-    registerFunctionsCommand(context);
-    registerInitCommand(context, daggerCli);
-    registerInstallModuleCommand(context, daggerCli, workspace);
-    registerAddMcpModuleCommand(context, daggerCli, workspace);
-    registerExposeServiceCommand(context, daggerCli, workspace, settings);
-    registerSaveTaskCommand(context, daggerCli, workspace);
-    registerShellCommand(context, workspace);
-    registerUninstallCommand(context, settings);
-    registerUpdateCommand(context, daggerCli, settings, workspace);
-    registerVersionCommand(context, daggerCli, workspace);
-    registerStartGraphQLServer(context, daggerCli, workspace);
-    
-
     // Register tree view with settings
     registerTreeView(context, {
       daggerCli,
-      workspacePath: workspace,
+      workspacePath: path,
       registerTreeCommands: true,
       settings,
     });
+
+    // Show Dagger Shell terminal when opened (including from profile quick pick)
+    context.subscriptions.push(
+      vscode.window.onDidOpenTerminal((terminal) => {
+        if (terminal.name === "Dagger") {
+          terminal.show();
+        }
+      }),
+    );
 
     // register the terminal profile provider
     registerTerminalProvider(context);
@@ -97,7 +178,7 @@ export async function activate(context: vscode.ExtensionContext) {
     if (!settings.cloudNotificationDismissed) {
       // Show cloud notification
       vscode.window.showInformationMessage(
-        "Dagger Cloud is now available! Use the 'Dagger: Cloud' command to connect your Dagger projects to the cloud.",
+        "Setup Dagger Cloud to gain greater insight into your workflows and share them with your team.",
         "Learn More",
       );
     }

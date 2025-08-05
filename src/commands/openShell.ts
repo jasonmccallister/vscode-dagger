@@ -1,12 +1,15 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import { ICON_PATH_BLACK, ICON_PATH_WHITE } from "../const";
+import { Command } from "./types";
 
-export const registerShellCommand = (
-  context: vscode.ExtensionContext,
-  workspace: string,
-): void => {
-  const disposable = vscode.commands.registerCommand("dagger.shell", async () => {
+export class OpenShellCommand implements Command {
+  constructor(
+    private context: vscode.ExtensionContext,
+    private path: string,
+  ) {}
+
+  execute = async (): Promise<void> => {
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
@@ -29,30 +32,17 @@ export const registerShellCommand = (
           name: "Dagger",
           iconPath: {
             light: vscode.Uri.file(
-              path.join(context.extensionPath, ICON_PATH_BLACK),
+              path.join(this.context.extensionPath, ICON_PATH_BLACK),
             ),
             dark: vscode.Uri.file(
-              path.join(context.extensionPath, ICON_PATH_WHITE),
+              path.join(this.context.extensionPath, ICON_PATH_WHITE),
             ),
           },
-          cwd: workspace,
+          cwd: this.path,
         });
         newTerminal.show();
         newTerminal.sendText("dagger");
       },
     );
-  });
-
-  context.subscriptions.push(disposable);
-
-  // Show Dagger Shell terminal when opened (including from profile quick pick)
-  const showDaggerShellTerminal = vscode.window.onDidOpenTerminal(
-    (terminal) => {
-      if (terminal.name === "Dagger") {
-        terminal.show();
-      }
-    },
-  );
-  
-  context.subscriptions.push(showDaggerShellTerminal);
-};
+  };
+}
