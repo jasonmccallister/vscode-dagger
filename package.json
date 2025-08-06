@@ -106,7 +106,7 @@
         "shortTitle": "Add Module MCP"
       },
       {
-        "command": "dagger.exposeService",
+        "command": "dagger.expose",
         "title": "Expose Service",
         "category": "Dagger",
         "shortTitle": "Expose Service"
@@ -118,10 +118,16 @@
         "shortTitle": "Setup Cloud"
       },
       {
-        "command": "dagger.startGraphQLServer",
+        "command": "dagger.graphql",
         "title": "Start GraphQL Server",
         "category": "Dagger",
         "shortTitle": "Start GraphQL Server"
+      },
+      {
+        "command": "dagger.terminal",
+        "title": "Run in Terminal",
+        "category": "Dagger",
+        "shortTitle": "Terminal"
       },
       {
         "command": "dagger.uninstall",

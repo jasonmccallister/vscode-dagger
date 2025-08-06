@@ -10,6 +10,7 @@ import {
 import { DaggerSettings } from "./settings";
 import { CliCache } from "./cache";
 import { getArgumentTypeName, getReturnTypeName } from "./utils/type-helpers";
+import { nameToKebabCase } from "./utils/modules";
 
 export interface Output {
   exitCode: number;
@@ -126,33 +127,25 @@ export class DaggerCLI {
     try {
       result = JSON.parse(stdout);
 
+      const rootModuleName = nameToKebabCase(
+        result.loadDirectoryFromID.asModule.name,
+      );
+
+      console.debug(`Root module name: ${rootModuleName}`);
+
       if (!result.loadDirectoryFromID.asModule.objects) {
         console.error("Invalid functions response:", stdout);
         throw new Error("Invalid functions response");
       }
 
       const functions: FunctionInfo[] = [];
-
-      // Collect all normalized module names first
       const moduleNames: string[] = [];
       result.loadDirectoryFromID.asModule.objects.forEach(
         (moduleObj: ModuleObject) => {
           if (moduleObj.asObject) {
-            moduleNames.push(normalizeModuleName(moduleObj.asObject.name));
+            moduleNames.push(nameToKebabCase(moduleObj.asObject.name));
           }
-        },
-      );
 
-      // Sort module names by length to find the shortest one as root
-      moduleNames.sort((a, b) => a.length - b.length);
-      const rootModuleName = moduleNames[0] || "";
-
-      console.debug(`Root module name determined: ${rootModuleName}`);
-      console.debug(`All module names: ${moduleNames.join(", ")}`);
-
-      // Iterate through each module object and extract functions
-      result.loadDirectoryFromID.asModule.objects.forEach(
-        (moduleObj: ModuleObject) => {
           if (moduleObj.asObject && moduleObj.asObject.functions) {
             // make sure the module name is defined
             if (!moduleObj.asObject.name) {
@@ -160,7 +153,9 @@ export class DaggerCLI {
               return;
             }
 
-            const fullModuleName = normalizeModuleName(moduleObj.asObject.name);
+            // if returnType.kind is "OBJECT_KIND" and returnType.asObject.name begins with the PascalCase module name, strip the module name prefix as this is a submodule
+
+            const fullModuleName = nameToKebabCase(moduleObj.asObject.name);
 
             // Check if this is the root module by comparing with the shortest module name
             const isRootModule = fullModuleName === rootModuleName;
@@ -168,20 +163,16 @@ export class DaggerCLI {
             // For submodules, strip the root module prefix if present to get clean submodule name
             let moduleName: string | undefined;
             if (!isRootModule && fullModuleName.startsWith(rootModuleName)) {
-              // Strip the root module prefix (e.g., "daggerdevcli" -> "cli")
-              moduleName = fullModuleName.substring(rootModuleName.length);
-              // Remove any leading hyphens
-              moduleName = moduleName.replace(/^-+/, "");
+              // Strip the root module prefix (e.g., "dagger-dev-cli" -> "cli")
+              moduleName = fullModuleName
+                .slice(rootModuleName.length)
+                .replace(/^-/, "");
 
               // If nothing is left after stripping, treat as root module
               if (!moduleName) {
                 moduleName = undefined;
               }
-            } else if (!isRootModule) {
-              // Use the full name if it doesn't start with root module prefix
-              moduleName = fullModuleName;
             }
-            // For root module, moduleName remains undefined
 
             console.debug(
               `Processing module: ${moduleName || "root"} (isRoot: ${isRootModule}, original: ${fullModuleName}, rootModule: ${rootModuleName})`,
@@ -205,6 +196,8 @@ export class DaggerCLI {
           }
         },
       );
+
+      console.debug(`All module names: ${moduleNames.join(", ")}`);
 
       // Always set the cache, even if not enabled.
       // This is to ensure that the cache is always up-to-date if enabled later
@@ -439,13 +432,6 @@ export const slugify = (text: string): string => {
     .replace(/\s+/g, "-")
     .replace(/[^\w-]+/g, "")
     .replace(/--+/g, "-");
-};
-
-const normalizeModuleName = (name: string): string => {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
 };
 
 export const kebab = (text: string): string => {

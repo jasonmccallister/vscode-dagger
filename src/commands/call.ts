@@ -241,7 +241,6 @@ const preRunOptions = async (
       selectedActions.SkipProgress = true;
 
       const ports = await askForPorts(functionInfo.name);
-
       if (ports && selectedActions.CommandArgsToAppend) {
         selectedActions.CommandArgsToAppend!.push(
           "--ports",
