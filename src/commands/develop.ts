@@ -4,7 +4,7 @@ import { DaggerCLI } from "../cli";
 import { Command } from "./types";
 import { DaggerSettings } from "../settings";
 
-export class DevelopModuleCommand implements Command {
+export class DevelopCommand implements Command {
   constructor(
     private _dagger: DaggerCLI,
     private path: string,

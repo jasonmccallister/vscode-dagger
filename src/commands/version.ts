@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { DaggerCLI } from "../cli";
 import { Command } from "./types";
 
-export class DaggerVersionCommand implements Command {
+export class VersionCommand implements Command {
   constructor(
     private dagger: DaggerCLI,
     private path: string,

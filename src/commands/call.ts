@@ -13,7 +13,7 @@ import { DaggerCLI } from "../cli";
 import { askForPorts } from "../utils/user-input";
 import { Command } from "./types";
 
-export class CallFunctionCommand implements Command<DaggerTreeItem> {
+export class CallCommand implements Command<DaggerTreeItem> {
   constructor(
     private dagger: DaggerCLI,
     private path: string,

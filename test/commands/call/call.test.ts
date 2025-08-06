@@ -2,7 +2,7 @@ import { describe, it, beforeEach, afterEach } from "mocha";
 import * as assert from "assert";
 import * as vscode from "vscode";
 import * as sinon from "sinon";
-import { registerCallCommand } from "../../../src/commands/callFunction";
+import { registerCallCommand } from "../../../src/commands/call";
 import { DaggerTreeItem } from "../../../src/tree/provider";
 import { DaggerSettings } from "../../../src/settings";
 import { DaggerCLI } from "../../../src/cli";

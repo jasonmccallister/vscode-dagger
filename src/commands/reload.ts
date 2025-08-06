@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { Command } from "./types";
 
-export class ReloadFunctionsCommand implements Command {
+export class ReloadCommand implements Command {
   constructor(private reloadCallback: () => void) {}
 
   public execute = async (): Promise<void> => {

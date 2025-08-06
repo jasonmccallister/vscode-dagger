@@ -17,7 +17,7 @@ const SDK_OPTIONS: readonly SdkOption[] = [
   { label: "Java", value: "java" },
 ] as const;
 
-export class InitModuleCommand implements Command {
+export class InitCommand implements Command {
   constructor(
     private dagger: DaggerCLI,
     private path: string,

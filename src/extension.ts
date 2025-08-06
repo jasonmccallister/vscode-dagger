@@ -10,19 +10,19 @@ import { DaggerCLI } from "./cli";
 import { ClearCacheCommand } from "./commands/clearCache";
 import { registerCloudCommand } from "./commands/setupCloud";
 import { AddMcpModuleCommand } from "./commands/addMCPModule";
-import { ExposeServiceCommand } from "./commands/exposeService";
+import { ExposeCommand } from "./commands/expose";
 import { DaggerViewFunctions } from "./commands/viewFunctions";
-import { UninstallDaggerCommand } from "./commands/uninstallDagger";
-import { DaggerVersionCommand } from "./commands/daggerVersion";
-import { CallFunctionCommand } from "./commands/callFunction";
-import { DevelopModuleCommand } from "./commands/developModule";
-import { InitModuleCommand } from "./commands/initModule";
-import { InstallCommand } from "./commands/installDagger";
+import { UninstallCommand } from "./commands/uninstall";
+import { VersionCommand } from "./commands/version";
+import { CallCommand } from "./commands/call";
+import { DevelopCommand } from "./commands/develop";
+import { InitCommand } from "./commands/init";
+import { InstallCommand } from "./commands/install";
 import { InstallModuleCommand } from "./commands/installModule";
-import { OpenShellCommand } from "./commands/openShell";
-import { SaveFunctionAsTaskCommand } from "./commands/saveFunctionAsTask";
-import { StartGraphQLServerCommand } from "./commands/startGraphQLServer";
-import { UpdateDaggerCommand } from "./commands/updateDagger";
+import { ShellCommand } from "./commands/shell";
+import { TaskCommand } from "./commands/task";
+import { GraphQLCommand } from "./commands/graphql";
+import { UpdateCommand } from "./commands/update";
 import { ExportCommand } from "./commands/export";
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -66,13 +66,13 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
       vscode.commands.registerCommand(
         "dagger.call",
-        new CallFunctionCommand(daggerCli, path, settings).execute,
+        new CallCommand(daggerCli, path, settings).execute,
       ),
     );
     context.subscriptions.push(
       vscode.commands.registerCommand(
         "dagger.develop",
-        new DevelopModuleCommand(daggerCli, path, settings).execute,
+        new DevelopCommand(daggerCli, path, settings).execute,
       ),
     );
     context.subscriptions.push(
@@ -84,7 +84,7 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
       vscode.commands.registerCommand(
         "dagger.init",
-        new InitModuleCommand(daggerCli, path).execute,
+        new InitCommand(daggerCli, path).execute,
       ),
     );
     context.subscriptions.push(
@@ -102,43 +102,43 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
       vscode.commands.registerCommand(
         "dagger.exposeService",
-        new ExposeServiceCommand(daggerCli, path, settings).execute,
+        new ExposeCommand(daggerCli, path, settings).execute,
       ),
     );
     context.subscriptions.push(
       vscode.commands.registerCommand(
         "dagger.saveTask",
-        new SaveFunctionAsTaskCommand(daggerCli, path).execute,
+        new TaskCommand(daggerCli, path).execute,
       ),
     );
     context.subscriptions.push(
       vscode.commands.registerCommand(
         "dagger.openShell",
-        new OpenShellCommand(context, path).execute,
+        new ShellCommand(context, path).execute,
       ),
     );
     context.subscriptions.push(
       vscode.commands.registerCommand(
         "dagger.uninstall",
-        new UninstallDaggerCommand(settings).execute,
+        new UninstallCommand(settings).execute,
       ),
     );
     context.subscriptions.push(
       vscode.commands.registerCommand(
         "dagger.update",
-        new UpdateDaggerCommand(daggerCli, path, settings).execute,
+        new UpdateCommand(daggerCli, path, settings).execute,
       ),
     );
     context.subscriptions.push(
       vscode.commands.registerCommand(
         "dagger.version",
-        new DaggerVersionCommand(daggerCli, path).execute,
+        new VersionCommand(daggerCli, path).execute,
       ),
     );
     context.subscriptions.push(
       vscode.commands.registerCommand(
         "dagger.startGraphQLServer",
-        new StartGraphQLServerCommand(daggerCli, path).execute,
+        new GraphQLCommand(daggerCli, path).execute,
       ),
     );
     context.subscriptions.push(

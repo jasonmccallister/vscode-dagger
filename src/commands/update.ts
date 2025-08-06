@@ -6,7 +6,7 @@ import { DaggerSettings } from "../settings";
 import { DaggerCLI } from "../cli";
 import { Command } from "./types";
 
-export class UpdateDaggerCommand implements Command {
+export class UpdateCommand implements Command {
   constructor(
     private dagger: DaggerCLI,
     private path: string,

@@ -3,7 +3,7 @@ import { exec } from "child_process";
 import { DaggerSettings } from "../settings";
 import { Command } from "./types";
 
-export class UninstallDaggerCommand implements Command {
+export class UninstallCommand implements Command {
   constructor(private settings: DaggerSettings) {}
 
   public execute = async (): Promise<void> => {

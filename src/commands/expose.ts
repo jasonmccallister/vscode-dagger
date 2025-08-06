@@ -12,7 +12,7 @@ import { ContainerType, ServiceType } from "../types/types";
 import { Command } from "./types";
 import { askForPorts } from "../utils/user-input";
 
-export class ExposeServiceCommand implements Command {
+export class ExposeCommand implements Command {
   constructor(
     private dagger: DaggerCLI,
     private path: string,

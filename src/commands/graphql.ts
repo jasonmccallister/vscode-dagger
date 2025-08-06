@@ -3,7 +3,7 @@ import { DaggerCLI } from "../cli";
 import { executeTaskAndWait } from "../utils";
 import { Command } from "./types";
 
-export class StartGraphQLServerCommand implements Command {
+export class GraphQLCommand implements Command {
   constructor(
     private _dagger: DaggerCLI,
     private path: string,

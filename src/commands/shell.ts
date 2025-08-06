@@ -3,7 +3,7 @@ import * as path from "path";
 import { ICON_PATH_BLACK, ICON_PATH_WHITE } from "../const";
 import { Command } from "./types";
 
-export class OpenShellCommand implements Command {
+export class ShellCommand implements Command {
   constructor(
     private context: vscode.ExtensionContext,
     private path: string,

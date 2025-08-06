@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { executeTaskAndWait, TaskExecutionResult } from "./terminal";
 import { DaggerSettings } from "../settings";
-import { saveTaskToTasksJson } from "../commands/saveFunctionAsTask";
+import { saveTaskToTasksJson } from "../commands/task";
 import { FunctionArgument, FunctionInfo } from "../types/types";
 
 interface ArgumentPick {
