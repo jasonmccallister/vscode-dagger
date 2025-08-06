@@ -245,6 +245,7 @@ const handleMissingInstallation = async (
       selectedOption.command,
       selectedOption.method,
     );
+    
     return;
   }
 
