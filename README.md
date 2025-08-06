@@ -14,8 +14,8 @@ The VS Code extension for [Dagger](https://dagger.io). Built for developers who 
 - ⚡ **Function Execution:** Run Dagger functions with validated arguments. Output is shown in the integrated terminal.
 - 📝 **Save as VS Code Tasks:** Convert function calls into reusable tasks. Automatically updates `.vscode/tasks.json`.
 - 🐚 **Dagger Shell:** Open a terminal with Dagger Shell for interactive command execution.
-- 🌐 **Expose Services:** Automatically expose services from Dagger modules to the IDE for easy access.
-- 📤 **Export Files and Directories:** Save files and directories from Dagger modules to your local workspace.
+- 🌐 **Expose Services:** Automatically expose services from Dagger modules for easy access (with the option to save as a VS Code Task).
+- 📤 **Export Files and Directories:** Save files and directories from Dagger modules to your local workspace (with the option to save as a VS Code Task).
 
 <video src="https://github.com/user-attachments/assets/a840ea0e-d7f2-451b-bca4-adba985b31c4"></video>
 
