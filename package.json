@@ -68,6 +68,13 @@
         "shortTitle": "Clear Cache"
       },
       {
+        "command": "dagger.export",
+        "title": "Export File or Directory",
+        "icon": "$(file-export)",
+        "category": "Dagger",
+        "shortTitle": "Export"
+      },
+      {
         "command": "dagger.saveTask",
         "title": "Save as Task",
         "icon": "$(save)",

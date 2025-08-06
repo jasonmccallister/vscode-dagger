@@ -23,6 +23,7 @@ import { OpenShellCommand } from "./commands/openShell";
 import { SaveFunctionAsTaskCommand } from "./commands/saveFunctionAsTask";
 import { StartGraphQLServerCommand } from "./commands/startGraphQLServer";
 import { UpdateDaggerCommand } from "./commands/updateDagger";
+import { ExportCommand } from "./commands/export";
 
 export async function activate(context: vscode.ExtensionContext) {
   try {
@@ -138,6 +139,12 @@ export async function activate(context: vscode.ExtensionContext) {
       vscode.commands.registerCommand(
         "dagger.startGraphQLServer",
         new StartGraphQLServerCommand(daggerCli, path).execute,
+      ),
+    );
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        "dagger.export",
+        new ExportCommand(daggerCli, path, settings).execute,
       ),
     );
 

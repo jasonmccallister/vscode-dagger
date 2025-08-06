@@ -1,8 +1,5 @@
 import * as vscode from "vscode";
-import {
-  executeTaskAndWait,
-  TaskExecutionResult,
-} from "./terminal";
+import { executeTaskAndWait, TaskExecutionResult } from "./terminal";
 import { DaggerSettings } from "../settings";
 import { saveTaskToTasksJson } from "../commands/saveFunctionAsTask";
 import { FunctionArgument, FunctionInfo } from "../types/types";
@@ -347,6 +344,13 @@ export const showSelectFunctionQuickPick = async (
   const filteredFunctions = filterCallback
     ? functions.filter(filterCallback)
     : functions;
+
+  // if there are no functions after filtering, show a message
+  if (filteredFunctions.length === 0) {
+    console.debug("No functions match the selected filter criteria.");
+    
+    return undefined;
+  }
 
   const choices: FunctionQuickPickItem[] = filteredFunctions.map((fn) => ({
     id: fn.id,
