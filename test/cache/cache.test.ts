@@ -7,37 +7,69 @@ import { CliCache, CacheItem } from "../../src/cache/types";
 class MockCache implements CliCache {
   private storage = new Map<string, CacheItem<any>>();
 
+  /**
+   * Generates a SHA256 hash of the given data
+   * @param data The data to hash
+   * @returns The SHA256 hash as a hex string
+   */
   private generateSHA256(data: any): string {
-    const serialized = JSON.stringify(data, Object.keys(data).sort());
+    let serialized: string;
+    if (typeof data === "object" && data !== null) {
+      const keys = Object.keys(data).sort();
+      const values = keys.map((k) => (data as any)[k]);
+      serialized = JSON.stringify({ keys, values });
+    } else {
+      serialized = JSON.stringify(data);
+    }
     return crypto.createHash("sha256").update(serialized).digest("hex");
   }
 
   async get<T>(key: string): Promise<T | undefined> {
-    const item = this.storage.get(key);
+    try {
+      const item = this.storage.get(key);
 
-    if (!item) {
+      if (!item) {
+        return undefined;
+      }
+
+      return item.data;
+    } catch (error) {
+      console.error(`Error getting cache item for key ${key}:`, error);
       return undefined;
     }
-
-    return item.data;
   }
 
   async set<T>(key: string, value: T): Promise<void> {
-    const sha256 = this.generateSHA256(value);
-    const item: CacheItem<T> = {
-      data: value,
-      sha256,
-    };
+    try {
+      const sha256 = this.generateSHA256(value);
+      const item: CacheItem<T> = {
+        data: value,
+        sha256,
+      };
 
-    this.storage.set(key, item);
+      this.storage.set(key, item);
+    } catch (error) {
+      console.error(`Error setting cache item for key ${key}:`, error);
+      throw error;
+    }
   }
 
   async remove(key: string): Promise<void> {
-    this.storage.delete(key);
+    try {
+      this.storage.delete(key);
+    } catch (error) {
+      console.error(`Error removing cache item for key ${key}:`, error);
+      throw error;
+    }
   }
 
   async clear(): Promise<void> {
-    this.storage.clear();
+    try {
+      this.storage.clear();
+    } catch (error) {
+      console.error("Error clearing cache:", error);
+      throw error;
+    }
   }
 
   async has(key: string): Promise<boolean> {
@@ -46,13 +78,18 @@ class MockCache implements CliCache {
   }
 
   async getSHA256(key: string): Promise<string | undefined> {
-    const item = this.storage.get(key);
+    try {
+      const item = this.storage.get(key);
 
-    if (!item) {
+      if (!item) {
+        return undefined;
+      }
+
+      return item.sha256;
+    } catch (error) {
+      console.error(`Error getting SHA256 for key ${key}:`, error);
       return undefined;
     }
-
-    return item.sha256;
   }
 
   async hasDataChanged<T>(key: string, newData: T): Promise<boolean> {
@@ -63,6 +100,16 @@ class MockCache implements CliCache {
 
     const newSHA256 = this.generateSHA256(newData);
     return cachedSHA256 !== newSHA256;
+  }
+  
+  /**
+   * Generates a cache key based on a prefix and path
+   * @param prefix The prefix for the cache key
+   * @param path The path to include in the key
+   * @returns A unique cache key
+   */
+  generateKey(prefix: string, path: string): string {
+    return crypto.createHash("md5").update(`${prefix}-${path}`).digest("hex");
   }
 }
 
@@ -78,13 +125,13 @@ describe("CliCache", () => {
     const value = { name: "test-function", id: "123" };
 
     await cache.set(key, value);
-    const retrieved = await cache.get(key);
+    const retrieved = await cache.get<typeof value>(key);
 
     assert.deepStrictEqual(retrieved, value);
   });
 
   it("should return undefined for non-existent keys", async () => {
-    const retrieved = await cache.get("non-existent-key");
+    const retrieved = await cache.get<string>("non-existent-key");
     assert.strictEqual(retrieved, undefined);
   });
 
@@ -145,5 +192,41 @@ describe("CliCache", () => {
   it("should return undefined for SHA256 of non-existent key", async () => {
     const sha256 = await cache.getSHA256("non-existent-key");
     assert.strictEqual(sha256, undefined);
+  });
+  
+  it("should generate consistent cache keys", () => {
+    const prefix = "functions";
+    const path = "/Users/jason/go/src/github.com/jasonmccallister/vscode-dagger";
+    
+    const key1 = cache.generateKey(prefix, path);
+    const key2 = cache.generateKey(prefix, path);
+    
+    // Same inputs should generate the same key
+    assert.strictEqual(key1, key2);
+    
+    // Different inputs should generate different keys
+    const differentKey = cache.generateKey("modules", path);
+    assert.notStrictEqual(key1, differentKey);
+  });
+  
+  it("should handle error cases gracefully", async () => {
+    // Test with undefined value (should not throw)
+    await assert.doesNotReject(async () => {
+      await cache.set("undefined-key", undefined);
+    });
+    
+    // Test with null value
+    await cache.set("null-key", null);
+    const nullValue = await cache.get("null-key");
+    assert.strictEqual(nullValue, null);
+    
+    // Test with primitive values
+    await cache.set("string-key", "simple string");
+    const stringValue = await cache.get<string>("string-key");
+    assert.strictEqual(stringValue, "simple string");
+    
+    await cache.set("number-key", 42);
+    const numberValue = await cache.get<number>("number-key");
+    assert.strictEqual(numberValue, 42);
   });
 });

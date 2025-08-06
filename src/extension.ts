@@ -7,9 +7,9 @@ import { registerTerminalProvider } from "./terminal";
 import { VSCodeWorkspaceCache } from "./cache";
 import { DaggerSettingsProvider, setGlobalSettings } from "./settings";
 import { DaggerCLI } from "./cli";
-import { ClearCacheCommand } from "./commands/clearCache";
+import { CacheCommand } from "./commands/cache";
 import { registerCloudCommand } from "./commands/setupCloud";
-import { AddMcpModuleCommand } from "./commands/addMCPModule";
+import { McpCommand } from "./commands/mcp";
 import { ExposeCommand } from "./commands/expose";
 import { DaggerViewFunctions } from "./commands/viewFunctions";
 import { UninstallCommand } from "./commands/uninstall";
@@ -59,7 +59,7 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
       vscode.commands.registerCommand(
         "dagger.clearCache",
-        new ClearCacheCommand(daggerCli).execute,
+        new CacheCommand(daggerCli).execute,
       ),
     );
     registerCloudCommand(context, daggerCli, settings);
@@ -96,7 +96,7 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
       vscode.commands.registerCommand(
         "dagger.addMcpModule",
-        new AddMcpModuleCommand(daggerCli, path, settings).execute,
+        new McpCommand(daggerCli, path, settings).execute,
       ),
     );
     context.subscriptions.push(

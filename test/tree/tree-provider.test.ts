@@ -11,37 +11,41 @@ describe("Tree Provider", () => {
   beforeEach(() => {
     mockCli = {
       getFunctions: async () => [],
+      getFunctionsAsTree: async () => new Map(),
     };
   });
 
   it("should load data with test items on construction", async () => {
-    // Arrange: mock getFunctions to return test items
+    // Arrange: mock getFunctionsAsTree to return test items
     const testFunctions: FunctionInfo[] = [
       {
         name: "testFunc1",
         description: "desc1",
-        functionId: "func1",
-        module: "default",
+        id: "func1",
         args: [],
-        parentModule: undefined,
         returnType: "container",
       },
       {
         name: "testFunc2",
         description: "desc2",
-        functionId: "func2",
-        module: "default",
+        id: "func2",
         args: [],
-        parentModule: undefined,
         returnType: "container",
       },
     ];
-    mockCli.getFunctions = async () => testFunctions;
+    
+    // Mock the getFunctionsAsTree method instead of getFunctions
+    mockCli.getFunctionsAsTree = async () => {
+      // Return a Map with an empty module name as the key
+      const moduleMap = new Map<string, Array<{ fn: FunctionInfo; index: number }>>();
+      moduleMap.set("", testFunctions.map((fn, index) => ({ fn, index })));
+      return moduleMap;
+    };
 
     // Act
     dataProvider = new DataProvider(mockCli as DaggerCLI, "");
     // Wait for async loadData to finish
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await new Promise((resolve) => setTimeout(resolve, 50));
     const children = await dataProvider.getChildren();
 
     // Assert
@@ -51,57 +55,80 @@ describe("Tree Provider", () => {
   });
 
   it("should display root module functions at top level with multiple modules", async () => {
-    // Arrange: mock functionsList to return multiple modules including root module
-    const testFunctions: FunctionInfo[] = [
-      // Root module functions (empty module name)
+    // Arrange: mock getFunctionsAsTree to return multiple modules including root module
+    
+    // Create module map structure with root module and other modules
+    const moduleMap = new Map<string, Array<{ fn: FunctionInfo; index: number }>>();
+    
+    // Root module functions (empty module name)
+    moduleMap.set("", [
       {
-        name: "rootFunc1",
-        description: "Root function 1",
-        functionId: "root1",
-        module: "",
-        args: [],
-        parentModule: undefined,
-        returnType: "container",
+        fn: {
+          name: "rootFunc1",
+          description: "Root function 1",
+          id: "root1",
+          module: "",
+          args: [],
+          returnType: "container",
+        },
+        index: 0
       },
       {
-        name: "rootFunc2",
-        description: "Root function 2",
-        functionId: "root2",
-        module: "",
-        args: [],
-        parentModule: undefined,
-        returnType: "container",
-      },
-      // Submodule functions
+        fn: {
+          name: "rootFunc2",
+          description: "Root function 2",
+          id: "root2",
+          module: "",
+          args: [],
+          returnType: "container",
+        },
+        index: 1
+      }
+    ]);
+    
+    // Submodule1 functions
+    moduleMap.set("submodule1", [
       {
-        name: "subFunc1",
-        description: "Sub function 1",
-        functionId: "sub1",
-        module: "submodule1",
-        args: [],
-        parentModule: undefined,
-        returnType: "container",
-      },
-      {
-        name: "subFunc2",
-        description: "Sub function 2",
-        functionId: "sub2",
-        module: "submodule1",
-        args: [],
-        parentModule: undefined,
-        returnType: "container",
+        fn: {
+          name: "subFunc1",
+          description: "Sub function 1",
+          id: "sub1",
+          module: "submodule1",
+          args: [],
+          returnType: "container",
+        },
+        index: 2
       },
       {
-        name: "otherFunc",
-        description: "Other function",
-        functionId: "other1",
-        module: "other-module",
-        args: [],
-        parentModule: undefined,
-        returnType: "container",
-      },
-    ];
-    mockCli.getFunctions = async () => testFunctions;
+        fn: {
+          name: "subFunc2",
+          description: "Sub function 2",
+          id: "sub2",
+          module: "submodule1",
+          args: [],
+          returnType: "container",
+        },
+        index: 3
+      }
+    ]);
+    
+    // Other module functions
+    moduleMap.set("other-module", [
+      {
+        fn: {
+          name: "otherFunc",
+          description: "Other function",
+          id: "other1",
+          module: "other-module",
+          args: [],
+          returnType: "container",
+        },
+        index: 4
+      }
+    ]);
+    
+    // Mock the getFunctionsAsTree method
+    mockCli.getFunctionsAsTree = async () => moduleMap;
 
     // Act
     dataProvider = new DataProvider(mockCli as DaggerCLI, "");
@@ -164,5 +191,70 @@ describe("Tree Provider", () => {
     } else {
       assert.fail("Submodule should have children property");
     }
+  });
+  
+  it("should display function arguments as children", async () => {
+    // Arrange: mock getFunctionsAsTree to return a function with arguments
+    const moduleMap = new Map<string, Array<{ fn: FunctionInfo; index: number }>>();
+    moduleMap.set("", [
+      {
+        fn: {
+          name: "functionWithArgs",
+          description: "A function with arguments",
+          id: "func-with-args",
+          module: "",
+          args: [
+            {
+              name: "stringArg",
+              type: "string",
+              required: true
+            },
+            {
+              name: "numberArg",
+              type: "number",
+              required: false
+            }
+          ],
+          returnType: "container",
+        },
+        index: 0
+      }
+    ]);
+    
+    // Mock the getFunctionsAsTree method
+    mockCli.getFunctionsAsTree = async () => moduleMap;
+    
+    // Act
+    dataProvider = new DataProvider(mockCli as DaggerCLI, "");
+    // Wait for async loadData to finish
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const children = await dataProvider.getChildren();
+    
+    // Assert: Should have one function
+    assert.strictEqual(children.length, 1, "Should have 1 function");
+    assert.strictEqual(children[0].label, "functionWithArgs");
+    
+    // The function should have children (arguments)
+    const functionItem = children[0];
+    const argChildren = await dataProvider.getChildren(functionItem);
+    
+    // Should have 2 argument children
+    assert.strictEqual(argChildren.length, 2, "Function should have 2 arguments");
+    
+    // Check argument formatting
+    assert.ok(
+      argChildren.some((arg) => {
+        const label = String(arg.label || "");
+        return label.includes("--string-arg") && label.includes("[required]");
+      }),
+      "Should have required string argument with kebab case name"
+    );
+    assert.ok(
+      argChildren.some((arg) => {
+        const label = String(arg.label || "");
+        return label.includes("--number-arg") && !label.includes("[required]");
+      }),
+      "Should have optional number argument with kebab case name"
+    );
   });
 });

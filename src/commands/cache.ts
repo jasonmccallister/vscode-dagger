@@ -9,7 +9,7 @@ interface ClearCacheMessageItem extends vscode.MessageItem {
 const YES_OPTION: ClearCacheMessageItem = { title: "Yes" };
 const NO_OPTION: ClearCacheMessageItem = { title: "No" };
 
-export class ClearCacheCommand implements Command {
+export class CacheCommand implements Command {
   constructor(private dagger: DaggerCLI) {}
 
   execute = async (): Promise<void> => {

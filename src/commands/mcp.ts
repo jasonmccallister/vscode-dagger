@@ -17,7 +17,7 @@ interface McpConfig {
   };
 }
 
-export class AddMcpModuleCommand implements Command {
+export class McpCommand implements Command {
   constructor(
     private _dagger: DaggerCLI,
     private path: string,
