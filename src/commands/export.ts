@@ -6,6 +6,7 @@ import {
   collectFunctionInput,
   createPropertyFilter,
   runFunction,
+  showSaveTaskPrompt,
   showSelectFunctionQuickPick,
 } from "../utils";
 import { DirectoryType, FileType } from "../types/types";
@@ -15,7 +16,7 @@ export class ExportCommand implements Command {
   constructor(
     private dagger: DaggerCLI,
     private path: string,
-    private _settings: DaggerSettings,
+    private settings: DaggerSettings,
   ) {}
 
   execute = async (): Promise<void> => {
@@ -147,7 +148,7 @@ export class ExportCommand implements Command {
           console.error(
             `Failed to run function \`${functionInfo.name}\`. Please check the output for details.`,
           );
-          
+
           vscode.window.showErrorMessage(
             `Failed to run function \`${functionInfo.name}\`. Please check the output for details.`,
           );
@@ -158,6 +159,17 @@ export class ExportCommand implements Command {
         vscode.window.showInformationMessage(
           `Function \`${functionInfo.name}\` exported successfully to \`${exportPath}\`.`,
         );
+
+        // if successful and the prompt is not dismissed
+        if (this.settings.saveTaskPromptDismissed !== true) {
+          await showSaveTaskPrompt(
+            functionInfo.name,
+            functionInput.argValues,
+            this.path,
+            this.settings,
+            functionInfo.module,
+          );
+        }
       },
     );
   };

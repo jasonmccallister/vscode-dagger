@@ -3,6 +3,7 @@ import {
   collectFunctionInput,
   createPropertyFilter,
   runFunction,
+  showSaveTaskPrompt,
   showSelectFunctionQuickPick,
 } from "../utils/function-helpers";
 import { DaggerSettings } from "../settings";
@@ -15,7 +16,7 @@ export class ExposeServiceCommand implements Command {
   constructor(
     private dagger: DaggerCLI,
     private path: string,
-    private _settings: DaggerSettings,
+    private settings: DaggerSettings,
   ) {}
 
   execute = async (): Promise<void> => {
@@ -92,6 +93,17 @@ export class ExposeServiceCommand implements Command {
       );
 
       return;
+    }
+
+    // if successful and the prompt is not dismissed
+    if (this.settings.saveTaskPromptDismissed !== true) {
+      await showSaveTaskPrompt(
+        functionInfo.name,
+        functionInput.argValues,
+        this.path,
+        this.settings,
+        functionInfo.module,
+      );
     }
 
     return;
