@@ -79,12 +79,12 @@ export const executeTaskAndWait = async (
 
     // Create environment variables
     // Note: We need to ensure all values are strings to satisfy the type requirements
-    const env = environment 
+    const env = environment
       ? Object.fromEntries(
           Object.entries({ ...process.env, ...environment })
             .filter(([_, value]) => value !== undefined)
-            .map(([key, value]) => [key, String(value)])
-        ) 
+            .map(([key, value]) => [key, String(value)]),
+        )
       : undefined;
 
     const taskExecution = new vscode.ShellExecution(command, {

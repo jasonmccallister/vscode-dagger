@@ -76,7 +76,6 @@ export class CallCommand implements Command<DaggerTreeItem> {
 
     let functionName: string = functionInfo.name;
     let moduleName: string | undefined = functionInfo.module;
-  
 
     // skip progress if the user has selected options that are long running such as running in terminal or exposing as service
     if (options.SkipProgress) {

@@ -17,9 +17,7 @@ interface TaskCreationResult {
   readonly cancelled: boolean;
 }
 
-export class TaskCommand
-  implements Command<DaggerTreeItem | undefined>
-{
+export class TaskCommand implements Command<DaggerTreeItem | undefined> {
   constructor(
     private dagger: DaggerCLI,
     private path: string,

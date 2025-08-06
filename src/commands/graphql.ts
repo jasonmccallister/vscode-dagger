@@ -10,30 +10,30 @@ export class GraphQLCommand implements Command {
   ) {}
 
   public execute = async (): Promise<void> => {
-     let command = ["dagger", "listen"];
+    let command = ["dagger", "listen"];
 
-      await allowCorsPrompt(command);
+    await allowCorsPrompt(command);
 
-      await allowLLMPrompt(command);
+    await allowLLMPrompt(command);
 
-      await listenAddressPrompt(command, "127.0.0.1:8080");
+    await listenAddressPrompt(command, "127.0.0.1:8080");
 
-      const auth = await basicAuthPrompt();
+    const auth = await basicAuthPrompt();
 
-      vscode.window.showInformationMessage(
-        "Starting GraphQL server:\n" + `Basic Auth: ${auth.token}`,
-      );
+    vscode.window.showInformationMessage(
+      "Starting GraphQL server:\n" + `Basic Auth: ${auth.token}`,
+    );
 
-      const token = new vscode.CancellationTokenSource().token;
+    const token = new vscode.CancellationTokenSource().token;
 
-      // put env DAGGER_SESSION_TOKEN=auth.value in the beginning of the command array
-      command = ["env", "DAGGER_SESSION_TOKEN=" + auth.value, ...command];
+    // put env DAGGER_SESSION_TOKEN=auth.value in the beginning of the command array
+    command = ["env", "DAGGER_SESSION_TOKEN=" + auth.value, ...command];
 
-      executeTaskAndWait(token, command.join(" "), {
-        runInBackground: false,
-        workingDirectory: this.path,
-      });
-    };
+    executeTaskAndWait(token, command.join(" "), {
+      runInBackground: false,
+      workingDirectory: this.path,
+    });
+  };
 }
 
 const listenAddressPrompt = async (

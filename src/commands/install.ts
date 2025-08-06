@@ -38,7 +38,7 @@ export class InstallCommand implements Command<string | undefined> {
         vscode.window.showInformationMessage(
           "Dagger is already installed. No action needed.",
         );
-        
+
         return; // Already installed, no need to proceed
       }
 

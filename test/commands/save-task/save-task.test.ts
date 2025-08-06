@@ -2,9 +2,7 @@ import * as assert from "assert";
 import * as sinon from "sinon";
 import * as vscode from "vscode";
 import { describe, it, beforeEach, afterEach } from "mocha";
-import {
-  saveTaskToTasksJson,
-} from "../../../src/commands/task";
+import { saveTaskToTasksJson } from "../../../src/commands/task";
 import { buildCommandArgs } from "../../../src/utils/function-helpers";
 import { DaggerCLI } from "../../../src/cli";
 import { FunctionInfo } from "../../../src/types/types";

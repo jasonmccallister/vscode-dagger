@@ -348,7 +348,7 @@ export const showSelectFunctionQuickPick = async (
   // if there are no functions after filtering, show a message
   if (filteredFunctions.length === 0) {
     console.debug("No functions match the selected filter criteria.");
-    
+
     return undefined;
   }
 
