@@ -169,6 +169,12 @@
     "configuration": {
       "title": "Dagger",
       "properties": {
+        "dagger.alwaysPromptFunctionActions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to always prompt before executing function actions (e.g., export, expose service)",
+          "scope": "window"
+        },
         "dagger.installMethod": {
           "type": "string",
           "enum": [

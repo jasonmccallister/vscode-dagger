@@ -20,40 +20,20 @@ export class CallFunctionCommand implements Command<DaggerTreeItem> {
     private settings: DaggerSettings,
   ) {}
 
-  preExecute(): Promise<boolean> {
-    // TODO(jasonmccallister): verify this is a Dagger project
-    return Promise.resolve(true);
-  }
-
   async execute(input?: DaggerTreeItem): Promise<void> {
     let functionInfo: FunctionInfo | undefined;
     let functionInput: CollectedFunctionInput | undefined;
+    const alwaysPrompt: boolean = this.settings.alwaysPromptFunctionActions;
+
     const token = new vscode.CancellationTokenSource().token;
 
-    // Check the type of input to determine how to proceed
+    // prompt for function selection if no input provided
     if (input === undefined) {
-      // No input provided, we will prompt the user to select a function
-      const functions = await this.dagger.getFunctions(this.path);
-      if (!functions || functions.length === 0) {
-        // If no functions are found, prompt the user to set up the project
-        vscode.window.showInformationMessage(
-          "No functions found. Please set up your Dagger project.",
-        );
-        return;
-      }
+      functionInfo = await this.selectFunction();
+    }
 
-      functionInfo = await showSelectFunctionQuickPick(functions);
-      if (!functionInfo) {
-        vscode.window.showInformationMessage(
-          "No function selected. Please select a function to call.",
-        );
-        return;
-      }
-    } else if (
-      input instanceof DaggerTreeItem &&
-      input.functionInfo !== undefined
-    ) {
-      // Input is a tree item with function info
+    // was input provided?
+    if (input instanceof DaggerTreeItem && input.functionInfo !== undefined) {
       functionInfo = input.functionInfo;
     }
 
@@ -62,52 +42,50 @@ export class CallFunctionCommand implements Command<DaggerTreeItem> {
       vscode.window.showErrorMessage(
         "No function selected. Please select a function to call.",
       );
+
       return;
     }
 
-    const options = await preRunOptions(token, functionInfo);
-    if (!options) {
-      console.log("Function call cancelled by user during pre-run options");
+    // set the default options
+    let options: SelectedActions | undefined = {
+      SkipProgress: false,
+      CommandArgsToAppend: [],
+    };
+
+    // should we prompt for function actions like exporting or exposing as a service?
+    if (alwaysPrompt) {
+      options = await preRunOptions(token, functionInfo);
+      if (!options) {
+        console.log("Function call cancelled by user during pre-run options");
+        return;
+      }
+    }
+
+    // get the user input for the function
+    functionInput = await collectFunctionInput(token, functionInfo);
+    if (!functionInput) {
+      console.log("Function call cancelled by user during input collection");
       return;
     }
+
+    // add the command to run the function
+    if (options.CommandArgsToAppend && options.CommandArgsToAppend.length > 0) {
+      // append the command to run the function
+      functionInput.commandArgs.push(...options.CommandArgsToAppend);
+    }
+
+    let functionName: string = functionInfo.name;
+    let moduleName: string | undefined = functionInfo.module;
+  
 
     // skip progress if the user has selected options that are long running such as running in terminal or exposing as service
     if (options.SkipProgress) {
-      // get the user input for the function
-      functionInput = await collectFunctionInput(token, functionInfo);
-      if (!functionInput) {
-        console.log(
-          "Function call cancelled by user during input collection",
-        );
-        return;
-      }
-
-      // add the command to run the function
-      if (
-        options.CommandArgsToAppend &&
-        options.CommandArgsToAppend.length > 0
-      ) {
-        // append the command to run the function
-        functionInput.commandArgs.push(...options.CommandArgsToAppend);
-      }
-
       const result = await runFunction(token, this.path, functionInput);
       if (!result) {
         vscode.window.showErrorMessage(
           `Failed to run function \`${functionInfo.name}\`. Please check the output for details.`,
         );
         return;
-      }
-
-      // if successful and the prompt is not dismissed
-      if (this.settings.saveTaskPromptDismissed !== true) {
-        await showSaveTaskPrompt(
-          functionInfo.name!,
-          functionInput.argValues,
-          this.path,
-          this.settings,
-          functionInfo.module,
-        );
       }
 
       return;
@@ -121,9 +99,6 @@ export class CallFunctionCommand implements Command<DaggerTreeItem> {
       },
       async (progress, token) => {
         try {
-          let functionName: string = functionInfo?.name;
-          let moduleName: string | undefined = functionInfo?.module;
-
           progress.report({
             message: `Running function \`${functionName}\`${moduleName ? ` in module ${moduleName}` : ""}`,
           });
@@ -133,41 +108,12 @@ export class CallFunctionCommand implements Command<DaggerTreeItem> {
             return;
           }
 
-          // get the user input for the function
-          let functionInput = await collectFunctionInput(token, functionInfo);
-          if (!functionInput) {
-            console.log(
-              "Function call cancelled by user during input collection",
-            );
-            return;
-          }
-
-          // add the command to run the function
-          if (
-            options.CommandArgsToAppend &&
-            options.CommandArgsToAppend.length > 0
-          ) {
-            // append the command to run the function
-            functionInput.commandArgs.push(...options.CommandArgsToAppend);
-          }
-
           const result = await runFunction(token, this.path, functionInput);
           if (!result) {
             vscode.window.showErrorMessage(
               `Failed to run function \`${functionName}\`. Please check the output for details.`,
             );
             return;
-          }
-
-          // if successful and the prompt is not dismissed
-          if (this.settings.saveTaskPromptDismissed !== true) {
-            await showSaveTaskPrompt(
-              functionName!,
-              functionInput.argValues,
-              this.path,
-              this.settings,
-              moduleName,
-            );
           }
 
           return;
@@ -188,12 +134,31 @@ export class CallFunctionCommand implements Command<DaggerTreeItem> {
         }
       },
     );
+
+    // if successful and the prompt is not dismissed
+    if (this.settings.saveTaskPromptDismissed !== true) {
+      await showSaveTaskPrompt(
+        functionName!,
+        functionInput.argValues,
+        this.path,
+        this.settings,
+        moduleName,
+      );
+    }
   }
 
-  postExecute?(): Promise<void> {
-    // This command does not require post-execution actions
-    return Promise.resolve();
-  }
+  private selectFunction = async (): Promise<FunctionInfo | undefined> => {
+    const functions = await this.dagger.getFunctions(this.path);
+    if (!functions || functions.length === 0) {
+      // If no functions are found, prompt the user to set up the project
+      vscode.window.showInformationMessage(
+        "No functions found. Please set up your Dagger project.",
+      );
+      return undefined;
+    }
+
+    return showSelectFunctionQuickPick(functions);
+  };
 }
 
 export interface SelectedActions {

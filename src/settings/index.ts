@@ -5,6 +5,12 @@ import * as vscode from "vscode";
  */
 export interface DaggerSettings {
   /**
+   * Whether to always prompt before executing function actions (e.g., export, expose service)
+   * Default: true
+   */
+  readonly alwaysPromptFunctionActions: boolean;
+
+  /**
    * Whether to enable caching of Dagger functions
    * Default: true (caching enabled)
    */
@@ -54,9 +60,17 @@ export class DaggerSettingsProvider implements DaggerSettings {
   private _installMethod: "brew" | "curl" = "brew";
   private _cloudNotificationDismissed: boolean = false;
   private _saveTaskPromptDismissed: boolean = false;
+  private _alwaysPromptFunctionActions: boolean = true;
 
   constructor() {
     this.reload();
+  }
+
+  /**
+   * Whether to always prompt before executing function actions (e.g., export, expose service)
+   */
+  public get alwaysPromptFunctionActions(): boolean {
+    return this._alwaysPromptFunctionActions;
   }
 
   /**
@@ -101,6 +115,10 @@ export class DaggerSettingsProvider implements DaggerSettings {
     this._saveTaskPromptDismissed = config.get<boolean>(
       "saveTaskPromptDismissed",
       false,
+    );
+    this._alwaysPromptFunctionActions = config.get<boolean>(
+      "alwaysPromptFunctionActions",
+      true,
     );
   }
 
