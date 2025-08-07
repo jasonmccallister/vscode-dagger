@@ -63,8 +63,8 @@ export async function activate(context: vscode.ExtensionContext) {
     );
     registerCloudCommand(context, daggerCli, settings);
     context.subscriptions.push(
-      vscode.commands.registerCommand("dagger.call", () =>
-        new CallCommand(daggerCli, path, settings).execute(),
+      vscode.commands.registerCommand("dagger.call", (treeItem) =>
+        new CallCommand(daggerCli, path, settings).execute(treeItem),
       ),
     );
     context.subscriptions.push(
@@ -98,8 +98,8 @@ export async function activate(context: vscode.ExtensionContext) {
       ),
     );
     context.subscriptions.push(
-      vscode.commands.registerCommand("dagger.saveTask", () =>
-        new TaskCommand(daggerCli, path).execute(),
+      vscode.commands.registerCommand("dagger.saveTask", (treeItem) =>
+        new TaskCommand(daggerCli, path).execute(treeItem),
       ),
     );
     context.subscriptions.push(
