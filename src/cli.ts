@@ -149,6 +149,8 @@ export class DaggerCLI {
         },
       );
 
+      console.debug(`Found ${moduleNames.length} modules: ${moduleNames.join(", ")}`);
+
       result.loadDirectoryFromID.asModule.objects.forEach(
         (moduleObj: ModuleObject) => {
           if (moduleObj.asObject && moduleObj.asObject.functions) {
@@ -182,6 +184,14 @@ export class DaggerCLI {
             console.debug(
               `Processing module: ${moduleName || "root"} (isRoot: ${isRootModule}, original: ${fullModuleName}, rootModule: ${rootModuleName})`,
             );
+            
+            // make sure we have functions
+            if (!moduleObj.asObject.functions) {
+              console.warn(
+                `Module ${moduleObj.asObject.name} has no functions, skipping`,
+              );
+              return;
+            }
 
             // Process each function in the module
             moduleObj.asObject.functions.forEach((func: ModuleFunction) => {
@@ -201,8 +211,6 @@ export class DaggerCLI {
           }
         },
       );
-
-      console.debug(`All module names: ${moduleNames.join(", ")}`);
 
       // Always set the cache, even if not enabled.
       // This is to ensure that the cache is always up-to-date if enabled later
