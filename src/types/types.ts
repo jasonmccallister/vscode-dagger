@@ -99,5 +99,6 @@ export interface ObjectInfo {
 export interface ModuleObject {
   id: string;
   name: string;
+  description?: string;
   asObject?: ObjectInfo;
 }

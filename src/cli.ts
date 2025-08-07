@@ -130,8 +130,14 @@ export class DaggerCLI {
       const rootModuleName = nameToKebabCase(
         result.loadDirectoryFromID.asModule.name,
       );
+      
+      // Convert root module name to PascalCase for comparison with object names
+      const rootModuleNamePascal = result.loadDirectoryFromID.asModule.name
+        .split('-')
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+        .join('');
 
-      console.debug(`Root module name: ${rootModuleName}`);
+      console.debug(`Root module name: ${rootModuleName} (Pascal: ${rootModuleNamePascal})`);
 
       if (!result.loadDirectoryFromID.asModule.objects) {
         console.error("Invalid functions response:", stdout);
@@ -160,29 +166,26 @@ export class DaggerCLI {
               return;
             }
 
-            // if returnType.kind is "OBJECT_KIND" and returnType.asObject.name begins with the PascalCase module name, strip the module name prefix as this is a submodule
+            const objectName = moduleObj.asObject.name;
+            
+            // Check if this is the root module by comparing object name with root module name
+            // Root module object name should match the PascalCase version of the root module name
+            const isRootModule = objectName === rootModuleNamePascal;
 
-            const fullModuleName = nameToKebabCase(moduleObj.asObject.name);
-
-            // Check if this is the root module by comparing with the shortest module name
-            const isRootModule = fullModuleName === rootModuleName;
-
-            // For submodules, strip the root module prefix if present to get clean submodule name
+            // For submodules, extract the submodule name by removing the root module prefix
             let moduleName: string | undefined;
-            if (!isRootModule && fullModuleName.startsWith(rootModuleName)) {
-              // Strip the root module prefix (e.g., "dagger-dev-cli" -> "cli")
-              moduleName = fullModuleName
-                .slice(rootModuleName.length)
-                .replace(/^-/, "");
-
-              // If nothing is left after stripping, treat as root module
-              if (!moduleName) {
-                moduleName = undefined;
+            if (!isRootModule && objectName.startsWith(rootModuleNamePascal)) {
+              // Strip the root module prefix (e.g., "DaggerDevCli" -> "Cli")
+              const submodulePascal = objectName.slice(rootModuleNamePascal.length);
+              
+              // Convert to kebab-case
+              if (submodulePascal) {
+                moduleName = nameToKebabCase(submodulePascal);
               }
             }
 
             console.debug(
-              `Processing module: ${moduleName || "root"} (isRoot: ${isRootModule}, original: ${fullModuleName}, rootModule: ${rootModuleName})`,
+              `Processing module: ${moduleName || "root"} (isRoot: ${isRootModule}, object: ${objectName}, rootModulePascal: ${rootModuleNamePascal})`,
             );
             
             // make sure we have functions
