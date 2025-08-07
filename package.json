@@ -154,7 +154,7 @@
         "shortTitle": "Shell"
       },
       {
-        "command": "dagger.reloadFunctions",
+        "command": "dagger.reload",
         "title": "Reload Functions",
         "category": "Dagger",
         "icon": "$(refresh)"
@@ -236,7 +236,7 @@
     "menus": {
       "view/title": [
         {
-          "command": "dagger.reloadFunctions",
+          "command": "dagger.reload",
           "when": "view == daggerTreeView",
           "group": "navigation@1"
         }

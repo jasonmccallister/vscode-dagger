@@ -43,8 +43,8 @@ export const registerTreeView = (
   });
 
   // register the refresh command here so we can access the tree view and data provider in the callback
-  const refreshCommand = vscode.commands.registerCommand(
-    "dagger.reloadFunctions",
+  const reloadCommand = vscode.commands.registerCommand(
+    "dagger.reload",
     async () => {
       try {
         dataProvider.reloadFunctions();
@@ -57,7 +57,7 @@ export const registerTreeView = (
     },
   );
 
-  context.subscriptions.push(treeView, refreshCommand);
+  context.subscriptions.push(treeView, reloadCommand);
 };
 
 /**

@@ -140,12 +140,17 @@ export class DaggerCLI {
 
       const functions: FunctionInfo[] = [];
       const moduleNames: string[] = [];
+
       result.loadDirectoryFromID.asModule.objects.forEach(
         (moduleObj: ModuleObject) => {
           if (moduleObj.asObject) {
             moduleNames.push(nameToKebabCase(moduleObj.asObject.name));
           }
+        },
+      );
 
+      result.loadDirectoryFromID.asModule.objects.forEach(
+        (moduleObj: ModuleObject) => {
           if (moduleObj.asObject && moduleObj.asObject.functions) {
             // make sure the module name is defined
             if (!moduleObj.asObject.name) {
@@ -384,14 +389,14 @@ export class DaggerCLI {
    */
   private async getDirectoryID(path: string): Promise<string> {
     const cacheKey = this.cache.generateKey("directory", path);
-    if (this.settings.enableCache) {
-      const cachedResult = await this.cache.get<DirectoryIdResult>(cacheKey);
-      if (cachedResult) {
-        console.debug(`Using cached directory ID for key: ${cacheKey}`);
+    // if (this.settings.enableCache) {
+    //   const cachedResult = await this.cache.get<DirectoryIdResult>(cacheKey);
+    //   if (cachedResult) {
+    //     console.debug(`Using cached directory ID for key: ${cacheKey}`);
 
-        return cachedResult.host.directory.id;
-      }
-    }
+    //     return cachedResult.host.directory.id;
+    //   }
+    // }
 
     const { stdout, stderr, exitCode } = await this.execQuery(
       queryHostDirectory,
