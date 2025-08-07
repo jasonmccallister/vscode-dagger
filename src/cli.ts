@@ -147,10 +147,26 @@ export class DaggerCLI {
       const functions: FunctionInfo[] = [];
       const moduleNames: string[] = [];
 
+      // First pass: build a map of object types to the root function names that return them
+      const objectTypeToRootFunction = new Map<string, string>();
+      
       result.loadDirectoryFromID.asModule.objects.forEach(
         (moduleObj: ModuleObject) => {
           if (moduleObj.asObject) {
             moduleNames.push(nameToKebabCase(moduleObj.asObject.name));
+            
+            // Check if this is the root module
+            const isRootModule = moduleObj.asObject.name === rootModuleNamePascal;
+            
+            if (isRootModule && moduleObj.asObject.functions) {
+              // For root module functions, check if they return object types
+              moduleObj.asObject.functions.forEach((func: ModuleFunction) => {
+                if (func.returnType.kind === "OBJECT_KIND" && 
+                    func.returnType.asObject?.name) {
+                  objectTypeToRootFunction.set(func.returnType.asObject.name, func.name);
+                }
+              });
+            }
           }
         },
       );
@@ -172,15 +188,20 @@ export class DaggerCLI {
             // Root module object name should match the PascalCase version of the root module name
             const isRootModule = objectName === rootModuleNamePascal;
 
-            // For submodules, extract the submodule name by removing the root module prefix
+            // For submodules, determine the module name
             let moduleName: string | undefined;
-            if (!isRootModule && objectName.startsWith(rootModuleNamePascal)) {
-              // Strip the root module prefix (e.g., "DaggerDevCli" -> "Cli")
-              const submodulePascal = objectName.slice(rootModuleNamePascal.length);
-              
-              // Convert to kebab-case
-              if (submodulePascal) {
-                moduleName = nameToKebabCase(submodulePascal);
+            if (!isRootModule) {
+              // First check if there's a root function that returns this object type
+              if (objectTypeToRootFunction.has(objectName)) {
+                moduleName = objectTypeToRootFunction.get(objectName);
+              } else if (objectName.startsWith(rootModuleNamePascal)) {
+                // Fallback to the original logic: strip the root module prefix
+                const submodulePascal = objectName.slice(rootModuleNamePascal.length);
+                
+                // Convert to kebab-case
+                if (submodulePascal) {
+                  moduleName = nameToKebabCase(submodulePascal);
+                }
               }
             }
 

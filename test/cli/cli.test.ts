@@ -77,7 +77,7 @@ describe("DaggerCLI", () => {
 
       // Submodule functions - these should have clean module names
       assert.ok(functionsByModule.has("cli"), "Should have cli submodule");
-      assert.ok(functionsByModule.has("go-toolchain"), "Should have go-toolchain submodule");
+      assert.ok(functionsByModule.has("go"), "Should have go submodule (not go-toolchain)");
       assert.ok(functionsByModule.has("scripts"), "Should have scripts submodule");
       assert.ok(functionsByModule.has("test"), "Should have test submodule");
       assert.ok(functionsByModule.has("sdk"), "Should have sdk submodule");
@@ -102,7 +102,7 @@ describe("DaggerCLI", () => {
     });
 
     it("should handle nested module names correctly", () => {
-      // Test the naming logic directly
+      // Test the naming logic directly - basic cases that don't depend on root function mapping
       const testCases = [
         { 
           rootModule: "dagger-dev", 
@@ -113,11 +113,6 @@ describe("DaggerCLI", () => {
           rootModule: "dagger-dev", 
           objectName: "DaggerDevCli", 
           expected: { isRoot: false, moduleName: "cli" } 
-        },
-        { 
-          rootModule: "dagger-dev", 
-          objectName: "DaggerDevGoToolchain", 
-          expected: { isRoot: false, moduleName: "go-toolchain" } 
         },
         { 
           rootModule: "dagger-dev", 
@@ -140,7 +135,7 @@ describe("DaggerCLI", () => {
           const submodulePascal = objectName.slice(rootModuleNamePascal.length);
           
           if (submodulePascal) {
-            // Convert to kebab-case
+            // Convert to kebab-case - this is the fallback logic when no root function mapping exists
             moduleName = submodulePascal
               .split(/(?=[A-Z])/)
               .join("-")
