@@ -179,9 +179,24 @@ export const collectFunctionInput = async (
 
   let commandArgs: string[];
   // if this is the root module, don't include module name
-  if (functionInfo.module === undefined) {
+  if (functionInfo.parentModule && functionInfo.module) {
+    // Handle nested modules - format: dagger call module parentModule func-name args
+    commandArgs = [
+      "dagger",
+      "call",
+      functionInfo.module,
+      functionInfo.parentModule,
+      functionName,
+      ...Object.entries(argValues).flatMap(([name, value]) => [
+        `--${name}`,
+        value,
+      ]),
+    ];
+  } else if (functionInfo.module === undefined) {
+    // Root module case
     commandArgs = buildCommandArgs(functionName, argValues);
   } else {
+    // Normal module case
     commandArgs = buildCommandArgs(functionName, argValues, moduleName);
   }
 

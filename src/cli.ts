@@ -6,6 +6,7 @@ import {
   ModuleResult,
   FunctionArg,
   ModuleFunction,
+  ObjectInfo,
 } from "./types/types";
 import { DaggerSettings } from "./settings";
 import { CliCache } from "./cache";
@@ -42,7 +43,6 @@ const queryFunctions = `query directoryAsModule($id: DirectoryID!) {
       objects {
         asObject {
           name
-          id
           functions {
             id
             name
@@ -98,159 +98,69 @@ export class DaggerCLI {
    * @returns A promise that resolves to an array of FunctionInfo objects.
    */
   async getFunctions(path: string): Promise<FunctionInfo[]> {
-    const cacheKey = this.cache.generateKey("functions", path);
-    // is cache enabled?
-    if (this.settings.enableCache) {
-      console.log(`Checking cache for key: ${cacheKey}`);
-
-      const cachedFunctions = await this.cache.get<FunctionInfo[]>(cacheKey);
-      if (cachedFunctions) {
-        console.debug(`Using cached functions for key: ${cacheKey}`);
-        return cachedFunctions;
-      }
-
-      console.debug(`No cached functions found for key: ${cacheKey}`);
-    }
+    const directoryId = await this.getDirectoryID(path);
 
     const { stdout, stderr, exitCode } = await this.execQuery(
       queryFunctions,
-      { id: await this.getDirectoryID(path) },
+      { id: directoryId },
       path,
     );
 
     if (exitCode !== 0) {
-      console.error("Failed to get functions:", stderr);
       throw new Error(`Failed to get functions: ${stderr}`);
     }
 
     let result: ModuleResult;
     try {
       result = JSON.parse(stdout);
-
-      const rootModuleName = nameToKebabCase(
-        result.loadDirectoryFromID.asModule.name,
-      );
-      
-      // Convert root module name to PascalCase for comparison with object names
-      const rootModuleNamePascal = result.loadDirectoryFromID.asModule.name
-        .split('-')
-        .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-        .join('');
-
-      console.debug(`Root module name: ${rootModuleName} (Pascal: ${rootModuleNamePascal})`);
-
-      if (!result.loadDirectoryFromID.asModule.objects) {
-        console.error("Invalid functions response:", stdout);
-        throw new Error("Invalid functions response");
-      }
-
-      const functions: FunctionInfo[] = [];
-      const moduleNames: string[] = [];
-
-      // First pass: build a map of object types to the root function names that return them
-      const objectTypeToRootFunction = new Map<string, string>();
-      
-      result.loadDirectoryFromID.asModule.objects.forEach(
-        (moduleObj: ModuleObject) => {
-          if (moduleObj.asObject) {
-            moduleNames.push(nameToKebabCase(moduleObj.asObject.name));
-            
-            // Check if this is the root module
-            const isRootModule = moduleObj.asObject.name === rootModuleNamePascal;
-            
-            if (isRootModule && moduleObj.asObject.functions) {
-              // For root module functions, check if they return object types
-              moduleObj.asObject.functions.forEach((func: ModuleFunction) => {
-                if (func.returnType.kind === "OBJECT_KIND" && 
-                    func.returnType.asObject?.name) {
-                  objectTypeToRootFunction.set(func.returnType.asObject.name, func.name);
-                }
-              });
-            }
-          }
-        },
-      );
-
-      console.debug(`Found ${moduleNames.length} modules: ${moduleNames.join(", ")}`);
-
-      result.loadDirectoryFromID.asModule.objects.forEach(
-        (moduleObj: ModuleObject) => {
-          if (moduleObj.asObject && moduleObj.asObject.functions) {
-            // make sure the module name is defined
-            if (!moduleObj.asObject.name) {
-              console.warn("Module name is undefined, skipping module");
-              return;
-            }
-
-            const objectName = moduleObj.asObject.name;
-            
-            // Check if this is the root module by comparing object name with root module name
-            // Root module object name should match the PascalCase version of the root module name
-            const isRootModule = objectName === rootModuleNamePascal;
-
-            // For submodules, determine the module name
-            let moduleName: string | undefined;
-            if (!isRootModule) {
-              // First check if there's a root function that returns this object type
-              if (objectTypeToRootFunction.has(objectName)) {
-                moduleName = objectTypeToRootFunction.get(objectName);
-              } else if (objectName.startsWith(rootModuleNamePascal)) {
-                // Fallback to the original logic: strip the root module prefix
-                const submodulePascal = objectName.slice(rootModuleNamePascal.length);
-                
-                // Convert to kebab-case
-                if (submodulePascal) {
-                  moduleName = nameToKebabCase(submodulePascal);
-                }
-              }
-            }
-
-            console.debug(
-              `Processing module: ${moduleName || "root"} (isRoot: ${isRootModule}, object: ${objectName}, rootModulePascal: ${rootModuleNamePascal})`,
-            );
-            
-            // make sure we have functions
-            if (!moduleObj.asObject.functions) {
-              console.warn(
-                `Module ${moduleObj.asObject.name} has no functions, skipping`,
-              );
-              return;
-            }
-
-            // Process each function in the module
-            moduleObj.asObject.functions.forEach((func: ModuleFunction) => {
-              functions.push({
-                id: func.id,
-                name: func.name,
-                description: func.description,
-                module: moduleName, // undefined for root module, submodule name for submodules
-                returnType: getReturnTypeName(func.returnType),
-                args: func.args.map((arg: FunctionArg) => ({
-                  name: arg.name,
-                  type: getArgumentTypeName(arg.typeDef),
-                  required: arg.typeDef.optional !== true,
-                })),
-              });
-            });
-          }
-        },
-      );
-
-      // Always set the cache, even if not enabled.
-      // This is to ensure that the cache is always up-to-date if enabled later
-      console.debug(`Caching functions for key: ${cacheKey}`);
-
-      this.cache.set(cacheKey, functions);
-
-      return functions;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-
-      console.error("Error parsing functions response:", errorMessage);
-
-      throw new Error(`Failed to parse functions response: ${errorMessage}`);
+      throw new Error(`Failed to parse functions result: ${errorMessage}`);
     }
+
+    const rootModuleId = result.loadDirectoryFromID?.asModule?.id;
+    const rootModuleName = result.loadDirectoryFromID?.asModule?.name;
+    if (!rootModuleName || !rootModuleId) {
+      throw new Error(
+        "Unable to determine root module name or ID from GraphQL response",
+      );
+    }
+
+    const functions: FunctionInfo[] = [];
+
+    result.loadDirectoryFromID.asModule.objects.forEach((mod: ModuleObject) => {
+      if (!mod.asObject) {
+        console.warn("Module has no asObject, skipping");
+        return;
+      }
+
+      const moduleKey = nameToKebabCase(mod.asObject.name);
+      const isRootModule = moduleKey === rootModuleName;
+      const parentModule = isRootModule
+        ? undefined
+        : "submodule-of-" + rootModuleName;
+
+      mod.asObject.functions.forEach((fn: ModuleFunction) => {
+        functions.push({
+          id: fn.id,
+          name: nameToKebabCase(fn.name),
+          description: fn.description,
+          returnType: getReturnTypeName(fn.returnType),
+          args: fn.args.map((arg: FunctionArg) => ({
+            name: nameToKebabCase(arg.name),
+            description: arg.description,
+            typeDef: arg.typeDef,
+            type: getArgumentTypeName(arg.typeDef.kind),
+            required: !arg.typeDef.optional,
+          })),
+          module: isRootModule ? undefined : moduleKey,
+          parentModule: parentModule,
+        });
+      });
+    });
+
+    return functions;
   }
 
   async getFunctionsAsTree(
@@ -421,14 +331,14 @@ export class DaggerCLI {
    */
   private async getDirectoryID(path: string): Promise<string> {
     const cacheKey = this.cache.generateKey("directory", path);
-    // if (this.settings.enableCache) {
-    //   const cachedResult = await this.cache.get<DirectoryIdResult>(cacheKey);
-    //   if (cachedResult) {
-    //     console.debug(`Using cached directory ID for key: ${cacheKey}`);
+    if (this.settings.enableCache) {
+      const cachedResult = await this.cache.get<DirectoryIdResult>(cacheKey);
+      if (cachedResult) {
+        console.debug(`Using cached directory ID for key: ${cacheKey}`);
 
-    //     return cachedResult.host.directory.id;
-    //   }
-    // }
+        return cachedResult.host.directory.id;
+      }
+    }
 
     const { stdout, stderr, exitCode } = await this.execQuery(
       queryHostDirectory,

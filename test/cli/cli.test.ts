@@ -64,23 +64,44 @@ describe("DaggerCLI", () => {
       });
 
       // Expected structure based on user requirements and actual data:
-      // Root module functions (module: undefined)
+      // Root module functions (module: undefined) - should NOT include module constructors
       const rootFunctions = functionsByModule.get("root") || [];
+      
+      // Debug: Log all modules and their functions
+      console.log("=== Current module structure ===");
+      for (const [module, fns] of functionsByModule.entries()) {
+        console.log(`${module}: [${fns.join(", ")}]`);
+      }
+      console.log("================================");
+      
       assert.ok(rootFunctions.includes("sourceDeveloped"), "Should have sourceDeveloped in root");
       assert.ok(rootFunctions.includes("lint"), "Should have lint in root");
       assert.ok(rootFunctions.includes("evals"), "Should have evals in root");
-      assert.ok(rootFunctions.includes("bench"), "Should have bench in root");
       assert.ok(rootFunctions.includes("generate"), "Should have generate in root");
       assert.ok(rootFunctions.includes("check"), "Should have check in root");
       assert.ok(rootFunctions.includes("scan"), "Should have scan in root");
       assert.ok(rootFunctions.includes("dev"), "Should have dev in root");
+      
+      // These should NOT be in root as they are module constructors
+      assert.ok(!rootFunctions.includes("cli"), "Should NOT have cli in root (it's a module constructor)");
+      assert.ok(!rootFunctions.includes("go"), "Should NOT have go in root (it's a module constructor)");
+      assert.ok(!rootFunctions.includes("scripts"), "Should NOT have scripts in root (it's a module constructor)");
+      assert.ok(!rootFunctions.includes("test"), "Should NOT have test in root (it's a module constructor)");
+      assert.ok(!rootFunctions.includes("bench"), "Should NOT have bench in root (it's a module constructor)");
+      assert.ok(!rootFunctions.includes("sdk"), "Should NOT have sdk in root (it's a module constructor)");
 
       // Submodule functions - these should have clean module names
       assert.ok(functionsByModule.has("cli"), "Should have cli submodule");
       assert.ok(functionsByModule.has("go"), "Should have go submodule (not go-toolchain)");
       assert.ok(functionsByModule.has("scripts"), "Should have scripts submodule");
       assert.ok(functionsByModule.has("test"), "Should have test submodule");
-      assert.ok(functionsByModule.has("sdk"), "Should have sdk submodule");
+      
+      // SDK submodules should appear as top-level modules
+      assert.ok(functionsByModule.has("go-sdk"), "Should have go-sdk submodule");
+      assert.ok(functionsByModule.has("python-sdk"), "Should have python-sdk submodule");
+      
+      // Main sdk module should NOT appear since it only has constructor functions
+      assert.ok(!functionsByModule.has("sdk"), "Should NOT have main sdk module (only submodules should appear)");
 
       // Verify specific submodule functions are properly nested
       const cliFunctions = functionsByModule.get("cli") || [];
