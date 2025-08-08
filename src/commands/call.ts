@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { FunctionInfo } from "../types/types";
+import { FileType, FunctionInfo } from "../types/types";
 import {
   CollectedFunctionInput,
   collectFunctionInput,
@@ -12,6 +12,8 @@ import { DaggerSettings } from "../settings";
 import { DaggerCLI } from "../cli";
 import { askForPorts } from "../utils/user-input";
 import { Command } from "./types";
+import { promptForExportPath, promptForFileName } from "./export";
+import path from "path/win32";
 
 export class CallCommand implements Command<DaggerTreeItem> {
   constructor(
@@ -250,7 +252,28 @@ const preRunOptions = async (
 
       break;
     case "Export to Host":
-      // Handle export logic here if needed
+      let exportPath = await promptForExportPath();
+      if (!exportPath) {
+        vscode.window.showInformationMessage(
+          "Export path not specified. Operation cancelled.",
+        );
+        return;
+      }
+
+      if (functionInfo.returnType === FileType) {
+        const fileName = await promptForFileName();
+        if (!fileName) {
+          vscode.window.showInformationMessage(
+            "File name not specified. Operation cancelled.",
+          );
+          return;
+        }
+
+        exportPath = path.join(exportPath, fileName);
+      }
+
+      selectedActions.CommandArgsToAppend!.push("export", "--path", exportPath);
+
       break;
     case "Ignore and continue":
       selectedActions.SkipProgress = false;
