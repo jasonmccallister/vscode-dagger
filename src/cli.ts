@@ -100,6 +100,14 @@ export class DaggerCLI {
    * @returns A promise that resolves to an array of FunctionInfo objects.
    */
   async getFunctions(path: string): Promise<FunctionInfo[]> {
+    // Check if this is a Dagger project first
+    const isDaggerProject = await this.isDaggerProject(path);
+    if (!isDaggerProject) {
+      throw new Error(
+        `Path ${path} is not a Dagger project (no dagger.json found)`,
+      );
+    }
+
     const directoryId = await this.getDirectoryID(path);
 
     const { stdout, stderr, exitCode } = await this.execQuery(
@@ -238,6 +246,7 @@ export class DaggerCLI {
     try {
       let stdout = "";
       let stderr = "";
+      let hasError = false;
 
       let child = require("child_process").spawn("dagger", args, {
         cwd,
@@ -255,25 +264,68 @@ export class DaggerCLI {
         stderr += data.toString();
       });
 
+      // Handle process errors (including SIGPIPE)
+      child.on("error", (error: Error) => {
+        hasError = true;
+        console.error("Child process error:", error.message);
+      });
+
+      // Handle stdin pipe errors
+      child.stdin.on("error", (error: Error) => {
+        if (
+          error.message.includes("EPIPE") ||
+          error.message.includes("SIGPIPE")
+        ) {
+          console.warn(
+            "SIGPIPE/EPIPE error when writing to stdin, child process may have exited early",
+          );
+        } else {
+          console.error("Stdin pipe error:", error.message);
+        }
+      });
+
       // if options.stdin is provided, write it to the child's stdin
       if (options.stdin) {
-        child.stdin.write(options.stdin);
-        child.stdin.end();
+        try {
+          child.stdin.write(options.stdin);
+          child.stdin.end();
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            (error.message.includes("EPIPE") ||
+              error.message.includes("SIGPIPE"))
+          ) {
+            console.warn(
+              "SIGPIPE/EPIPE error when writing to stdin, child process may have exited early",
+            );
+          } else {
+            throw error;
+          }
+        }
       }
 
-      await new Promise((resolve, reject) => {
-        child.on("close", (code: number) => {
-          if (code !== 0) {
-            console.error("GraphQL query failed:", stderr);
-            reject(new Error(stderr || `Dagger exited with code ${code}`));
-          } else {
-            resolve(undefined);
+      const exitCode = await new Promise<number>((resolve, reject) => {
+        child.on("close", (code: number, signal: string) => {
+          if (signal) {
+            console.warn(`Child process terminated by signal: ${signal}`);
           }
+          resolve(code || 0);
+        });
+
+        child.on("exit", (code: number, signal: string) => {
+          if (signal) {
+            console.warn(`Child process exited with signal: ${signal}`);
+          }
+          resolve(code || 0);
+        });
+
+        child.on("error", (error: Error) => {
+          reject(error);
         });
       });
 
       return {
-        exitCode: 0,
+        exitCode,
         stdout: stdout.toString(),
         stderr: stderr.toString(),
       };
@@ -353,6 +405,14 @@ export class DaggerCLI {
    * @returns A promise that resolves to the directory ID as a string.
    */
   private async getDirectoryID(path: string): Promise<string> {
+    // Check if this is a Dagger project first
+    const isDaggerProject = await this.isDaggerProject(path);
+    if (!isDaggerProject) {
+      throw new Error(
+        `Path ${path} is not a Dagger project (no dagger.json found)`,
+      );
+    }
+
     const cacheKey = this.cache.generateKey("directory", path);
     if (this.settings.enableCache) {
       const cachedResult = await this.cache.get<DirectoryIdResult>(cacheKey);

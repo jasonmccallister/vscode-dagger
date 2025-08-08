@@ -27,7 +27,9 @@ export class CacheCommand implements Command {
 
     this.dagger.clearCache();
 
-    vscode.window.showInformationMessage("Cache cleared... Reloading functions");
+    vscode.window.showInformationMessage(
+      "Cache cleared... Reloading functions",
+    );
 
     // call the reload command to refresh the tree view
     await vscode.commands.executeCommand("dagger.reload");

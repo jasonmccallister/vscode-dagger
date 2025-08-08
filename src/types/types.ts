@@ -17,47 +17,50 @@ export interface DirectoryIdResult {
 
 // GraphQL field: args.typeDef and returnType in functions
 export interface FunctionArgTypeDef {
-  kind: string;        // GraphQL: typeDef.kind or returnType.kind
-  optional: boolean;   // GraphQL: typeDef.optional or returnType.optional
-  asObject?: {         // GraphQL: typeDef.asObject or returnType.asObject
-    name: string;      // GraphQL: asObject.name
+  kind: string; // GraphQL: typeDef.kind or returnType.kind
+  optional: boolean; // GraphQL: typeDef.optional or returnType.optional
+  asObject?: {
+    // GraphQL: typeDef.asObject or returnType.asObject
+    name: string; // GraphQL: asObject.name
   };
 }
 
 // GraphQL field: args in functions
 export interface FunctionArg {
-  name: string;                    // GraphQL: args.name
-  description?: string;            // GraphQL: args.description
-  typeDef: FunctionArgTypeDef;     // GraphQL: args.typeDef
+  name: string; // GraphQL: args.name
+  description?: string; // GraphQL: args.description
+  typeDef: FunctionArgTypeDef; // GraphQL: args.typeDef
 }
 
 // GraphQL field: functions in asObject
 export interface ModuleFunction {
-  id: string;                      // GraphQL: functions.id
-  name: string;                    // GraphQL: functions.name
-  description?: string;            // GraphQL: functions.description
-  returnType: FunctionArgTypeDef;  // GraphQL: functions.returnType
-  args: FunctionArg[];             // GraphQL: functions.args
+  id: string; // GraphQL: functions.id
+  name: string; // GraphQL: functions.name
+  description?: string; // GraphQL: functions.description
+  returnType: FunctionArgTypeDef; // GraphQL: functions.returnType
+  args: FunctionArg[]; // GraphQL: functions.args
 }
 
 // GraphQL field: asObject in objects
 export interface ObjectInfo {
-  name: string;                    // GraphQL: asObject.name
-  functions: ModuleFunction[];     // GraphQL: asObject.functions
+  name: string; // GraphQL: asObject.name
+  functions: ModuleFunction[]; // GraphQL: asObject.functions
 }
 
 // GraphQL field: objects in asModule
 export interface ModuleObject {
-  asObject?: ObjectInfo;           // GraphQL: objects.asObject
+  asObject?: ObjectInfo; // GraphQL: objects.asObject
 }
 
 // GraphQL response: loadDirectoryFromID
 export interface ModuleResult {
-  loadDirectoryFromID: {           // GraphQL: loadDirectoryFromID(id: $id)
-    asModule: {                    // GraphQL: loadDirectoryFromID.asModule
-      id: string;                  // GraphQL: asModule.id
-      name: string;                // GraphQL: asModule.name
-      objects: ModuleObject[];     // GraphQL: asModule.objects
+  loadDirectoryFromID: {
+    // GraphQL: loadDirectoryFromID(id: $id)
+    asModule: {
+      // GraphQL: loadDirectoryFromID.asModule
+      id: string; // GraphQL: asModule.id
+      name: string; // GraphQL: asModule.name
+      objects: ModuleObject[]; // GraphQL: asModule.objects
     };
   };
 }
@@ -74,8 +77,8 @@ export interface FunctionInfo {
   id: string;
   name: string;
   description?: string;
-  module?: string;        // Display grouping (e.g., "go-sdk")
-  parentModule?: string;  // CLI call parent (e.g., "sdk" for "dagger call sdk go ...")
+  module?: string; // Display grouping (e.g., "go-sdk")
+  parentModule?: string; // CLI call parent (e.g., "sdk" for "dagger call sdk go ...")
   returnType: string;
   args: FunctionArgument[];
 }

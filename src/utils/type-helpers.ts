@@ -1,7 +1,4 @@
-import {
-  FunctionArg,
-  FunctionArgument,
-} from "../types/types";
+import { FunctionArg, FunctionArgument } from "../types/types";
 import { nameToKebabCase } from "./modules";
 
 /**

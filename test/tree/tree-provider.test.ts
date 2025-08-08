@@ -33,12 +33,18 @@ describe("Tree Provider", () => {
         returnType: "container",
       },
     ];
-    
+
     // Mock the getFunctionsAsTree method instead of getFunctions
     mockCli.getFunctionsAsTree = async () => {
       // Return a Map with an empty module name as the key
-      const moduleMap = new Map<string, Array<{ fn: FunctionInfo; index: number }>>();
-      moduleMap.set("", testFunctions.map((fn, index) => ({ fn, index })));
+      const moduleMap = new Map<
+        string,
+        Array<{ fn: FunctionInfo; index: number }>
+      >();
+      moduleMap.set(
+        "",
+        testFunctions.map((fn, index) => ({ fn, index })),
+      );
       return moduleMap;
     };
 
@@ -56,10 +62,13 @@ describe("Tree Provider", () => {
 
   it("should display root module functions at top level with multiple modules", async () => {
     // Arrange: mock getFunctionsAsTree to return multiple modules including root module
-    
+
     // Create module map structure with root module and other modules
-    const moduleMap = new Map<string, Array<{ fn: FunctionInfo; index: number }>>();
-    
+    const moduleMap = new Map<
+      string,
+      Array<{ fn: FunctionInfo; index: number }>
+    >();
+
     // Root module functions (empty module name)
     moduleMap.set("", [
       {
@@ -71,7 +80,7 @@ describe("Tree Provider", () => {
           args: [],
           returnType: "container",
         },
-        index: 0
+        index: 0,
       },
       {
         fn: {
@@ -82,10 +91,10 @@ describe("Tree Provider", () => {
           args: [],
           returnType: "container",
         },
-        index: 1
-      }
+        index: 1,
+      },
     ]);
-    
+
     // Submodule1 functions
     moduleMap.set("submodule1", [
       {
@@ -97,7 +106,7 @@ describe("Tree Provider", () => {
           args: [],
           returnType: "container",
         },
-        index: 2
+        index: 2,
       },
       {
         fn: {
@@ -108,10 +117,10 @@ describe("Tree Provider", () => {
           args: [],
           returnType: "container",
         },
-        index: 3
-      }
+        index: 3,
+      },
     ]);
-    
+
     // Other module functions
     moduleMap.set("other-module", [
       {
@@ -123,10 +132,10 @@ describe("Tree Provider", () => {
           args: [],
           returnType: "container",
         },
-        index: 4
-      }
+        index: 4,
+      },
     ]);
-    
+
     // Mock the getFunctionsAsTree method
     mockCli.getFunctionsAsTree = async () => moduleMap;
 
@@ -192,10 +201,13 @@ describe("Tree Provider", () => {
       assert.fail("Submodule should have children property");
     }
   });
-  
+
   it("should display function arguments as children", async () => {
     // Arrange: mock getFunctionsAsTree to return a function with arguments
-    const moduleMap = new Map<string, Array<{ fn: FunctionInfo; index: number }>>();
+    const moduleMap = new Map<
+      string,
+      Array<{ fn: FunctionInfo; index: number }>
+    >();
     moduleMap.set("", [
       {
         fn: {
@@ -207,54 +219,58 @@ describe("Tree Provider", () => {
             {
               name: "stringArg",
               type: "string",
-              required: true
+              required: true,
             },
             {
               name: "numberArg",
               type: "number",
-              required: false
-            }
+              required: false,
+            },
           ],
           returnType: "container",
         },
-        index: 0
-      }
+        index: 0,
+      },
     ]);
-    
+
     // Mock the getFunctionsAsTree method
     mockCli.getFunctionsAsTree = async () => moduleMap;
-    
+
     // Act
     dataProvider = new DataProvider(mockCli as DaggerCLI, "");
     // Wait for async loadData to finish
     await new Promise((resolve) => setTimeout(resolve, 50));
     const children = await dataProvider.getChildren();
-    
+
     // Assert: Should have one function
     assert.strictEqual(children.length, 1, "Should have 1 function");
     assert.strictEqual(children[0].label, "functionWithArgs");
-    
+
     // The function should have children (arguments)
     const functionItem = children[0];
     const argChildren = await dataProvider.getChildren(functionItem);
-    
+
     // Should have 2 argument children
-    assert.strictEqual(argChildren.length, 2, "Function should have 2 arguments");
-    
+    assert.strictEqual(
+      argChildren.length,
+      2,
+      "Function should have 2 arguments",
+    );
+
     // Check argument formatting
     assert.ok(
       argChildren.some((arg) => {
         const label = String(arg.label || "");
         return label.includes("--string-arg") && label.includes("[required]");
       }),
-      "Should have required string argument with kebab case name"
+      "Should have required string argument with kebab case name",
     );
     assert.ok(
       argChildren.some((arg) => {
         const label = String(arg.label || "");
         return label.includes("--number-arg") && !label.includes("[required]");
       }),
-      "Should have optional number argument with kebab case name"
+      "Should have optional number argument with kebab case name",
     );
   });
 });

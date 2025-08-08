@@ -66,7 +66,7 @@ export class DaggerSettingsProvider implements DaggerSettings {
   private _cloudNotificationDismissed: boolean = false;
   private _saveTaskPromptDismissed: boolean = false;
   private _alwaysPromptFunctionActions: boolean = true;
-  private _contextDirectory: string = "<workspaceFolder>";
+  private _contextDirectory: string = "";
 
   constructor() {
     this.reload();
@@ -133,10 +133,7 @@ export class DaggerSettingsProvider implements DaggerSettings {
       "alwaysPromptFunctionActions",
       true,
     );
-    this._contextDirectory = config.get<string>(
-      "contextDirectory",
-      "<workspaceFolder>",
-    );
+    this._contextDirectory = config.get<string>("contextDirectory", "") || "";
   }
 
   /**

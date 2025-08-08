@@ -40,7 +40,13 @@ export async function activate(context: vscode.ExtensionContext) {
     const daggerCli = new DaggerCLI(cache, settings);
 
     // Get workspace path
-    const path = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? "";
+    let path = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? "";
+
+    // check if the context directory is set for the workspace TMEP
+    if (settings.contextDirectory && !settings.contextDirectory.includes("<workspacePath>")) {
+      // If context directory is set, use it
+      path = settings.contextDirectory;
+    }
 
     // Register configuration change listener to reload settings
     context.subscriptions.push(

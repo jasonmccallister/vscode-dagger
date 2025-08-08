@@ -101,7 +101,7 @@ class MockCache implements CliCache {
     const newSHA256 = this.generateSHA256(newData);
     return cachedSHA256 !== newSHA256;
   }
-  
+
   /**
    * Generates a cache key based on a prefix and path
    * @param prefix The prefix for the cache key
@@ -193,38 +193,39 @@ describe("CliCache", () => {
     const sha256 = await cache.getSHA256("non-existent-key");
     assert.strictEqual(sha256, undefined);
   });
-  
+
   it("should generate consistent cache keys", () => {
     const prefix = "functions";
-    const path = "/Users/jason/go/src/github.com/jasonmccallister/vscode-dagger";
-    
+    const path =
+      "/Users/jason/go/src/github.com/jasonmccallister/vscode-dagger";
+
     const key1 = cache.generateKey(prefix, path);
     const key2 = cache.generateKey(prefix, path);
-    
+
     // Same inputs should generate the same key
     assert.strictEqual(key1, key2);
-    
+
     // Different inputs should generate different keys
     const differentKey = cache.generateKey("modules", path);
     assert.notStrictEqual(key1, differentKey);
   });
-  
+
   it("should handle error cases gracefully", async () => {
     // Test with undefined value (should not throw)
     await assert.doesNotReject(async () => {
       await cache.set("undefined-key", undefined);
     });
-    
+
     // Test with null value
     await cache.set("null-key", null);
     const nullValue = await cache.get("null-key");
     assert.strictEqual(nullValue, null);
-    
+
     // Test with primitive values
     await cache.set("string-key", "simple string");
     const stringValue = await cache.get<string>("string-key");
     assert.strictEqual(stringValue, "simple string");
-    
+
     await cache.set("number-key", 42);
     const numberValue = await cache.get<number>("number-key");
     assert.strictEqual(numberValue, 42);
