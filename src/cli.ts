@@ -126,6 +126,7 @@ export class DaggerCLI {
         "Unable to determine root module name or ID from GraphQL response",
       );
     }
+    const rootModuleNameKebab = nameToKebabCase(rootModuleName);
 
     const functions: FunctionInfo[] = [];
 
@@ -135,11 +136,35 @@ export class DaggerCLI {
         return;
       }
 
-      const moduleKey = nameToKebabCase(mod.asObject.name);
-      const isRootModule = moduleKey === rootModuleName;
-      const parentModule = isRootModule
-        ? undefined
-        : "submodule-of-" + rootModuleName;
+      const originalModuleNameKebab = nameToKebabCase(mod.asObject.name);
+      const isRootModule = originalModuleNameKebab === rootModuleNameKebab;
+
+      let functionModule: string | undefined;
+      let functionParentModule: string | undefined;
+
+      // if this is the root module, set the modules on the function to undefined
+      if (isRootModule) {
+        functionParentModule = undefined; // Root module has no parent so we set it to undefined
+        functionModule = undefined; // Root module functions do not have a module name
+
+        console.debug(
+          `Module ${mod.asObject.name} is the root module, setting function module to undefined`,
+        );
+      } else if (originalModuleNameKebab.startsWith(rootModuleNameKebab)) {
+        // if the module name starts with the root module name, it is a submodule of the root module
+        // so we need to strip the root module name from the module name
+        functionModule = originalModuleNameKebab.replace(
+          new RegExp(`^${rootModuleNameKebab}-`),
+          "",
+        );
+
+        console.debug(
+          `Module ${mod.asObject.name} is a submodule of root module ${rootModuleName}, setting parent module to root`,
+        );
+      } else {
+        // its not a submodule of the root module, so we set the parent module to the original module name
+        functionParentModule = originalModuleNameKebab;
+      }
 
       mod.asObject.functions.forEach((fn: ModuleFunction) => {
         functions.push({
@@ -154,8 +179,8 @@ export class DaggerCLI {
             type: getArgumentTypeName(arg.typeDef.kind),
             required: !arg.typeDef.optional,
           })),
-          module: isRootModule ? undefined : moduleKey,
-          parentModule: parentModule,
+          module: functionModule,
+          parentModule: functionParentModule,
         });
       });
     });
