@@ -10,10 +10,13 @@ import {
 import { DaggerTreeItem } from "../tree/provider";
 import { DaggerSettings } from "../settings";
 import { DaggerCLI } from "../cli";
-import { askForPorts } from "../utils/user-input";
+import {
+  askForPorts,
+  askForExportPath,
+  askForFileName,
+} from "../utils/user-input";
 import { Command } from "./types";
-import { promptForExportPath, promptForFileName } from "./export";
-import path from "path/win32";
+import * as path from "path";
 
 export class CallCommand implements Command<DaggerTreeItem> {
   constructor(
@@ -31,7 +34,9 @@ export class CallCommand implements Command<DaggerTreeItem> {
 
     // prompt for function selection if no input provided
     if (input === undefined) {
-      functionInfo = await this.selectFunction();
+      functionInfo = await showSelectFunctionQuickPick(
+        await this.dagger.getFunctions(this.path),
+      );
     }
 
     // was input provided?
@@ -147,19 +152,6 @@ export class CallCommand implements Command<DaggerTreeItem> {
       );
     }
   }
-
-  private selectFunction = async (): Promise<FunctionInfo | undefined> => {
-    const functions = await this.dagger.getFunctions(this.path);
-    if (!functions || functions.length === 0) {
-      // If no functions are found, prompt the user to set up the project
-      vscode.window.showInformationMessage(
-        "No functions found. Please set up your Dagger project.",
-      );
-      return undefined;
-    }
-
-    return showSelectFunctionQuickPick(functions);
-  };
 }
 
 export interface SelectedActions {
@@ -252,7 +244,7 @@ const preRunOptions = async (
 
       break;
     case "Export to Host":
-      let exportPath = await promptForExportPath();
+      let exportPath = await askForExportPath();
       if (!exportPath) {
         vscode.window.showInformationMessage(
           "Export path not specified. Operation cancelled.",
@@ -261,7 +253,7 @@ const preRunOptions = async (
       }
 
       if (functionInfo.returnType === FileType) {
-        const fileName = await promptForFileName();
+        const fileName = await askForFileName();
         if (!fileName) {
           vscode.window.showInformationMessage(
             "File name not specified. Operation cancelled.",

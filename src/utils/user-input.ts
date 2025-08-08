@@ -1,5 +1,11 @@
 import * as vscode from "vscode";
 
+/**
+ * Prompts the user for the ports to expose for a specific function. This is
+ * used when exposing services for functions.
+ * @param functionName The name of the function for which to expose ports.
+ * @returns An array of ports to expose or undefined if cancelled.
+ */
 export const askForPorts = async (
   functionName: string,
 ): Promise<string[] | undefined> => {
@@ -34,6 +40,10 @@ export const askForPorts = async (
   );
 };
 
+/**
+ * Prompts the user for the Dagger module address. This is used when installing a module for a workflow.
+ * @returns The module address entered by the user or undefined if cancelled.
+ */
 export const askForModuleAddress = async (): Promise<string | undefined> => {
   const module = await vscode.window.showInputBox({
     placeHolder:
@@ -68,4 +78,72 @@ export const askForModuleAddress = async (): Promise<string | undefined> => {
   }
 
   return module;
+};
+
+/**
+ * Prompts the user for the export path. This is used for exporting files and directories
+ * from functions.
+ * @returns The export path entered by the user or undefined if cancelled.
+ */
+export const askForExportPath = async (): Promise<string | undefined> => {
+  const exportPath = await vscode.window.showInputBox({
+    prompt: "Enter the export path",
+    value: "./dist",
+    validateInput: (value) => {
+      // must not be empty a valid path
+      if (!value || value.trim() === "") {
+        return "Export path cannot be empty.";
+      }
+
+      // cannot contain .. or / and must be relative
+      if (value.startsWith("..") || value.startsWith("/")) {
+        return "Export path cannot contain .. or / and must be relative to the workspace.";
+      }
+
+      // cannot contain any special characters
+      const invalidChars = /[<>:"|?*]/;
+      if (invalidChars.test(value)) {
+        return 'Export path cannot contain special characters like <, >, :, ", |, ?, *';
+      }
+
+      // can't be environment variable
+      if (value.startsWith("$")) {
+        return "Export path cannot be an environment variable.";
+      }
+
+      return null; // no error
+    },
+  });
+
+  return exportPath;
+};
+
+/**
+ * Prompts the user for a file name. This is used when exporting files from functions.
+ * @returns The file name entered by the user or undefined if cancelled.
+ */
+export const askForFileName = async (): Promise<string | undefined> => {
+  const fileName = await vscode.window.showInputBox({
+    prompt: "Enter the file name",
+    validateInput: (value) => {
+      if (!value || value.trim() === "") {
+        return "File name cannot be empty.";
+      }
+
+      // cannot contain special characters
+      const invalidChars = /[<>:"|?*]/;
+      if (invalidChars.test(value)) {
+        return 'File name cannot contain special characters like <, >, :, ", |, ?, *';
+      }
+
+      // no spaces allowed
+      if (value.includes(" ")) {
+        return "File name cannot contain spaces.";
+      }
+
+      return null; // no error
+    },
+  });
+
+  return fileName;
 };

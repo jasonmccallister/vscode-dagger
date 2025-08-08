@@ -13,24 +13,21 @@ export type DaggerPathFinder = () => string;
  */
 export const findDaggerPath = (): string => {
   try {
-    const shell = process.env.SHELL || "/bin/bash";
-    const isFish = shell.includes("fish");
+    const shell = process.env.SHELL;
+    if (!shell) {
+      console.error("SHELL environment variable is not set.");
 
-    if (isFish) {
-      // For fish shell, use the shell directly with login context
+      throw new Error("SHELL environment variable is not set.");
+    }
+
+    // For other shells, try which command directly first
+    try {
+      return execFileSync("which", ["dagger"], { encoding: "utf8" }).trim();
+    } catch {
+      // Fallback to using login shell for other shells too
       return execFileSync(shell, ["-l", "-c", "which dagger"], {
         encoding: "utf8",
       }).trim();
-    } else {
-      // For other shells, try which command directly first
-      try {
-        return execFileSync("which", ["dagger"], { encoding: "utf8" }).trim();
-      } catch {
-        // Fallback to using login shell for other shells too
-        return execFileSync(shell, ["-l", "-c", "which dagger"], {
-          encoding: "utf8",
-        }).trim();
-      }
     }
   } catch (err) {
     console.error("Failed to find dagger binary path:", err);
@@ -74,7 +71,6 @@ export const registerTerminalProvider = (
         options: {
           name: "Dagger",
           iconPath, // Use the ThemeIcon object with both light and dark variants
-
           isTransient: true,
           shellPath: daggerPath,
         },

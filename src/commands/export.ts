@@ -11,6 +11,7 @@ import {
 } from "../utils";
 import { DirectoryType, FileType } from "../types/types";
 import path from "path";
+import { askForExportPath, askForFileName } from "../utils/user-input";
 
 export class ExportCommand implements Command {
   constructor(
@@ -65,7 +66,7 @@ export class ExportCommand implements Command {
         }
 
         // prompt for the export path, default to ./dist
-        let exportPath = await promptForExportPath();
+        let exportPath = await askForExportPath();
         if (!exportPath) {
           vscode.window.showInformationMessage(
             "Export path not specified. Operation cancelled.",
@@ -79,7 +80,7 @@ export class ExportCommand implements Command {
 
         // if the return type is a file, ask for the file name
         if (functionInfo.returnType === FileType) {
-          const fileName = await promptForFileName();
+          const fileName = await askForFileName();
           if (!fileName) {
             vscode.window.showInformationMessage(
               "File name not specified. Operation cancelled.",
@@ -127,73 +128,3 @@ export class ExportCommand implements Command {
     );
   };
 }
-
-export const promptForExportPath = async () => {
-  const exportPath = await vscode.window.showInputBox({
-    prompt: "Enter the export path",
-    validateInput: (value) => {
-      // must not be empty a valid path
-      if (!value || value.trim() === "") {
-        return "Export path cannot be empty.";
-      }
-
-      // cannot contain .. or / and must be relative
-      if (value.startsWith("..") || value.startsWith("/")) {
-        return "Export path cannot contain .. or / and must be relative to the workspace.";
-      }
-
-      // cannot contain any special characters
-      const invalidChars = /[<>:"|?*]/;
-      if (invalidChars.test(value)) {
-        return 'Export path cannot contain special characters like <, >, :, ", |, ?, *';
-      }
-
-      // can't be environment variable
-      if (value.startsWith("$")) {
-        return "Export path cannot be an environment variable.";
-      }
-
-      return null; // no error
-    },
-  });
-  if (!exportPath) {
-    vscode.window.showInformationMessage(
-      "Export path not specified. Operation cancelled.",
-    );
-    return;
-  }
-
-  return exportPath;
-};
-
-export const promptForFileName = async () => {
-  const fileName = await vscode.window.showInputBox({
-    prompt: "Enter the file name",
-    validateInput: (value) => {
-      if (!value || value.trim() === "") {
-        return "File name cannot be empty.";
-      }
-
-      // cannot contain special characters
-      const invalidChars = /[<>:"|?*]/;
-      if (invalidChars.test(value)) {
-        return 'File name cannot contain special characters like <, >, :, ", |, ?, *';
-      }
-
-      // no spaces allowed
-      if (value.includes(" ")) {
-        return "File name cannot contain spaces.";
-      }
-
-      return null; // no error
-    },
-  });
-  if (!fileName) {
-    vscode.window.showInformationMessage(
-      "File name not specified. Operation cancelled.",
-    );
-    return;
-  }
-
-  return fileName;
-};
