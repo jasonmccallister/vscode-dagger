@@ -6,7 +6,7 @@ import { DaggerCLI, kebab } from "../cli";
 type ItemType = "function" | "argument" | "empty" | "action" | "module";
 
 interface TreeViewConfig {
-  workspacePath?: string;
+  path?: string;
   daggerCli: DaggerCLI;
   registerTreeCommands?: boolean; // Flag to control command registration
   settings: DaggerSettings;
@@ -27,14 +27,12 @@ export const registerTreeView = (
   context: vscode.ExtensionContext,
   config: TreeViewConfig,
 ): void => {
-  const workspacePath =
-    config.workspacePath ??
-    vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ??
-    "";
+  const path =
+    config.path ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? "";
   const daggerCli = config.daggerCli;
 
   // Pass the extension context to the data provider
-  const dataProvider = new DataProvider(daggerCli, workspacePath);
+  const dataProvider = new DataProvider(daggerCli, path);
 
   const treeView = vscode.window.createTreeView(TREE_VIEW_ID, {
     treeDataProvider: dataProvider,
@@ -176,12 +174,11 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
   > = this._onDidChangeTreeData.event;
 
   private items: DaggerTreeItem[] = [];
-  private daggerCli: DaggerCLI;
-  private workspacePath: string;
 
-  constructor(daggerCli: DaggerCLI, workspacePath: string) {
-    this.daggerCli = daggerCli;
-    this.workspacePath = workspacePath;
+  constructor(
+    private dagger: DaggerCLI,
+    private path: string,
+  ) {
     // Show loading state immediately
     this.items = [new DaggerTreeItem("Loading functions...", "empty")];
     // Load data asynchronously without blocking
@@ -211,13 +208,11 @@ export class DataProvider implements vscode.TreeDataProvider<DaggerTreeItem> {
                     "Loading... Depending on your project initial load could take a while. Subsequent response times will be cached and updated in the background.",
                 });
               }
-            }, 3000); // Show notice after 3 seconds
+            }, 6000); // Show notice after 6 seconds
 
             try {
               // Get functions grouped by module using the new getFunctionsAsTree method
-              const moduleMap = await this.daggerCli.getFunctionsAsTree(
-                this.workspacePath,
-              );
+              const moduleMap = await this.dagger.getFunctionsAsTree(this.path);
 
               // Clear the timeout since we're done loading
               clearTimeout(timeoutHandle);

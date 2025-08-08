@@ -1,3 +1,9 @@
+import {
+  FunctionArg,
+  FunctionArgument,
+} from "../types/types";
+import { nameToKebabCase } from "./modules";
+
 /**
  * Converts GraphQL return type information to a friendly Dagger type name.
  * This is optimized for function return types which are often Dagger objects
@@ -28,6 +34,8 @@ export const getReturnTypeName = (typeInfo: any): string => {
 };
 
 /**
+ * @deprecated Use functionArgTypeToFunctionArgument instead.
+ *
  * Converts GraphQL argument type information to a friendly Dagger type name.
  * This is optimized for function arguments which are often basic types
  * like String, Int, Boolean, or Dagger objects.
@@ -58,6 +66,46 @@ export const getArgumentTypeName = (typeInfo: any): string => {
 };
 
 /**
+ * Converts a FunctionArg to a FunctionArgument.
+ * @param arg The FunctionArg to convert.
+ * @returns The converted FunctionArgument.
+ */
+export const functionArgTypeToFunctionArgument = (
+  arg: FunctionArg,
+): FunctionArgument => {
+  let funcArg: FunctionArgument = {
+    name: nameToKebabCase(arg.name),
+    type: "unknown",
+    required: !arg.typeDef.optional,
+  };
+
+  if (arg.typeDef.asObject && arg.typeDef.asObject.name) {
+    funcArg.type = arg.typeDef.asObject.name;
+
+    return funcArg;
+  }
+
+  switch (arg.typeDef.kind) {
+    case "STRING_KIND":
+      funcArg.type = "String";
+      break;
+    case "INT_KIND":
+      funcArg.type = "Int";
+      break;
+    case "FLOAT_KIND":
+      funcArg.type = "Float";
+      break;
+    case "BOOLEAN_KIND":
+      funcArg.type = "Boolean";
+      break;
+  }
+
+  return funcArg;
+};
+
+/**
+ * @deprecated Use functionArgTypeToFunctionArgument instead.
+ *
  * Core function to convert various GraphQL type formats to Dagger-style type names.
  * Handles multiple patterns: OBJECT_, KIND_, _kind suffix, and direct scalar types.
  *
@@ -66,48 +114,15 @@ export const getArgumentTypeName = (typeInfo: any): string => {
  * @private
  */
 const convertGraphQLType = (graphQLType: string): string => {
-  // Handle null or undefined
-  if (!graphQLType) {
-    return "unknown";
-  }
-
   // Handle OBJECT_ prefixed types (e.g., OBJECT_STRING, OBJECT_INT)
-  if (graphQLType.startsWith("OBJECT_")) {
-    const typeWithoutPrefix = graphQLType.substring(7).toLowerCase();
-    return mapScalarType(typeWithoutPrefix);
-  }
-
-  // Handle KIND_ prefixed types (e.g., KIND_STRING, KIND_INT)
-  if (graphQLType.startsWith("KIND_")) {
-    const typeWithoutPrefix = graphQLType.substring(5).toLowerCase();
-    return mapScalarType(typeWithoutPrefix);
-  }
-
-  // Handle _kind suffixed types (e.g., string_kind, int_kind)
-  if (graphQLType.toLowerCase().endsWith("_kind")) {
-    const typeWithoutSuffix = graphQLType
+  if (graphQLType.endsWith("_KIND")) {
+    const typeWithoutPrefix = graphQLType
       .substring(0, graphQLType.length - 5)
       .toLowerCase();
-    return mapScalarType(typeWithoutSuffix);
+    return mapScalarType(typeWithoutPrefix);
   }
 
-  // Handle direct GraphQL scalar types
-  switch (graphQLType.toUpperCase()) {
-    case "STRING":
-      return "String";
-    case "INT":
-    case "INTEGER":
-      return "Int";
-    case "FLOAT":
-      return "Float";
-    case "BOOLEAN":
-      return "Boolean";
-    case "ID":
-      return "String";
-    default:
-      // If we can't map it, use the original type (likely a Dagger type like Container, Service, etc.)
-      return graphQLType;
-  }
+  return "<unknown>";
 };
 
 /**

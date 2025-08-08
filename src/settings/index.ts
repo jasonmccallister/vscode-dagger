@@ -35,6 +35,11 @@ export interface DaggerSettings {
   readonly saveTaskPromptDismissed: boolean;
 
   /**
+   * The Context Directory for Dagger.
+   */
+  readonly contextDirectory: string;
+
+  /**
    * Reload settings from VS Code configuration
    */
   reload(): void;
@@ -61,6 +66,7 @@ export class DaggerSettingsProvider implements DaggerSettings {
   private _cloudNotificationDismissed: boolean = false;
   private _saveTaskPromptDismissed: boolean = false;
   private _alwaysPromptFunctionActions: boolean = true;
+  private _contextDirectory: string = "<workspaceFolder>";
 
   constructor() {
     this.reload();
@@ -102,6 +108,13 @@ export class DaggerSettingsProvider implements DaggerSettings {
   }
 
   /**
+   * The Context Directory for Dagger.
+   */
+  public get contextDirectory(): string {
+    return this._contextDirectory;
+  }
+
+  /**
    * Reloads settings from the VS Code configuration
    */
   public reload(): void {
@@ -120,6 +133,10 @@ export class DaggerSettingsProvider implements DaggerSettings {
       "alwaysPromptFunctionActions",
       true,
     );
+    this._contextDirectory = config.get<string>(
+      "contextDirectory",
+      "<workspaceFolder>",
+    );
   }
 
   /**
@@ -128,15 +145,14 @@ export class DaggerSettingsProvider implements DaggerSettings {
    * @param value The new value
    * @param target The configuration target (Global, Workspace, etc.)
    */
-  public update<T>(
+  public async update<T>(
     section: string,
     value: T,
     target: vscode.ConfigurationTarget,
-  ): Thenable<void> {
+  ): Promise<void> {
     const config = vscode.workspace.getConfiguration("dagger");
-    return config.update(section, value, target).then(() => {
-      this.reload(); // Reload settings after update
-    });
+    await config.update(section, value, target);
+    this.reload(); // Reload settings after update
   }
 }
 

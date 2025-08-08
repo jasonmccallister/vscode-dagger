@@ -25,6 +25,7 @@ import { GraphQLCommand } from "./commands/graphql";
 import { UpdateCommand } from "./commands/update";
 import { ExportCommand } from "./commands/export";
 import { TerminalCommand } from "./commands/terminal";
+import { ContextDirectoryCommand } from "./commands/context";
 
 export async function activate(context: vscode.ExtensionContext) {
   try {
@@ -90,6 +91,11 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
       vscode.commands.registerCommand("dagger.addMcpModule", () =>
         new McpCommand(daggerCli, path, settings).execute(),
+      ),
+    );
+    context.subscriptions.push(
+      vscode.commands.registerCommand("dagger.context", () =>
+        new ContextDirectoryCommand(daggerCli, path, settings).execute(),
       ),
     );
     context.subscriptions.push(

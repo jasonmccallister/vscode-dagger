@@ -6,11 +6,13 @@ import {
   ModuleResult,
   FunctionArg,
   ModuleFunction,
-  ObjectInfo,
 } from "./types/types";
 import { DaggerSettings } from "./settings";
 import { CliCache } from "./cache";
-import { getArgumentTypeName, getReturnTypeName } from "./utils/type-helpers";
+import {
+  functionArgTypeToFunctionArgument,
+  getReturnTypeName,
+} from "./utils/type-helpers";
 import { nameToKebabCase } from "./utils/modules";
 
 export interface Output {
@@ -172,13 +174,9 @@ export class DaggerCLI {
           name: nameToKebabCase(fn.name),
           description: fn.description,
           returnType: getReturnTypeName(fn.returnType),
-          args: fn.args.map((arg: FunctionArg) => ({
-            name: nameToKebabCase(arg.name),
-            description: arg.description,
-            typeDef: arg.typeDef,
-            type: getArgumentTypeName(arg.typeDef.kind),
-            required: !arg.typeDef.optional,
-          })),
+          args: fn.args.map((arg: FunctionArg) =>
+            functionArgTypeToFunctionArgument(arg),
+          ),
           module: functionModule,
           parentModule: functionParentModule,
         });
@@ -389,6 +387,8 @@ export class DaggerCLI {
 
     // always set the cache, even if not enabled. This is to ensure that the cache is always up-to-date if enabled later
     this.cache.set(cacheKey, result);
+
+    console.debug("Directory id:", result.host.directory.id, "for", path);
 
     return result.host.directory.id;
   }

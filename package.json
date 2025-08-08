@@ -48,6 +48,12 @@
         "shortTitle": "Init"
       },
       {
+        "command": "dagger.context",
+        "title": "Set Context Directory",
+        "category": "Dagger",
+        "shortTitle": "Context"
+      },
+      {
         "command": "dagger.develop",
         "title": "Develop Local Modules",
         "category": "Dagger",
@@ -179,6 +185,12 @@
           "type": "boolean",
           "default": true,
           "description": "Whether to always prompt before executing function actions (e.g., export, expose service)",
+          "scope": "window"
+        },
+        "dagger.contextDirectory": {
+          "type": "string",
+          "default": "<workspaceFolder>",
+          "description": "The root Context Directory for Dagger.",
           "scope": "window"
         },
         "dagger.installMethod": {
