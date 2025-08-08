@@ -5,7 +5,7 @@ import { Command } from "./types";
 
 export class ContextDirectoryCommand implements Command {
   constructor(
-    private dagger: DaggerCLI,
+    private _dagger: DaggerCLI,
     private path: string,
     private settings: DaggerSettings,
   ) {}

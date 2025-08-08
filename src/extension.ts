@@ -161,7 +161,7 @@ export async function activate(context: vscode.ExtensionContext) {
     // Register tree view with settings
     registerTreeView(context, {
       daggerCli,
-      workspacePath: path,
+      path: path,
       registerTreeCommands: true,
       settings,
     });
@@ -199,11 +199,11 @@ const handleMissingInstallation = async (
   installResult: InstallResult,
   settings: DaggerSettingsProvider,
   daggerCli: DaggerCLI,
-  workspace: string,
+  path: string,
 ): Promise<void> => {
   registerTreeView(context, {
     daggerCli,
-    workspacePath: workspace,
+    path: path,
     registerTreeCommands: false,
     settings,
   });
