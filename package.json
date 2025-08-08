@@ -189,7 +189,6 @@
         },
         "dagger.contextDirectory": {
           "type": "string",
-          "default": "<workspaceFolder>",
           "description": "The root Context Directory for Dagger.",
           "scope": "window"
         },
